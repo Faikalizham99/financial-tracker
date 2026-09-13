@@ -1,36 +1,249 @@
-﻿<?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="FinancialTracker.MainPage">
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="FinancialTracker.MainPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:views="clr-namespace:FinancialTracker.Views"
+    Shell.NavBarIsVisible="False">
 
-    <ScrollView>
-        <VerticalStackLayout
-            Padding="30,0"
-            Spacing="25">
-            <Image
-                Source="dotnet_bot.png"
-                HeightRequest="185"
-                Aspect="AspectFit"
-                SemanticProperties.Description="dot net bot in a submarine number ten" />
+    <Grid>
+        <!-- Dashboard -->
+        <ScrollView
+            x:Name="DashboardView"
+            IsVisible="False"
+            VerticalScrollBarVisibility="Never">
+            <VerticalStackLayout Padding="24,30,24,126" Spacing="27">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Good morning," Style="{StaticResource DisplayTitle}" />
+                        <Label Text="Faikal" Style="{StaticResource DisplayTitle}" />
+                        <Label
+                            Margin="0,4,0,0"
+                            Text="Here’s the shape of your money today."
+                            Style="{StaticResource BodyMuted}" />
+                    </VerticalStackLayout>
+                    <Border
+                        Grid.Column="1"
+                        WidthRequest="58"
+                        HeightRequest="58"
+                        VerticalOptions="Start"
+                        BackgroundColor="{StaticResource Accent}"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 29">
+                        <Label
+                            Text="F"
+                            FontFamily="OpenSansSemibold"
+                            FontSize="22"
+                            TextColor="White"
+                            HorizontalOptions="Center"
+                            VerticalOptions="Center" />
+                    </Border>
+                </Grid>
 
-            <Label
-                Text="Hello, World!"
-                Style="{StaticResource Headline}"
-                SemanticProperties.HeadingLevel="Level1" />
+                <VerticalStackLayout Spacing="13">
+                    <Label Text="MONTHLY PULSE" Style="{StaticResource SectionLabel}" />
+                    <Border Style="{StaticResource Card}">
+                        <VerticalStackLayout Spacing="18">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <VerticalStackLayout Spacing="3">
+                                    <Label Text="Available to spend" Style="{StaticResource BodyMuted}" />
+                                    <Label Text="RM 3,240.50" FontFamily="OpenSansSemibold" FontSize="31" />
+                                </VerticalStackLayout>
+                                <Border Grid.Column="1" Style="{StaticResource Pill}" VerticalOptions="Start">
+                                    <Label Text="SEP" FontFamily="OpenSansSemibold" FontSize="11" TextColor="{StaticResource Accent}" />
+                                </Border>
+                            </Grid>
+                            <Grid HeightRequest="12">
+                                <Border BackgroundColor="{StaticResource SurfaceMutedLight}" StrokeThickness="0" StrokeShape="RoundRectangle 6" />
+                                <Border
+                                    WidthRequest="205"
+                                    HorizontalOptions="Start"
+                                    BackgroundColor="{StaticResource Accent}"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 6" />
+                            </Grid>
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="20">
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="INCOME" Style="{StaticResource SectionLabel}" FontSize="10" />
+                                    <Label Text="RM 6,800" FontFamily="OpenSansSemibold" FontSize="16" />
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                    <Label Text="SPENT" Style="{StaticResource SectionLabel}" FontSize="10" />
+                                    <Label Text="RM 3,559.50" FontFamily="OpenSansSemibold" FontSize="16" />
+                                </VerticalStackLayout>
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Border>
+                </VerticalStackLayout>
 
-            <Label
-                Text="Welcome to &#10;.NET Multi-platform App UI"
-                Style="{StaticResource SubHeadline}"
-                SemanticProperties.HeadingLevel="Level2"
-                SemanticProperties.Description="Welcome to dot net Multi platform App U I" />
+                <VerticalStackLayout Spacing="13">
+                    <Label Text="RECENT ACTIVITY" Style="{StaticResource SectionLabel}" />
+                    <Border Style="{StaticResource Card}">
+                        <Grid ColumnDefinitions="46,*,Auto" ColumnSpacing="12">
+                            <Border
+                                WidthRequest="43"
+                                HeightRequest="43"
+                                BackgroundColor="{StaticResource BlushLight}"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 13">
+                                <Label Text="B" FontFamily="OpenSansSemibold" HorizontalOptions="Center" VerticalOptions="Center" />
+                            </Border>
+                            <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                <Label Text="Breakfast" Style="{StaticResource CardTitle}" FontSize="15" />
+                                <Label Text="Food &amp; drinks · Card" Style="{StaticResource BodyMuted}" FontSize="12" />
+                            </VerticalStackLayout>
+                            <Label Grid.Column="2" Text="−RM 18.50" FontFamily="OpenSansSemibold" TextColor="{StaticResource NegativeLight}" VerticalOptions="Center" />
+                        </Grid>
+                    </Border>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </ScrollView>
 
-            <Button
-                x:Name="CounterBtn"
-                Text="Click me" 
-                SemanticProperties.Hint="Counts the number of times you click"
-                Clicked="OnCounterClicked"
-                HorizontalOptions="Fill" />
-        </VerticalStackLayout>
-    </ScrollView>
+        <!-- Expenses is the initial screen. -->
+        <views:ExpensesView x:Name="ExpensesView" />
 
+        <!-- Settings -->
+        <ScrollView
+            x:Name="SettingsView"
+            IsVisible="False"
+            VerticalScrollBarVisibility="Never">
+            <VerticalStackLayout Padding="24,30,24,126" Spacing="27">
+                <VerticalStackLayout Spacing="5">
+                    <Label Text="Settings" Style="{StaticResource PageTitle}" />
+                    <Label Text="Make Financial Tracker feel like yours." Style="{StaticResource BodyMuted}" />
+                </VerticalStackLayout>
+                <Border Style="{StaticResource Card}">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="15">
+                        <Border
+                            WidthRequest="56"
+                            HeightRequest="56"
+                            BackgroundColor="{StaticResource Accent}"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 28">
+                            <Label Text="F" FontFamily="OpenSansSemibold" FontSize="21" TextColor="White" HorizontalOptions="Center" VerticalOptions="Center" />
+                        </Border>
+                        <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                            <Label Text="Faikal" Style="{StaticResource CardTitle}" />
+                            <Label Text="MYR · Malaysian Ringgit" Style="{StaticResource BodyMuted}" FontSize="12" />
+                        </VerticalStackLayout>
+                        <Label Grid.Column="2" Text="›" FontSize="28" VerticalOptions="Center" />
+                    </Grid>
+                </Border>
+                <VerticalStackLayout Spacing="13">
+                    <Label Text="APPEARANCE" Style="{StaticResource SectionLabel}" />
+                    <Border Style="{StaticResource SoftCard}">
+                        <VerticalStackLayout Spacing="14">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <VerticalStackLayout Spacing="2">
+                                    <Label Text="Theme" Style="{StaticResource CardTitle}" FontSize="16" />
+                                    <Label Text="Light mode is selected" Style="{StaticResource BodyMuted}" FontSize="12" />
+                                </VerticalStackLayout>
+                                <Label Grid.Column="1" Text="Light" FontFamily="OpenSansSemibold" TextColor="{StaticResource Accent}" VerticalOptions="Center" />
+                            </Grid>
+                            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                                <Border Style="{StaticResource Pill}">
+                                    <Label Text="System" HorizontalTextAlignment="Center" />
+                                </Border>
+                                <Border Grid.Column="1" Style="{StaticResource Pill}" BackgroundColor="{StaticResource AccentTintLight}">
+                                    <Label Text="Light" FontFamily="OpenSansSemibold" TextColor="{StaticResource Accent}" HorizontalTextAlignment="Center" />
+                                </Border>
+                                <Border Grid.Column="2" Style="{StaticResource Pill}">
+                                    <Label Text="Dark" HorizontalTextAlignment="Center" />
+                                </Border>
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Border>
+                </VerticalStackLayout>
+                <VerticalStackLayout Spacing="13">
+                    <Label Text="PREFERENCES" Style="{StaticResource SectionLabel}" />
+                    <Border Style="{StaticResource Card}" Padding="0">
+                        <Grid Padding="18" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                            <Border
+                                WidthRequest="42"
+                                HeightRequest="42"
+                                BackgroundColor="{StaticResource AccentTintLight}"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 13">
+                                <Label Text="RM" FontFamily="OpenSansSemibold" FontSize="12" HorizontalOptions="Center" VerticalOptions="Center" />
+                            </Border>
+                            <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                <Label Text="Currency" Style="{StaticResource CardTitle}" FontSize="15" />
+                                <Label Text="Malaysian Ringgit" Style="{StaticResource BodyMuted}" FontSize="12" />
+                            </VerticalStackLayout>
+                            <Label Grid.Column="2" Text="›" FontSize="27" VerticalOptions="Center" />
+                        </Grid>
+                    </Border>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Bottom dock: navigation and a separate add button. -->
+        <Grid
+            Margin="18,0,18,18"
+            ColumnDefinitions="*,70"
+            ColumnSpacing="11"
+            VerticalOptions="End">
+            <Border
+                Grid.Column="0"
+                HeightRequest="70"
+                Padding="7"
+                BackgroundColor="{StaticResource CardBackgroundLight}"
+                Stroke="{StaticResource BorderLight}"
+                StrokeThickness="2"
+                StrokeShape="RoundRectangle 35">
+                <Border.Shadow>
+                    <Shadow Brush="{StaticResource ShadowLight}" Offset="0,7" Opacity="0.18" Radius="16" />
+                </Border.Shadow>
+                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="4">
+                    <Border x:Name="DashboardTab" Style="{StaticResource NavTab}">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnDashboardTapped" />
+                        </Border.GestureRecognizers>
+                        <VerticalStackLayout Spacing="0">
+                            <Label x:Name="DashboardIcon" Text="⌂" Style="{StaticResource NavLabel}" FontSize="21" />
+                            <Label x:Name="DashboardLabel" Text="Home" Style="{StaticResource NavLabel}" />
+                        </VerticalStackLayout>
+                    </Border>
+                    <Border x:Name="ExpensesTab" Grid.Column="1" Style="{StaticResource SelectedNavTab}">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnExpensesTapped" />
+                        </Border.GestureRecognizers>
+                        <VerticalStackLayout Spacing="0">
+                            <Label x:Name="ExpensesIcon" Text="⇅" Style="{StaticResource SelectedNavLabel}" FontSize="20" />
+                            <Label x:Name="ExpensesLabel" Text="Expenses" Style="{StaticResource SelectedNavLabel}" />
+                        </VerticalStackLayout>
+                    </Border>
+                    <Border x:Name="SettingsTab" Grid.Column="2" Style="{StaticResource NavTab}">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnSettingsTapped" />
+                        </Border.GestureRecognizers>
+                        <VerticalStackLayout Spacing="0">
+                            <Label x:Name="SettingsIcon" Text="⚙" Style="{StaticResource NavLabel}" FontSize="19" />
+                            <Label x:Name="SettingsLabel" Text="Settings" Style="{StaticResource NavLabel}" />
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <Border
+                Grid.Column="1"
+                WidthRequest="68"
+                HeightRequest="68"
+                BackgroundColor="{StaticResource CardBackgroundLight}"
+                Stroke="{StaticResource BorderLight}"
+                StrokeThickness="2"
+                StrokeShape="RoundRectangle 34"
+                VerticalOptions="Center">
+                <Border.Shadow>
+                    <Shadow Brush="{StaticResource ShadowLight}" Offset="0,7" Opacity="0.18" Radius="16" />
+                </Border.Shadow>
+                <Label
+                    Text="+"
+                    FontSize="35"
+                    TextColor="{StaticResource PrimaryTextLight}"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center" />
+            </Border>
+        </Grid>
+    </Grid>
 </ContentPage>

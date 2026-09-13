@@ -1,44 +1,52 @@
-﻿<?xml version="1.0" encoding="UTF-8" ?>
-<ResourceDictionary 
+<?xml version="1.0" encoding="UTF-8" ?>
+<ResourceDictionary
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
 
-    <!-- Note: For Android please see also Platforms\Android\Resources\values\colors.xml -->
+    <!-- Core palette -->
+    <Color x:Key="White">#FFFFFF</Color>
+    <Color x:Key="Black">#000000</Color>
+    <Color x:Key="Transparent">Transparent</Color>
 
-    <Color x:Key="Primary">#512BD4</Color>
-    <Color x:Key="PrimaryDark">#ac99ea</Color>
-    <Color x:Key="PrimaryDarkText">#242424</Color>
-    <Color x:Key="Secondary">#DFD8F7</Color>
-    <Color x:Key="SecondaryDarkText">#9880e5</Color>
-    <Color x:Key="Tertiary">#2B0B98</Color>
+    <!-- Light theme -->
+    <Color x:Key="PageBackgroundLight">#FAF7F1</Color>
+    <Color x:Key="CardBackgroundLight">#FFFEFC</Color>
+    <Color x:Key="PrimaryTextLight">#17142D</Color>
+    <Color x:Key="SecondaryTextLight">#686273</Color>
+    <Color x:Key="BorderLight">#17142D</Color>
+    <Color x:Key="SurfaceMutedLight">#F1EDE7</Color>
+    <Color x:Key="DividerLight">#E9E3DB</Color>
 
-    <Color x:Key="White">White</Color>
-    <Color x:Key="Black">Black</Color>
-    <Color x:Key="Magenta">#D600AA</Color>
-    <Color x:Key="MidnightBlue">#190649</Color>
-    <Color x:Key="OffBlack">#1f1f1f</Color>
+    <!-- Dark theme -->
+    <Color x:Key="PageBackgroundDark">#11101A</Color>
+    <Color x:Key="CardBackgroundDark">#1D1B2A</Color>
+    <Color x:Key="PrimaryTextDark">#FBF7F0</Color>
+    <Color x:Key="SecondaryTextDark">#BBB4C7</Color>
+    <Color x:Key="BorderDark">#8D87A4</Color>
+    <Color x:Key="SurfaceMutedDark">#292637</Color>
+    <Color x:Key="DividerDark">#383447</Color>
 
-    <Color x:Key="Gray100">#E1E1E1</Color>
-    <Color x:Key="Gray200">#C8C8C8</Color>
-    <Color x:Key="Gray300">#ACACAC</Color>
-    <Color x:Key="Gray400">#919191</Color>
-    <Color x:Key="Gray500">#6E6E6E</Color>
-    <Color x:Key="Gray600">#404040</Color>
-    <Color x:Key="Gray900">#212121</Color>
-    <Color x:Key="Gray950">#141414</Color>
+    <!-- Shared accents -->
+    <Color x:Key="Accent">#5044E4</Color>
+    <Color x:Key="AccentDark">#8076FF</Color>
+    <Color x:Key="AccentTintLight">#EAE7FF</Color>
+    <Color x:Key="AccentTintDark">#302B5D</Color>
+    <Color x:Key="BlushLight">#F6DEDB</Color>
+    <Color x:Key="BlushDark">#4A2D3B</Color>
+    <Color x:Key="MintLight">#DDF1E7</Color>
+    <Color x:Key="MintDark">#1E4037</Color>
+    <Color x:Key="PositiveLight">#147C5B</Color>
+    <Color x:Key="PositiveDark">#72D7B2</Color>
+    <Color x:Key="NegativeLight">#C54558</Color>
+    <Color x:Key="NegativeDark">#FF8D9C</Color>
+    <Color x:Key="ShadowLight">#17142D</Color>
+    <Color x:Key="ShadowDark">#05040A</Color>
 
-    <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource Primary}"/>
-    <SolidColorBrush x:Key="SecondaryBrush" Color="{StaticResource Secondary}"/>
-    <SolidColorBrush x:Key="TertiaryBrush" Color="{StaticResource Tertiary}"/>
-    <SolidColorBrush x:Key="WhiteBrush" Color="{StaticResource White}"/>
-    <SolidColorBrush x:Key="BlackBrush" Color="{StaticResource Black}"/>
-
-    <SolidColorBrush x:Key="Gray100Brush" Color="{StaticResource Gray100}"/>
-    <SolidColorBrush x:Key="Gray200Brush" Color="{StaticResource Gray200}"/>
-    <SolidColorBrush x:Key="Gray300Brush" Color="{StaticResource Gray300}"/>
-    <SolidColorBrush x:Key="Gray400Brush" Color="{StaticResource Gray400}"/>
-    <SolidColorBrush x:Key="Gray500Brush" Color="{StaticResource Gray500}"/>
-    <SolidColorBrush x:Key="Gray600Brush" Color="{StaticResource Gray600}"/>
-    <SolidColorBrush x:Key="Gray900Brush" Color="{StaticResource Gray900}"/>
-    <SolidColorBrush x:Key="Gray950Brush" Color="{StaticResource Gray950}"/>
+    <!-- Compatibility aliases used by platform resources and controls -->
+    <Color x:Key="Primary">#5044E4</Color>
+    <Color x:Key="PrimaryDark">#8076FF</Color>
+    <Color x:Key="PrimaryDarkText">#17142D</Color>
+    <Color x:Key="Secondary">#EAE7FF</Color>
+    <Color x:Key="SecondaryDarkText">#BBB4C7</Color>
+    <Color x:Key="Tertiary">#D94E77</Color>
 </ResourceDictionary>

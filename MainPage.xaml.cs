@@ -1,23 +1,44 @@
-﻿namespace FinancialTracker;
+namespace FinancialTracker;
 
 public partial class MainPage : ContentPage
 {
-	int count = 0;
+    public MainPage()
+    {
+        InitializeComponent();
+    }
 
-	public MainPage()
-	{
-		InitializeComponent();
-	}
+    private void OnDashboardTapped(object? sender, TappedEventArgs e) => ShowSection(0);
 
-	private void OnCounterClicked(object? sender, EventArgs e)
-	{
-		count++;
+    private void OnExpensesTapped(object? sender, TappedEventArgs e) => ShowSection(1);
 
-		if (count == 1)
-			CounterBtn.Text = $"Clicked {count} time";
-		else
-			CounterBtn.Text = $"Clicked {count} times";
+    private void OnSettingsTapped(object? sender, TappedEventArgs e) => ShowSection(2);
 
-		SemanticScreenReader.Announce(CounterBtn.Text);
-	}
+    private void ShowSection(int selectedIndex)
+    {
+        DashboardView.IsVisible = selectedIndex == 0;
+        ExpensesView.IsVisible = selectedIndex == 1;
+        SettingsView.IsVisible = selectedIndex == 2;
+
+        var tabs = new[] { DashboardTab, ExpensesTab, SettingsTab };
+        var icons = new[] { DashboardIcon, ExpensesIcon, SettingsIcon };
+        var labels = new[] { DashboardLabel, ExpensesLabel, SettingsLabel };
+
+        for (var index = 0; index < tabs.Length; index++)
+        {
+            var isSelected = index == selectedIndex;
+            tabs[index].Style = (Style)Application.Current!.Resources[
+                isSelected ? "SelectedNavTab" : "NavTab"];
+            icons[index].Style = (Style)Application.Current.Resources[
+                isSelected ? "SelectedNavLabel" : "NavLabel"];
+            labels[index].Style = (Style)Application.Current.Resources[
+                isSelected ? "SelectedNavLabel" : "NavLabel"];
+
+            icons[index].FontSize = index switch
+            {
+                0 => 21,
+                1 => 20,
+                _ => 19
+            };
+        }
+    }
 }
