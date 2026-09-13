@@ -16,7 +16,7 @@
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
                     <VerticalStackLayout Spacing="5">
                         <Label Text="Good morning," Style="{StaticResource DisplayTitle}" />
-                        <Label Text="Faikal" Style="{StaticResource DisplayTitle}" />
+                        <Label Text="{Binding GreetingName}" Style="{StaticResource DisplayTitle}" />
                         <Label
                             Margin="0,4,0,0"
                             Text="Here’s the shape of your money today."
@@ -27,14 +27,14 @@
                         WidthRequest="58"
                         HeightRequest="58"
                         VerticalOptions="Start"
-                        BackgroundColor="{StaticResource Accent}"
+                        BackgroundColor="{DynamicResource Accent}"
                         StrokeThickness="0"
                         StrokeShape="RoundRectangle 29">
                         <Label
                             Text="F"
                             FontFamily="OpenSansSemibold"
                             FontSize="22"
-                            TextColor="White"
+                            TextColor="{DynamicResource AccentForeground}"
                             HorizontalOptions="Center"
                             VerticalOptions="Center" />
                     </Border>
@@ -47,29 +47,29 @@
                             <Grid ColumnDefinitions="*,Auto">
                                 <VerticalStackLayout Spacing="3">
                                     <Label Text="Available to spend" Style="{StaticResource BodyMuted}" />
-                                    <Label Text="RM 3,240.50" FontFamily="OpenSansSemibold" FontSize="31" />
+                                    <Label Text="{Binding AvailableAmountText}" FontFamily="OpenSansSemibold" FontSize="31" />
                                 </VerticalStackLayout>
                                 <Border Grid.Column="1" Style="{StaticResource Pill}" VerticalOptions="Start">
-                                    <Label Text="SEP" FontFamily="OpenSansSemibold" FontSize="11" TextColor="{StaticResource Accent}" />
+                                    <Label Text="SEP" FontFamily="OpenSansSemibold" FontSize="11" TextColor="{DynamicResource Accent}" />
                                 </Border>
                             </Grid>
                             <Grid HeightRequest="12">
-                                <Border BackgroundColor="{StaticResource SurfaceMutedLight}" StrokeThickness="0" StrokeShape="RoundRectangle 6" />
+                                <Border BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}" StrokeThickness="0" StrokeShape="RoundRectangle 6" />
                                 <Border
                                     WidthRequest="205"
                                     HorizontalOptions="Start"
-                                    BackgroundColor="{StaticResource Accent}"
+                                    BackgroundColor="{DynamicResource Accent}"
                                     StrokeThickness="0"
                                     StrokeShape="RoundRectangle 6" />
                             </Grid>
                             <Grid ColumnDefinitions="*,*" ColumnSpacing="20">
                                 <VerticalStackLayout Spacing="2">
                                     <Label Text="INCOME" Style="{StaticResource SectionLabel}" FontSize="10" />
-                                    <Label Text="RM 6,800" FontFamily="OpenSansSemibold" FontSize="16" />
+                                    <Label Text="{Binding IncomeAmountText}" FontFamily="OpenSansSemibold" FontSize="16" />
                                 </VerticalStackLayout>
                                 <VerticalStackLayout Grid.Column="1" Spacing="2">
                                     <Label Text="SPENT" Style="{StaticResource SectionLabel}" FontSize="10" />
-                                    <Label Text="RM 3,559.50" FontFamily="OpenSansSemibold" FontSize="16" />
+                                    <Label Text="{Binding SpentAmountText}" FontFamily="OpenSansSemibold" FontSize="16" />
                                 </VerticalStackLayout>
                             </Grid>
                         </VerticalStackLayout>
@@ -83,7 +83,7 @@
                             <Border
                                 WidthRequest="43"
                                 HeightRequest="43"
-                                BackgroundColor="{StaticResource BlushLight}"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource BlushLight}, Dark={StaticResource BlushDark}}"
                                 StrokeThickness="0"
                                 StrokeShape="RoundRectangle 13">
                                 <Label Text="B" FontFamily="OpenSansSemibold" HorizontalOptions="Center" VerticalOptions="Center" />
@@ -92,7 +92,7 @@
                                 <Label Text="Breakfast" Style="{StaticResource CardTitle}" FontSize="15" />
                                 <Label Text="Food &amp; drinks · Card" Style="{StaticResource BodyMuted}" FontSize="12" />
                             </VerticalStackLayout>
-                            <Label Grid.Column="2" Text="−RM 18.50" FontFamily="OpenSansSemibold" TextColor="{StaticResource NegativeLight}" VerticalOptions="Center" />
+                            <Label Grid.Column="2" Text="{Binding BreakfastAmountText}" FontFamily="OpenSansSemibold" TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" VerticalOptions="Center" />
                         </Grid>
                     </Border>
                 </VerticalStackLayout>
@@ -104,7 +104,7 @@
 
         <!-- Settings -->
         <ScrollView
-            x:Name="SettingsView"
+            x:Name="LegacySettingsView"
             IsVisible="False"
             VerticalScrollBarVisibility="Never">
             <VerticalStackLayout Padding="24,30,24,126" Spacing="27">
@@ -117,10 +117,10 @@
                         <Border
                             WidthRequest="56"
                             HeightRequest="56"
-                            BackgroundColor="{StaticResource Accent}"
+                            BackgroundColor="{DynamicResource Accent}"
                             StrokeThickness="0"
                             StrokeShape="RoundRectangle 28">
-                            <Label Text="F" FontFamily="OpenSansSemibold" FontSize="21" TextColor="White" HorizontalOptions="Center" VerticalOptions="Center" />
+                            <Label Text="F" FontFamily="OpenSansSemibold" FontSize="21" TextColor="{DynamicResource AccentForeground}" HorizontalOptions="Center" VerticalOptions="Center" />
                         </Border>
                         <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
                             <Label Text="Faikal" Style="{StaticResource CardTitle}" />
@@ -138,14 +138,14 @@
                                     <Label Text="Theme" Style="{StaticResource CardTitle}" FontSize="16" />
                                     <Label Text="Light mode is selected" Style="{StaticResource BodyMuted}" FontSize="12" />
                                 </VerticalStackLayout>
-                                <Label Grid.Column="1" Text="Light" FontFamily="OpenSansSemibold" TextColor="{StaticResource Accent}" VerticalOptions="Center" />
+                                <Label Grid.Column="1" Text="Light" FontFamily="OpenSansSemibold" TextColor="{DynamicResource Accent}" VerticalOptions="Center" />
                             </Grid>
                             <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
                                 <Border Style="{StaticResource Pill}">
                                     <Label Text="System" HorizontalTextAlignment="Center" />
                                 </Border>
-                                <Border Grid.Column="1" Style="{StaticResource Pill}" BackgroundColor="{StaticResource AccentTintLight}">
-                                    <Label Text="Light" FontFamily="OpenSansSemibold" TextColor="{StaticResource Accent}" HorizontalTextAlignment="Center" />
+                                <Border Grid.Column="1" Style="{StaticResource Pill}" BackgroundColor="{DynamicResource AccentTint}">
+                                    <Label Text="Light" FontFamily="OpenSansSemibold" TextColor="{DynamicResource Accent}" HorizontalTextAlignment="Center" />
                                 </Border>
                                 <Border Grid.Column="2" Style="{StaticResource Pill}">
                                     <Label Text="Dark" HorizontalTextAlignment="Center" />
@@ -161,7 +161,7 @@
                             <Border
                                 WidthRequest="42"
                                 HeightRequest="42"
-                                BackgroundColor="{StaticResource AccentTintLight}"
+                                BackgroundColor="{DynamicResource AccentTint}"
                                 StrokeThickness="0"
                                 StrokeShape="RoundRectangle 13">
                                 <Label Text="RM" FontFamily="OpenSansSemibold" FontSize="12" HorizontalOptions="Center" VerticalOptions="Center" />
@@ -177,6 +177,8 @@
             </VerticalStackLayout>
         </ScrollView>
 
+        <views:SettingsView x:Name="SettingsView" IsVisible="False" />
+
         <!-- Bottom dock: navigation and a separate add button. -->
         <Grid
             Margin="18,0,18,18"
@@ -187,12 +189,12 @@
                 Grid.Column="0"
                 HeightRequest="70"
                 Padding="7"
-                BackgroundColor="{StaticResource CardBackgroundLight}"
-                Stroke="{StaticResource BorderLight}"
+                BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}"
+                Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
                 StrokeThickness="2"
                 StrokeShape="RoundRectangle 35">
                 <Border.Shadow>
-                    <Shadow Brush="{StaticResource ShadowLight}" Offset="0,7" Opacity="0.18" Radius="16" />
+                    <Shadow Brush="{AppThemeBinding Light={StaticResource ShadowLight}, Dark={StaticResource ShadowDark}}" Offset="0,7" Opacity="0.18" Radius="16" />
                 </Border.Shadow>
                 <Grid ColumnDefinitions="*,*,*" ColumnSpacing="4">
                     <Border x:Name="DashboardTab" Style="{StaticResource NavTab}">
@@ -229,18 +231,18 @@
                 Grid.Column="1"
                 WidthRequest="68"
                 HeightRequest="68"
-                BackgroundColor="{StaticResource CardBackgroundLight}"
-                Stroke="{StaticResource BorderLight}"
+                BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}"
+                Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
                 StrokeThickness="2"
                 StrokeShape="RoundRectangle 34"
                 VerticalOptions="Center">
                 <Border.Shadow>
-                    <Shadow Brush="{StaticResource ShadowLight}" Offset="0,7" Opacity="0.18" Radius="16" />
+                    <Shadow Brush="{AppThemeBinding Light={StaticResource ShadowLight}, Dark={StaticResource ShadowDark}}" Offset="0,7" Opacity="0.18" Radius="16" />
                 </Border.Shadow>
                 <Label
                     Text="+"
                     FontSize="35"
-                    TextColor="{StaticResource PrimaryTextLight}"
+                    TextColor="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}"
                     HorizontalOptions="Center"
                     VerticalOptions="Center" />
             </Border>

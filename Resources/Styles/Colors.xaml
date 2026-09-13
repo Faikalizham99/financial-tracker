@@ -31,6 +31,8 @@
     <Color x:Key="AccentDark">#8076FF</Color>
     <Color x:Key="AccentTintLight">#EAE7FF</Color>
     <Color x:Key="AccentTintDark">#302B5D</Color>
+    <Color x:Key="AccentTint">#EAE7FF</Color>
+    <Color x:Key="AccentForeground">#FFFFFF</Color>
     <Color x:Key="BlushLight">#F6DEDB</Color>
     <Color x:Key="BlushDark">#4A2D3B</Color>
     <Color x:Key="MintLight">#DDF1E7</Color>

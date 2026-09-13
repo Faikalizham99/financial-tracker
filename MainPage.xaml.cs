@@ -1,11 +1,28 @@
 namespace FinancialTracker;
 
+using FinancialTracker.ViewModels;
+using FinancialTracker.Data;
+using FinancialTracker.Services;
+
 public partial class MainPage : ContentPage
 {
+    private readonly SettingsViewModel settingsViewModel;
+
     public MainPage()
+        : this(new SettingsViewModel(new SettingsService(new LocalDatabase())))
+    {
+    }
+
+    public MainPage(SettingsViewModel settingsViewModel)
     {
         InitializeComponent();
+        this.settingsViewModel = settingsViewModel;
+        BindingContext = settingsViewModel;
+        Loaded += OnLoaded;
     }
+
+    private async void OnLoaded(object? sender, EventArgs e) =>
+        await settingsViewModel.InitializeAsync();
 
     private void OnDashboardTapped(object? sender, TappedEventArgs e) => ShowSection(0);
 

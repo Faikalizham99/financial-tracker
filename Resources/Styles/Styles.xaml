@@ -98,10 +98,24 @@
     </Style>
 
     <Style x:Key="SelectedNavTab" TargetType="Border" BasedOn="{StaticResource NavTab}">
-        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource AccentTintLight}, Dark={StaticResource AccentTintDark}}" />
+        <Setter Property="BackgroundColor" Value="{DynamicResource AccentTint}" />
     </Style>
 
     <Style x:Key="SelectedNavLabel" TargetType="Label" BasedOn="{StaticResource NavLabel}">
-        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Accent}, Dark={StaticResource AccentDark}}" />
+        <Setter Property="TextColor" Value="{DynamicResource Accent}" />
+    </Style>
+
+    <Style x:Key="OptionCard" TargetType="Border">
+        <Setter Property="Padding" Value="14" />
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" />
+        <Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+        <Setter Property="StrokeThickness" Value="1.5" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 18" />
+    </Style>
+
+    <Style x:Key="SelectedOptionCard" TargetType="Border" BasedOn="{StaticResource OptionCard}">
+        <Setter Property="BackgroundColor" Value="{DynamicResource AccentTint}" />
+        <Setter Property="Stroke" Value="{DynamicResource Accent}" />
+        <Setter Property="StrokeThickness" Value="2" />
     </Style>
 </ResourceDictionary>

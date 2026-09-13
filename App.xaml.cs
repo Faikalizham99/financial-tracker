@@ -1,17 +1,16 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-
 namespace FinancialTracker;
 
 public partial class App : Application
 {
-	public App()
-	{
-		InitializeComponent();
-		UserAppTheme = AppTheme.Light;
-	}
+    private readonly MainPage mainPage;
 
-	protected override Window CreateWindow(IActivationState? activationState)
-	{
-		return new Window(new AppShell());
-	}
+    public App()
+    {
+        InitializeComponent();
+        UserAppTheme = AppTheme.Light;
+        mainPage = new MainPage();
+    }
+
+    protected override Window CreateWindow(IActivationState? activationState) =>
+        new(mainPage);
 }
