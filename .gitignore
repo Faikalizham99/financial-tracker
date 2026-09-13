@@ -1,0 +1,123 @@
+# .NET build output
+[Bb]in/
+[Oo]bj/
+[Aa]rtifacts/
+[Ll]og/
+[Ll]ogs/
+TestResults/
+BenchmarkDotNet.Artifacts/
+
+# Visual Studio and user-specific project state
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.rsuser
+*.VC.db
+*.VC.VC.opendb
+*.opendb
+*.sdf
+*.cachefile
+*.pidb
+*.svclog
+*.csproj.user
+
+# Visual Studio Code: keep shareable workspace configuration
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/tasks.json
+*.code-workspace.user
+
+# JetBrains Rider / ReSharper
+.idea/
+*.sln.iml
+*.DotSettings.user
+_ReSharper*/
+*.resharper.user
+
+# NuGet restore and package output
+packages/
+*.nupkg
+*.snupkg
+*.nuget.props
+*.nuget.targets
+project.assets.json
+project.nuget.cache
+*.csproj.nuget.dgspec.json
+*.csproj.nuget.g.props
+*.csproj.nuget.g.targets
+
+# .NET MAUI and platform packaging output
+*.apk
+*.aab
+*.ipa
+*.app
+*.app.dSYM/
+*.dSYM/
+*.xcarchive/
+*.msix
+*.msixbundle
+*.appx
+*.appxbundle
+AppPackages/
+BundleArtifacts/
+
+# Apple/Xcode generated state
+DerivedData/
+xcuserdata/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Android/Gradle generated state
+.gradle/
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Windows generated metadata
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# GitHub Actions local-runner artifacts (for example, nektos/act)
+.actrc.local
+.act/
+act-artifacts/
+
+# Temporary files, backups, and logs
+*.log
+*.tmp
+*.temp
+*.bak
+*.old
+*.orig
+*.rej
+*.swp
+*.swo
+*~
+~$*
+
+# Code coverage and test tooling output
+coverage/
+coverage.*
+*.coverage
+*.coveragexml
+*.trx
+*.testlog
+
+# Local environment overrides and secrets
+.env.local
+.env.*.local
