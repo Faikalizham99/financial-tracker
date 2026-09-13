@@ -1,0 +1,191 @@
+name: Build LiveContainer IPA
+
+on:
+  push:
+    tags:
+      - '*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PROJECT_PATH: FinancialTracker.csproj
+  TARGET_FRAMEWORK: net10.0-ios
+  RUNTIME_IDENTIFIER: ios-arm64
+
+jobs:
+  build-ios:
+    name: Build unsigned iPhone IPA
+    runs-on: macos-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up .NET 10
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Show build environment
+        run: |
+          dotnet --info
+          xcodebuild -version
+          xcode-select -p
+
+      - name: Install the .NET MAUI iOS workload
+        run: dotnet workload install maui-ios
+
+      - name: Restore iOS dependencies
+        run: >-
+          dotnet restore "$PROJECT_PATH"
+          -p:TargetFramework="$TARGET_FRAMEWORK"
+          -p:RuntimeIdentifier="$RUNTIME_IDENTIFIER"
+
+      - name: Build unsigned ARM64 iPhone app
+        run: >-
+          dotnet publish "$PROJECT_PATH"
+          -f "$TARGET_FRAMEWORK"
+          -c Release
+          -r "$RUNTIME_IDENTIFIER"
+          --no-restore
+          -p:ArchiveOnBuild=false
+          -p:BuildIpa=false
+          -p:EnableCodeSigning=false
+          -p:CodesignRequireProvisioningProfile=false
+
+      - name: Package and verify LiveContainer IPA
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          output_root="$GITHUB_WORKSPACE/bin/Release/$TARGET_FRAMEWORK/$RUNTIME_IDENTIFIER"
+          if [[ ! -d "$output_root" ]]; then
+            echo "Expected iOS output directory was not created: $output_root" >&2
+            exit 1
+          fi
+
+          candidates_file=$(mktemp "$RUNNER_TEMP/financialtracker-apps.XXXXXX")
+          find "$output_root" -type d -name '*.app' -prune | sort > "$candidates_file"
+          printf 'Discovered .app bundles:\n'
+          if [[ -s "$candidates_file" ]]; then
+            sed 's/^/  /' "$candidates_file"
+          else
+            echo "  <none>"
+          fi
+
+          app_path=""
+          while IFS= read -r candidate; do
+            if [[ "$(dirname "$candidate")" == "$output_root" ]]; then
+              app_path="$candidate"
+              break
+            fi
+          done < "$candidates_file"
+
+          app_count=$(wc -l < "$candidates_file" | tr -d ' ')
+          if [[ -z "$app_path" && "$app_count" -eq 1 ]]; then
+            app_path=$(head -n 1 "$candidates_file")
+          fi
+
+          if [[ -z "$app_path" ]]; then
+            echo "Could not identify one primary iOS .app bundle." >&2
+            exit 1
+          fi
+
+          info_plist="$app_path/Info.plist"
+          if [[ ! -f "$info_plist" ]]; then
+            echo "The selected app bundle has no Info.plist: $app_path" >&2
+            exit 1
+          fi
+
+          bundle_id=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$info_plist")
+          executable_name=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$info_plist")
+          executable_path="$app_path/$executable_name"
+
+          if [[ "$bundle_id" != "com.faikalizham.financial-tracker" ]]; then
+            echo "Unexpected bundle identifier: $bundle_id" >&2
+            exit 1
+          fi
+
+          if [[ ! -f "$executable_path" ]]; then
+            echo "App executable was not found: $executable_path" >&2
+            exit 1
+          fi
+
+          architectures=$(lipo -archs "$executable_path")
+          if [[ " $architectures " != *" arm64 "* ]]; then
+            echo "The app executable is not ARM64: $architectures" >&2
+            exit 1
+          fi
+          if [[ " $architectures " == *" x86_64 "* ]]; then
+            echo "The app unexpectedly contains a simulator x86_64 slice: $architectures" >&2
+            exit 1
+          fi
+
+          if codesign -d "$app_path" >/dev/null 2>&1; then
+            signing_state="signed (unexpected; inspect the workflow log)"
+          else
+            signing_state="unsigned (expected; LiveContainer/SideStore will re-sign it)"
+          fi
+
+          package_root=$(mktemp -d "$RUNNER_TEMP/financialtracker-ipa.XXXXXX")
+          mkdir -p "$package_root/Payload" "$GITHUB_WORKSPACE/artifacts"
+          ditto "$app_path" "$package_root/Payload/$(basename "$app_path")"
+
+          ipa_path="$GITHUB_WORKSPACE/artifacts/FinancialTracker.ipa"
+          (
+            cd "$package_root"
+            /usr/bin/zip -qry "$ipa_path" Payload
+          )
+
+          if [[ ! -s "$ipa_path" ]]; then
+            echo "FinancialTracker.ipa was not created or is empty." >&2
+            exit 1
+          fi
+
+          payload_app_count=$(unzip -Z1 "$ipa_path" | awk '/^Payload\/[^/]+\.app\/$/ { count++ } END { print count + 0 }')
+          if [[ "$payload_app_count" -ne 1 ]]; then
+            echo "IPA must contain exactly one top-level Payload/*.app bundle." >&2
+            unzip -Z1 "$ipa_path" | head -100
+            exit 1
+          fi
+
+          ipa_size=$(du -h "$ipa_path" | cut -f1)
+          ipa_sha256=$(shasum -a 256 "$ipa_path" | awk '{print $1}')
+
+          echo "app_path=$app_path" >> "$GITHUB_OUTPUT"
+          echo "ipa_path=$ipa_path" >> "$GITHUB_OUTPUT"
+
+          echo "App bundle: $app_path"
+          echo "Bundle ID: $bundle_id"
+          echo "Architectures: $architectures"
+          echo "Signing: $signing_state"
+          echo "IPA: $ipa_path"
+          echo "IPA size: $ipa_size"
+          echo "IPA SHA-256: $ipa_sha256"
+
+          {
+            echo "### FinancialTracker iOS artifact"
+            echo "- App bundle: \`$app_path\`"
+            echo "- Bundle ID: \`$bundle_id\`"
+            echo "- Architectures: \`$architectures\`"
+            echo "- Signing: $signing_state"
+            echo "- IPA: \`$ipa_path\`"
+            echo "- IPA size: $ipa_size"
+            echo "- IPA SHA-256: \`$ipa_sha256\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload FinancialTracker IPA
+        uses: actions/upload-artifact@v7
+        with:
+          name: FinancialTracker-IPA
+          path: artifacts/FinancialTracker.ipa
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
