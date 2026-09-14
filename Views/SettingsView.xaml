@@ -62,6 +62,8 @@
                             Text="{Binding SaveButtonText}"
                             IsEnabled="{Binding IsNameDirty}"
                             Clicked="OnSaveProfileClicked"
+                            Pressed="OnButtonPressed"
+                            Released="OnButtonReleased"
                             HeightRequest="49"
                             BackgroundColor="{DynamicResource Accent}"
                             TextColor="{DynamicResource AccentForeground}"
@@ -269,6 +271,47 @@
                             </Border>
                         </HorizontalStackLayout>
 
+                        <Border Style="{StaticResource SoftCard}" Padding="13">
+                            <Grid ColumnDefinitions="150,*" ColumnSpacing="14">
+                                <GraphicsView
+                                    x:Name="AccentColorWheel"
+                                    WidthRequest="150"
+                                    HeightRequest="150"
+                                    HorizontalOptions="Start"
+                                    StartInteraction="OnAccentWheelInteraction"
+                                    DragInteraction="OnAccentWheelInteraction" />
+                                <VerticalStackLayout Grid.Column="1" Spacing="7" VerticalOptions="Center">
+                                    <Label Text="Colour wheel" Style="{StaticResource CardTitle}" FontSize="14" />
+                                    <Label Text="Drag anywhere on the wheel, then apply the colour below." Style="{StaticResource BodyMuted}" FontSize="11" />
+                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="9">
+                                        <Border
+                                            x:Name="WheelColorPreview"
+                                            WidthRequest="34"
+                                            HeightRequest="34"
+                                            BackgroundColor="#5044E4"
+                                            Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                                            StrokeThickness="1.5"
+                                            StrokeShape="RoundRectangle 17" />
+                                        <Label
+                                            x:Name="WheelColorHexLabel"
+                                            Grid.Column="1"
+                                            Text="#5044E4"
+                                            FontFamily="OpenSansSemibold"
+                                            FontSize="12"
+                                            VerticalOptions="Center" />
+                                    </Grid>
+                                    <Label Text="Brightness" Style="{StaticResource SectionLabel}" FontSize="10" />
+                                    <Slider
+                                        x:Name="AccentBrightnessSlider"
+                                        Minimum="0"
+                                        Maximum="1"
+                                        MinimumTrackColor="{DynamicResource Accent}"
+                                        ThumbColor="{DynamicResource Accent}"
+                                        ValueChanged="OnAccentBrightnessChanged" />
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Border>
+
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="9">
                             <Border
                                 Padding="13,2"
@@ -288,14 +331,30 @@
                             </Border>
                             <Button
                                 Grid.Column="1"
-                                Text="Apply"
+                                Text="{Binding ApplyAccentButtonText}"
                                 IsEnabled="{Binding CanApplyCustomAccent}"
                                 Clicked="OnApplyCustomAccent"
+                                Pressed="OnButtonPressed"
+                                Released="OnButtonReleased"
                                 Padding="20,0"
                                 BackgroundColor="{DynamicResource Accent}"
                                 TextColor="{DynamicResource AccentForeground}"
                                 FontFamily="OpenSansSemibold"
-                                CornerRadius="14" />
+                                CornerRadius="14">
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroupList>
+                                        <VisualStateGroup x:Name="CommonStates">
+                                            <VisualState x:Name="Normal" />
+                                            <VisualState x:Name="Disabled">
+                                                <VisualState.Setters>
+                                                    <Setter Property="Button.BackgroundColor" Value="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}" />
+                                                    <Setter Property="Button.TextColor" Value="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" />
+                                                </VisualState.Setters>
+                                            </VisualState>
+                                        </VisualStateGroup>
+                                    </VisualStateGroupList>
+                                </VisualStateManager.VisualStateGroups>
+                            </Button>
                         </Grid>
                         <Label
                             Text="{Binding AccentValidationMessage}"

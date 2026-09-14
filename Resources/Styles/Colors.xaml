@@ -18,13 +18,13 @@
     <Color x:Key="DividerLight">#E9E3DB</Color>
 
     <!-- Dark theme -->
-    <Color x:Key="PageBackgroundDark">#11101A</Color>
-    <Color x:Key="CardBackgroundDark">#1D1B2A</Color>
+    <Color x:Key="PageBackgroundDark">#000000</Color>
+    <Color x:Key="CardBackgroundDark">#0A0A0C</Color>
     <Color x:Key="PrimaryTextDark">#FBF7F0</Color>
     <Color x:Key="SecondaryTextDark">#BBB4C7</Color>
-    <Color x:Key="BorderDark">#8D87A4</Color>
-    <Color x:Key="SurfaceMutedDark">#292637</Color>
-    <Color x:Key="DividerDark">#383447</Color>
+    <Color x:Key="BorderDark">#8B8798</Color>
+    <Color x:Key="SurfaceMutedDark">#161618</Color>
+    <Color x:Key="DividerDark">#29292D</Color>
 
     <!-- Shared accents -->
     <Color x:Key="Accent">#5044E4</Color>
@@ -42,7 +42,7 @@
     <Color x:Key="NegativeLight">#C54558</Color>
     <Color x:Key="NegativeDark">#FF8D9C</Color>
     <Color x:Key="ShadowLight">#17142D</Color>
-    <Color x:Key="ShadowDark">#05040A</Color>
+    <Color x:Key="ShadowDark">#000000</Color>
 
     <!-- Compatibility aliases used by platform resources and controls -->
     <Color x:Key="Primary">#5044E4</Color>

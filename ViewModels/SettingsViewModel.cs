@@ -8,6 +8,7 @@ namespace FinancialTracker.ViewModels;
 
 public sealed class SettingsViewModel(SettingsService settingsService) : INotifyPropertyChanged
 {
+    private readonly SemaphoreSlim initializationLock = new(1, 1);
     private readonly SemaphoreSlim saveLock = new(1, 1);
     private AppSettingsRecord settings = new();
     private bool isInitialized;
@@ -98,6 +99,7 @@ public sealed class SettingsViewModel(SettingsService settingsService) : INotify
             {
                 OnPropertyChanged(nameof(SelectedAccentLabel));
                 OnPropertyChanged(nameof(CanApplyCustomAccent));
+                OnPropertyChanged(nameof(ApplyAccentButtonText));
             }
         }
     }
@@ -120,6 +122,7 @@ public sealed class SettingsViewModel(SettingsService settingsService) : INotify
             if (SetProperty(ref customAccentColorHex, value ?? string.Empty))
             {
                 OnPropertyChanged(nameof(CanApplyCustomAccent));
+                OnPropertyChanged(nameof(ApplyAccentButtonText));
                 OnPropertyChanged(nameof(AccentValidationMessage));
                 OnPropertyChanged(nameof(HasAccentValidationError));
             }
@@ -129,6 +132,12 @@ public sealed class SettingsViewModel(SettingsService settingsService) : INotify
     public bool CanApplyCustomAccent =>
         TryNormalizeAccentColor(CustomAccentColorHex, out var normalized) &&
         !normalized.Equals(SelectedAccentColorHex, StringComparison.OrdinalIgnoreCase);
+
+    public string ApplyAccentButtonText =>
+        TryNormalizeAccentColor(CustomAccentColorHex, out var normalized) &&
+        normalized.Equals(SelectedAccentColorHex, StringComparison.OrdinalIgnoreCase)
+            ? "Applied"
+            : "Apply";
 
     public bool HasAccentValidationError =>
         !string.IsNullOrWhiteSpace(CustomAccentColorHex) &&
@@ -156,24 +165,39 @@ public sealed class SettingsViewModel(SettingsService settingsService) : INotify
             return;
         }
 
-        settings = await settingsService.GetAsync();
-        name = settings.Name;
-        savedName = settings.Name.Trim();
-        selectedCurrency = SupportedCurrencies.FirstOrDefault(
-            option => option.Code.Equals(settings.CurrencyCode, StringComparison.OrdinalIgnoreCase))
-            ?? SupportedCurrencies[0];
-        selectedTheme = NormalizeTheme(settings.Theme);
-        selectedAccentColorHex = NormalizeAccentColor(settings.AccentColorHex);
-        customAccentColorHex = selectedAccentColorHex;
-        ApplyTheme(selectedTheme);
-        ApplyAccentColor(selectedAccentColorHex, selectedTheme);
-        isInitialized = true;
-        OnPropertyChanged(string.Empty);
+        await initializationLock.WaitAsync();
+        try
+        {
+            if (isInitialized)
+            {
+                return;
+            }
+
+            settings = await settingsService.GetAsync();
+            name = settings.Name;
+            savedName = settings.Name.Trim();
+            selectedCurrency = SupportedCurrencies.FirstOrDefault(
+                option => option.Code.Equals(settings.CurrencyCode, StringComparison.OrdinalIgnoreCase))
+                ?? SupportedCurrencies[0];
+            selectedTheme = NormalizeTheme(settings.Theme);
+            selectedAccentColorHex = NormalizeAccentColor(settings.AccentColorHex);
+            customAccentColorHex = selectedAccentColorHex;
+            ApplyTheme(selectedTheme);
+            ApplyAccentColor(selectedAccentColorHex, selectedTheme);
+            isInitialized = true;
+            OnPropertyChanged(string.Empty);
+        }
+        finally
+        {
+            initializationLock.Release();
+        }
     }
 
     public async Task SaveNameAsync()
     {
-        Name = Name.Trim();
+        var requestedName = Name.Trim();
+        await InitializeAsync();
+        Name = requestedName;
         if (!IsNameDirty)
         {
             return;
@@ -188,6 +212,7 @@ public sealed class SettingsViewModel(SettingsService settingsService) : INotify
 
     public async Task SelectCurrencyAsync(string currencyCode)
     {
+        await InitializeAsync();
         var currency = SupportedCurrencies.FirstOrDefault(
             option => option.Code.Equals(currencyCode, StringComparison.OrdinalIgnoreCase));
 
@@ -203,6 +228,7 @@ public sealed class SettingsViewModel(SettingsService settingsService) : INotify
 
     public async Task SelectThemeAsync(string theme)
     {
+        await InitializeAsync();
         var normalizedTheme = NormalizeTheme(theme);
         if (normalizedTheme == SelectedTheme)
         {
@@ -218,6 +244,7 @@ public sealed class SettingsViewModel(SettingsService settingsService) : INotify
 
     public async Task SelectAccentColorAsync(string accentColorHex)
     {
+        await InitializeAsync();
         var normalized = NormalizeAccentColor(accentColorHex);
         if (normalized.Equals(SelectedAccentColorHex, StringComparison.OrdinalIgnoreCase))
         {
@@ -245,10 +272,7 @@ public sealed class SettingsViewModel(SettingsService settingsService) : INotify
 
     private async Task SaveAsync()
     {
-        if (!isInitialized)
-        {
-            return;
-        }
+        await InitializeAsync();
 
         await saveLock.WaitAsync();
         try
@@ -316,7 +340,7 @@ public sealed class SettingsViewModel(SettingsService settingsService) : INotify
             (theme == "System" && Application.Current.RequestedTheme == AppTheme.Dark);
         var tintHex = MixColors(
             accentColorHex,
-            useDarkTint ? "#17142D" : "#FFFFFF",
+            useDarkTint ? "#000000" : "#FFFFFF",
             useDarkTint ? 0.68 : 0.86);
         var foregroundHex = GetContrastColor(accentColorHex);
         var resources = Application.Current.Resources;

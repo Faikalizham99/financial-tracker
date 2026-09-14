@@ -196,8 +196,20 @@
                 <Border.Shadow>
                     <Shadow Brush="{AppThemeBinding Light={StaticResource ShadowLight}, Dark={StaticResource ShadowDark}}" Offset="0,7" Opacity="0.18" Radius="16" />
                 </Border.Shadow>
-                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="4">
-                    <Border x:Name="DashboardTab" Style="{StaticResource NavTab}">
+                <Grid
+                    x:Name="NavigationTabsGrid"
+                    ColumnDefinitions="*,*,*"
+                    ColumnSpacing="4"
+                    SizeChanged="OnNavigationTabsSizeChanged">
+                    <Border
+                        x:Name="NavigationSelectionPill"
+                        Grid.Column="1"
+                        ZIndex="0"
+                        InputTransparent="True"
+                        BackgroundColor="{DynamicResource AccentTint}"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 23" />
+                    <Border x:Name="DashboardTab" ZIndex="1" Style="{StaticResource NavTab}">
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnDashboardTapped" />
                         </Border.GestureRecognizers>
@@ -206,7 +218,7 @@
                             <Label x:Name="DashboardLabel" Text="Home" Style="{StaticResource NavLabel}" />
                         </VerticalStackLayout>
                     </Border>
-                    <Border x:Name="ExpensesTab" Grid.Column="1" Style="{StaticResource SelectedNavTab}">
+                    <Border x:Name="ExpensesTab" Grid.Column="1" ZIndex="1" Style="{StaticResource NavTab}">
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnExpensesTapped" />
                         </Border.GestureRecognizers>
@@ -215,12 +227,15 @@
                             <Label x:Name="ExpensesLabel" Text="Expenses" Style="{StaticResource SelectedNavLabel}" />
                         </VerticalStackLayout>
                     </Border>
-                    <Border x:Name="SettingsTab" Grid.Column="2" Style="{StaticResource NavTab}">
+                    <Border x:Name="SettingsTab" Grid.Column="2" ZIndex="1" Style="{StaticResource NavTab}">
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnSettingsTapped" />
                         </Border.GestureRecognizers>
                         <VerticalStackLayout Spacing="0">
-                            <Label x:Name="SettingsIcon" Text="⚙" Style="{StaticResource NavLabel}" FontSize="19" />
+                            <Path
+                                x:Name="SettingsIcon"
+                                Data="M 3,5 L 15,5 L 15,3 L 17,3 L 17,5 L 21,5 L 21,7 L 17,7 L 17,9 L 15,9 L 15,7 L 3,7 Z M 3,11 L 7,11 L 7,9 L 9,9 L 9,11 L 21,11 L 21,13 L 9,13 L 9,15 L 7,15 L 7,13 L 3,13 Z M 3,17 L 12,17 L 12,15 L 14,15 L 14,17 L 21,17 L 21,19 L 14,19 L 14,21 L 12,21 L 12,19 L 3,19 Z"
+                                Style="{StaticResource NavIcon}" />
                             <Label x:Name="SettingsLabel" Text="Settings" Style="{StaticResource NavLabel}" />
                         </VerticalStackLayout>
                     </Border>
@@ -228,6 +243,7 @@
             </Border>
 
             <Border
+                x:Name="AddButton"
                 Grid.Column="1"
                 WidthRequest="68"
                 HeightRequest="68"
@@ -236,6 +252,9 @@
                 StrokeThickness="2"
                 StrokeShape="RoundRectangle 34"
                 VerticalOptions="Center">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnAddTapped" />
+                </Border.GestureRecognizers>
                 <Border.Shadow>
                     <Shadow Brush="{AppThemeBinding Light={StaticResource ShadowLight}, Dark={StaticResource ShadowDark}}" Offset="0,7" Opacity="0.18" Radius="16" />
                 </Border.Shadow>

@@ -90,6 +90,18 @@
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" />
     </Style>
 
+    <Style x:Key="NavIcon" TargetType="Path">
+        <Setter Property="WidthRequest" Value="22" />
+        <Setter Property="HeightRequest" Value="21" />
+        <Setter Property="Aspect" Value="Uniform" />
+        <Setter Property="HorizontalOptions" Value="Center" />
+        <Setter Property="Fill" Value="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" />
+    </Style>
+
+    <Style x:Key="SelectedNavIcon" TargetType="Path" BasedOn="{StaticResource NavIcon}">
+        <Setter Property="Fill" Value="{DynamicResource Accent}" />
+    </Style>
+
     <Style x:Key="NavTab" TargetType="Border">
         <Setter Property="Padding" Value="8,7" />
         <Setter Property="BackgroundColor" Value="Transparent" />
