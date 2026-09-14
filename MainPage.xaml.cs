@@ -1,7 +1,6 @@
 namespace FinancialTracker;
 
 using System.ComponentModel;
-using System.Globalization;
 using FinancialTracker.ViewModels;
 using FinancialTracker.Data;
 using FinancialTracker.Services;
@@ -174,26 +173,7 @@ public partial class MainPage : ContentPage
         IReadOnlyList<TransactionRecord> records,
         CurrencyOption selectedCurrency)
     {
-        var today = DateTime.Today;
-        var currentMonthRecords = records
-            .Where(record =>
-                record.CurrencyCode.Equals(selectedCurrency.Code, StringComparison.OrdinalIgnoreCase) &&
-                record.TransactionDate.Year == today.Year &&
-                record.TransactionDate.Month == today.Month)
-            .ToList();
-        var incomeMinor = currentMonthRecords
-            .Where(record => record.Type.Equals("Income", StringComparison.OrdinalIgnoreCase))
-            .Sum(record => record.AmountMinor);
-        var spentMinor = currentMonthRecords
-            .Where(record => record.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase))
-            .Sum(record => record.AmountMinor);
-
-        DashboardAvailableAmountLabel.Text = FormatMoney(
-            selectedCurrency,
-            incomeMinor - spentMinor);
-        DashboardIncomeAmountLabel.Text = FormatMoney(selectedCurrency, incomeMinor);
-        DashboardSpentAmountLabel.Text = FormatMoney(selectedCurrency, spentMinor);
-        DashboardMonthLabel.Text = today.ToString("MMM", CultureInfo.CurrentCulture).ToUpperInvariant();
+        DashboardMonthlySummary.Refresh(records, selectedCurrency);
 
         var recentRecords = records.Take(5).ToList();
         var recentActivity = recentRecords
@@ -204,13 +184,6 @@ public partial class MainPage : ContentPage
         BindableLayout.SetItemsSource(DashboardActivityLayout, recentActivity);
         DashboardActivityCard.IsVisible = recentActivity.Count > 0;
         DashboardEmptyActivityState.IsVisible = recentActivity.Count == 0;
-    }
-
-    private static string FormatMoney(CurrencyOption currency, long amountMinor)
-    {
-        var sign = amountMinor < 0 ? "− " : string.Empty;
-        var amount = Math.Abs(amountMinor) / 100m;
-        return $"{sign}{currency.Symbol} {amount.ToString("N2", CultureInfo.InvariantCulture)}";
     }
 
     private double GetSelectionPillOffset(int selectedIndex)

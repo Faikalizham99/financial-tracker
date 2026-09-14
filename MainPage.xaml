@@ -43,41 +43,7 @@
 
                 <VerticalStackLayout Spacing="13">
                     <Label Text="MONTHLY PULSE" Style="{StaticResource SectionLabel}" />
-                    <Grid Margin="0,0,0,6">
-                        <Border Style="{StaticResource CardShadowLayer}" />
-                        <Border Style="{StaticResource CardSurface}">
-                            <VerticalStackLayout Spacing="18">
-                            <Grid ColumnDefinitions="*,Auto">
-                                <VerticalStackLayout Spacing="3">
-                                    <Label Text="Available to spend" Style="{StaticResource BodyMuted}" />
-                                    <Label x:Name="DashboardAvailableAmountLabel" Text="RM 0.00" FontFamily="OpenSansSemibold" FontSize="31" />
-                                </VerticalStackLayout>
-                                <Border Grid.Column="1" Style="{StaticResource Pill}" VerticalOptions="Start">
-                                    <Label x:Name="DashboardMonthLabel" Text="SEP" FontFamily="OpenSansSemibold" FontSize="11" TextColor="{DynamicResource Accent}" />
-                                </Border>
-                            </Grid>
-                            <Grid HeightRequest="12">
-                                <Border BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}" StrokeThickness="0" StrokeShape="RoundRectangle 6" />
-                                <Border
-                                    WidthRequest="205"
-                                    HorizontalOptions="Start"
-                                    BackgroundColor="{DynamicResource Accent}"
-                                    StrokeThickness="0"
-                                    StrokeShape="RoundRectangle 6" />
-                            </Grid>
-                            <Grid ColumnDefinitions="*,*" ColumnSpacing="20">
-                                <VerticalStackLayout Spacing="2">
-                                    <Label Text="INCOME" Style="{StaticResource SectionLabel}" FontSize="10" />
-                                    <Label x:Name="DashboardIncomeAmountLabel" Text="RM 0.00" FontFamily="OpenSansSemibold" FontSize="16" />
-                                </VerticalStackLayout>
-                                <VerticalStackLayout Grid.Column="1" Spacing="2">
-                                    <Label Text="SPENT" Style="{StaticResource SectionLabel}" FontSize="10" />
-                                    <Label x:Name="DashboardSpentAmountLabel" Text="RM 0.00" FontFamily="OpenSansSemibold" FontSize="16" />
-                                </VerticalStackLayout>
-                            </Grid>
-                            </VerticalStackLayout>
-                        </Border>
-                    </Grid>
+                    <views:MonthlySummaryCard x:Name="DashboardMonthlySummary" />
                 </VerticalStackLayout>
 
                 <VerticalStackLayout Spacing="13">
@@ -244,7 +210,7 @@
                         </Border.GestureRecognizers>
                         <VerticalStackLayout Spacing="0">
                             <Label x:Name="ExpensesIcon" Text="⇅" Style="{StaticResource SelectedNavLabel}" FontSize="20" />
-                            <Label x:Name="ExpensesLabel" Text="Expenses" Style="{StaticResource SelectedNavLabel}" />
+                            <Label x:Name="ExpensesLabel" Text="Transaction" Style="{StaticResource SelectedNavLabel}" />
                         </VerticalStackLayout>
                     </Border>
                     <Border x:Name="SettingsTab" Grid.Column="2" ZIndex="1" Style="{StaticResource NavTab}">

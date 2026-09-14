@@ -135,7 +135,7 @@
                         </Grid>
                     </Border>
 
-                    <Grid Grid.Row="2" ColumnDefinitions="1.05*,0.9*,1.25*" ColumnSpacing="8">
+                    <Grid Grid.Row="2" ColumnDefinitions="1.45*,0.75*,1*" ColumnSpacing="8">
                         <Border Style="{StaticResource TransactionChip}">
                             <Grid ColumnDefinitions="24,*" ColumnSpacing="7">
                                 <Path
@@ -149,7 +149,7 @@
                                     Fill="Transparent"
                                     Aspect="Uniform"
                                     VerticalOptions="Center" />
-                                <Label x:Name="DateLabel" Grid.Column="1" Text="Today" FontFamily="OpenSansSemibold" FontSize="12" LineBreakMode="TailTruncation" VerticalOptions="Center" />
+                                <Label x:Name="DateLabel" Grid.Column="1" Text="Sunday, 14 September 2026" FontFamily="OpenSansSemibold" FontSize="9.5" LineBreakMode="TailTruncation" MaxLines="1" VerticalOptions="Center" />
                                 <DatePicker
                                     x:Name="TransactionDatePicker"
                                     Grid.ColumnSpan="2"

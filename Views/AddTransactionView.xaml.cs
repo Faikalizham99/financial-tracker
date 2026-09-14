@@ -688,9 +688,9 @@ public partial class AddTransactionView : ContentView
 
     private void UpdateDateLabel(DateTime date)
     {
-        DateLabel.Text = date.Date == DateTime.Today
-            ? "Today"
-            : date.ToString("d MMM", CultureInfo.CurrentCulture);
+        DateLabel.Text = date.ToString(
+            "dddd, d MMMM yyyy",
+            CultureInfo.CurrentCulture);
     }
 
     private void UpdateTypeAndCategory()

@@ -3,67 +3,71 @@
     x:Class="FinancialTracker.Views.ExpensesView"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:models="clr-namespace:FinancialTracker.Models">
+    xmlns:models="clr-namespace:FinancialTracker.Models"
+    xmlns:views="clr-namespace:FinancialTracker.Views">
 
+    <Grid>
     <ScrollView VerticalScrollBarVisibility="Never">
         <VerticalStackLayout Padding="22,28,22,126" Spacing="21">
             <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="9">
-                <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
-                    <Label Text="‹" FontSize="31" VerticalTextAlignment="Center" TextColor="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" />
-                    <Label x:Name="MonthLabel" Text="September 2026" FontFamily="OpenSansSemibold" FontSize="15" VerticalTextAlignment="Center" />
-                    <Label Text="›" FontSize="31" VerticalTextAlignment="Center" TextColor="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" />
+                <Label Text="Transactions" Style="{StaticResource PageTitle}" FontSize="38" VerticalTextAlignment="Center" />
+
+                <HorizontalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                    <Label Text="‹" FontFamily="OpenSansSemibold" FontSize="28" WidthRequest="24" HorizontalTextAlignment="Center" VerticalTextAlignment="Center">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnPreviousMonthTapped" />
+                        </Label.GestureRecognizers>
+                    </Label>
+                    <Label x:Name="MonthSwitcherLabel" Text="September 2026" FontFamily="OpenSansSemibold" FontSize="13" MinimumWidthRequest="110" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                    <Label Text="›" FontFamily="OpenSansSemibold" FontSize="28" WidthRequest="24" HorizontalTextAlignment="Center" VerticalTextAlignment="Center">
+                        <Label.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnNextMonthTapped" />
+                        </Label.GestureRecognizers>
+                    </Label>
                 </HorizontalStackLayout>
 
-                <Border Grid.Column="1" WidthRequest="44" HeightRequest="44" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="2" StrokeShape="RoundRectangle 22">
+                <Border Grid.Column="2" WidthRequest="44" HeightRequest="44" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="2" StrokeShape="RoundRectangle 22">
                     <Label Text="⌕" FontFamily="OpenSansSemibold" FontSize="25" HorizontalOptions="Center" VerticalOptions="Center" />
                 </Border>
-
-                <Border Grid.Column="2" WidthRequest="44" HeightRequest="44" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="2" StrokeShape="RoundRectangle 22">
-                    <Label Text="+" FontSize="27" HorizontalOptions="Center" VerticalOptions="Center" />
-                </Border>
             </Grid>
 
-            <Label Text="Expenses" Style="{StaticResource PageTitle}" FontSize="38" />
+            <views:MonthlySummaryCard x:Name="TransactionsMonthlySummary" ShowTransactionCount="True" />
 
-            <Grid Margin="0,0,0,6">
-                <Border Style="{StaticResource CardShadowLayer}" />
-                <Border Style="{StaticResource CardSurface}" Padding="18,17">
-                    <VerticalStackLayout Spacing="15">
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="15">
-                        <VerticalStackLayout Spacing="3">
-                            <Label Text="Total spending" Style="{StaticResource BodyMuted}" FontSize="12" />
-                            <Label x:Name="TotalSpendingLabel" Text="RM 0.00" FontFamily="OpenSansSemibold" FontSize="27" />
-                        </VerticalStackLayout>
-                        <VerticalStackLayout Grid.Column="1" Spacing="3">
-                            <Label Text="Transaction count" Style="{StaticResource BodyMuted}" FontSize="12" HorizontalTextAlignment="End" />
-                            <Label x:Name="TransactionCountLabel" Text="0" FontFamily="OpenSansSemibold" FontSize="28" HorizontalTextAlignment="End" />
-                        </VerticalStackLayout>
+            <Grid ColumnDefinitions="Auto,*,*" ColumnSpacing="9">
+                <Border x:Name="AllFilterChip" Padding="17,8" BackgroundColor="{DynamicResource Accent}" StrokeThickness="0" StrokeShape="RoundRectangle 20">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnAllFilterTapped" />
+                    </Border.GestureRecognizers>
+                    <Label x:Name="AllFilterLabel" Text="All" FontFamily="OpenSansSemibold" TextColor="{DynamicResource AccentForeground}" />
+                </Border>
+                <Border x:Name="PaymentFilterChip" Grid.Column="1" Padding="10,7" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="1.5" StrokeShape="RoundRectangle 20">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnPaymentFilterTapped" />
+                    </Border.GestureRecognizers>
+                    <Grid ColumnDefinitions="28,*" ColumnSpacing="7">
+                        <Border WidthRequest="28" HeightRequest="28" Padding="2" BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="1" StrokeShape="RoundRectangle 9">
+                            <Image x:Name="PaymentFilterIcon" Source="settings_payment_methods.png" WidthRequest="22" HeightRequest="22" Aspect="AspectFill" />
+                        </Border>
+                        <Label x:Name="PaymentFilterLabel" Grid.Column="1" Text="Payment method" Style="{StaticResource BodyMuted}" FontSize="12" LineBreakMode="TailTruncation" MaxLines="1" VerticalTextAlignment="Center" />
                     </Grid>
-                    <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
-                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
-                        <Label Text="↗" FontSize="16" TextColor="{DynamicResource Accent}" VerticalTextAlignment="Center" />
-                        <Label Grid.Column="1" Text="Saved locally on this device" Style="{StaticResource BodyMuted}" VerticalTextAlignment="Center" />
+                </Border>
+                <Border x:Name="CategoryFilterChip" Grid.Column="2" Padding="10,7" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="1.5" StrokeShape="RoundRectangle 20">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnCategoryFilterTapped" />
+                    </Border.GestureRecognizers>
+                    <Grid ColumnDefinitions="28,*" ColumnSpacing="7">
+                        <Border WidthRequest="28" HeightRequest="28" Padding="2" BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="1" StrokeShape="RoundRectangle 9">
+                            <Image x:Name="CategoryFilterIcon" Source="settings_categories.png" WidthRequest="22" HeightRequest="22" Aspect="AspectFill" />
+                        </Border>
+                        <Label x:Name="CategoryFilterLabel" Grid.Column="1" Text="Category" Style="{StaticResource BodyMuted}" FontSize="12" LineBreakMode="TailTruncation" MaxLines="1" VerticalTextAlignment="Center" />
                     </Grid>
-                    </VerticalStackLayout>
                 </Border>
             </Grid>
-
-            <HorizontalStackLayout Spacing="9">
-                <Border Padding="17,8" BackgroundColor="{DynamicResource Accent}" StrokeThickness="0" StrokeShape="RoundRectangle 20">
-                    <Label Text="All" FontFamily="OpenSansSemibold" TextColor="{DynamicResource AccentForeground}" />
-                </Border>
-                <Border Padding="17,8" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="1.5" StrokeShape="RoundRectangle 20">
-                    <Label Text="Expenses" Style="{StaticResource BodyMuted}" />
-                </Border>
-                <Border Padding="17,8" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="1.5" StrokeShape="RoundRectangle 20">
-                    <Label Text="Income" Style="{StaticResource BodyMuted}" />
-                </Border>
-            </HorizontalStackLayout>
 
             <Border x:Name="EmptyActivityState" Style="{StaticResource SoftCard}" Padding="24" IsVisible="True">
                 <VerticalStackLayout Spacing="5" HorizontalOptions="Center">
-                    <Label Text="No transactions yet" Style="{StaticResource CardTitle}" FontSize="16" HorizontalTextAlignment="Center" />
-                    <Label Text="Tap + to record your first transaction." Style="{StaticResource BodyMuted}" FontSize="12" HorizontalTextAlignment="Center" />
+                    <Label x:Name="EmptyActivityTitle" Text="No transactions this month" Style="{StaticResource CardTitle}" FontSize="16" HorizontalTextAlignment="Center" />
+                    <Label Text="Use the bottom + button to record one." Style="{StaticResource BodyMuted}" FontSize="12" HorizontalTextAlignment="Center" />
                 </VerticalStackLayout>
             </Border>
 
@@ -108,4 +112,62 @@
             </VerticalStackLayout>
         </VerticalStackLayout>
     </ScrollView>
+
+    <Grid x:Name="FilterSelectorOverlay" IsVisible="False" Opacity="0" ZIndex="40" SizeChanged="OnFilterSelectorOverlaySizeChanged">
+        <BoxView BackgroundColor="#99000000">
+            <BoxView.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnFilterSelectorBackdropTapped" />
+            </BoxView.GestureRecognizers>
+        </BoxView>
+        <Border
+            x:Name="FilterSelectorCard"
+            Padding="18,18,18,20"
+            WidthRequest="500"
+            HeightRequest="520"
+            HorizontalOptions="Center"
+            VerticalOptions="Center"
+            BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource CardBackgroundDark}}"
+            Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+            StrokeThickness="2"
+            StrokeShape="RoundRectangle 28">
+            <Border.Shadow>
+                <Shadow Brush="{AppThemeBinding Light={StaticResource ShadowLight}, Dark={StaticResource ShadowDark}}" Offset="0,7" Opacity="0.8" Radius="0" />
+            </Border.Shadow>
+            <Grid RowDefinitions="Auto,*" RowSpacing="15">
+                <Grid ColumnDefinitions="*,42">
+                    <VerticalStackLayout Spacing="3" VerticalOptions="Center">
+                        <Label x:Name="FilterSelectorTitle" Text="Choose a filter" Style="{StaticResource CardTitle}" FontSize="20" />
+                        <Label Text="Tap an option to apply it" Style="{StaticResource BodyMuted}" FontSize="12" />
+                    </VerticalStackLayout>
+                    <Border Grid.Column="1" WidthRequest="42" HeightRequest="42" Style="{StaticResource Pill}" Padding="0">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnFilterSelectorCloseTapped" />
+                        </Border.GestureRecognizers>
+                        <Label Text="×" FontSize="24" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                    </Border>
+                </Grid>
+
+                <CollectionView
+                    x:Name="FilterSelectorCollection"
+                    Grid.Row="1"
+                    SelectionMode="Single"
+                    SelectionChanged="OnFilterSelectorSelectionChanged"
+                    VerticalScrollBarVisibility="Never">
+                    <CollectionView.ItemTemplate>
+                        <DataTemplate x:DataType="models:TransactionOption">
+                            <Border Style="{StaticResource OptionCard}" Padding="10" Margin="0,0,0,8">
+                                <Grid ColumnDefinitions="44,*" ColumnSpacing="12">
+                                    <Border WidthRequest="44" HeightRequest="44" StrokeThickness="0" StrokeShape="RoundRectangle 14">
+                                        <Image Source="{Binding IconAsset}" WidthRequest="44" HeightRequest="44" Aspect="AspectFill" />
+                                    </Border>
+                                    <Label Grid.Column="1" Text="{Binding Title}" Style="{StaticResource CardTitle}" FontSize="14" LineBreakMode="TailTruncation" MaxLines="1" VerticalTextAlignment="Center" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </CollectionView.ItemTemplate>
+                </CollectionView>
+            </Grid>
+        </Border>
+    </Grid>
+    </Grid>
 </ContentView>
