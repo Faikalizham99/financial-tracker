@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Globalization;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using FinancialTracker.Models;
 using FinancialTracker.Services;
@@ -145,6 +146,27 @@ public sealed class SettingsViewModel(SettingsService settingsService) : INotify
 
     public string AccentValidationMessage =>
         HasAccentValidationError ? "Enter a HEX colour such as #5044E4." : string.Empty;
+
+    public string AppVersionText =>
+        $"Version {AppInfo.Current.VersionString} ({AppInfo.Current.BuildString})";
+
+    public string BuildRevisionText
+    {
+        get
+        {
+            var informationalVersion = typeof(SettingsViewModel).Assembly
+                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+                ?.InformationalVersion;
+            var metadataSeparator = informationalVersion?.IndexOf('+') ?? -1;
+            var revision = metadataSeparator >= 0
+                ? informationalVersion![(metadataSeparator + 1)..]
+                : null;
+
+            return string.IsNullOrWhiteSpace(revision)
+                ? "Development build"
+                : $"Commit {revision[..Math.Min(7, revision.Length)]}";
+        }
+    }
 
     public string AvailableAmountText => FormatMoney(3240.50m);
     public string IncomeAmountText => FormatMoney(6800m);
