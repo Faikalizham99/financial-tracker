@@ -66,7 +66,8 @@
                 <Border.Shadow>
                     <Shadow Brush="{AppThemeBinding Light={StaticResource ShadowLight}, Dark={StaticResource ShadowDark}}" Offset="0,7" Opacity="0.32" Radius="0" />
                 </Border.Shadow>
-                <Grid RowDefinitions="*,Auto,Auto,Auto" RowSpacing="12">
+                <Grid>
+                <Grid RowDefinitions="*,62,Auto,Auto" RowSpacing="12">
                     <Grid HorizontalOptions="Center" VerticalOptions="Center" ColumnDefinitions="Auto,Auto,4">
                         <Label
                             x:Name="CurrencySymbolLabel"
@@ -93,6 +94,7 @@
                     </Grid>
 
                     <Border
+                        x:Name="DescriptionFieldContainer"
                         Grid.Row="1"
                         HeightRequest="62"
                         Padding="15,0"
@@ -219,6 +221,55 @@
                         <Border Grid.Row="3" Grid.Column="2" Style="{StaticResource KeypadButton}"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnKeypadTapped" CommandParameter="back" /></Border.GestureRecognizers><Label Text="⌫" Style="{StaticResource KeypadLabel}" FontSize="19" /></Border>
                         <Border Grid.Row="3" Grid.Column="3" Style="{StaticResource KeypadButton}"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnKeypadTapped" CommandParameter="+" /></Border.GestureRecognizers><Label Text="+" Style="{StaticResource KeypadLabel}" TextColor="{DynamicResource Accent}" /></Border>
                     </Grid>
+                </Grid>
+
+                <Border
+                    x:Name="DescriptionSuggestionsPanel"
+                    ZIndex="20"
+                    IsVisible="False"
+                    HeightRequest="0"
+                    Padding="4"
+                    HorizontalOptions="Fill"
+                    VerticalOptions="Start"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}"
+                    Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                    StrokeThickness="1.5"
+                    StrokeShape="RoundRectangle 18">
+                    <Border.Shadow>
+                        <Shadow Brush="{AppThemeBinding Light={StaticResource ShadowLight}, Dark={StaticResource ShadowDark}}" Offset="0,5" Opacity="0.72" Radius="0" />
+                    </Border.Shadow>
+                    <CollectionView
+                        x:Name="DescriptionSuggestionsView"
+                        SelectionMode="Single"
+                        SelectionChanged="OnDescriptionSuggestionSelected"
+                        VerticalScrollBarVisibility="Never">
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate>
+                                <Grid Padding="12,8" ColumnDefinitions="24,*" ColumnSpacing="9" HeightRequest="46">
+                                    <Path
+                                        WidthRequest="19"
+                                        HeightRequest="19"
+                                        Data="M 12,3 A 9,9 0 1 0 21,12 M 12,7 L 12,12 L 16,14"
+                                        Stroke="{DynamicResource Accent}"
+                                        StrokeThickness="1.8"
+                                        StrokeLineCap="Round"
+                                        StrokeLineJoin="Round"
+                                        Fill="Transparent"
+                                        Aspect="Uniform"
+                                        VerticalOptions="Center" />
+                                    <Label
+                                        Grid.Column="1"
+                                        Text="{Binding .}"
+                                        FontFamily="OpenSansSemibold"
+                                        FontSize="14"
+                                        LineBreakMode="TailTruncation"
+                                        MaxLines="1"
+                                        VerticalTextAlignment="Center" />
+                                </Grid>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </Border>
                 </Grid>
             </Border>
 

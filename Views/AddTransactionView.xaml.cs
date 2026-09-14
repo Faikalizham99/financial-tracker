@@ -32,6 +32,8 @@ public partial class AddTransactionView : ContentView
     private bool isSelectorAnimating;
     private bool isTypeAnimating;
     private bool isSaving;
+    private bool isApplyingDescriptionSuggestion;
+    private IReadOnlyList<string> descriptionHistory = [];
 
     public AddTransactionView()
     {
@@ -49,6 +51,7 @@ public partial class AddTransactionView : ContentView
 
         database = localDatabase;
         currency = selectedCurrency;
+        var descriptionHistoryTask = LoadDescriptionHistoryAsync(localDatabase);
         ResetForm();
         isOpen = true;
         isAnimating = true;
@@ -70,6 +73,9 @@ public partial class AddTransactionView : ContentView
         {
             isAnimating = false;
         }
+
+        await descriptionHistoryTask;
+        UpdateDescriptionSuggestions(DescriptionEntry.Text);
     }
 
     public async Task CloseAsync()
@@ -85,6 +91,7 @@ public partial class AddTransactionView : ContentView
         }
 
         isAnimating = true;
+        HideDescriptionSuggestions();
         DescriptionEntry.Unfocus();
 
         try
@@ -120,6 +127,7 @@ public partial class AddTransactionView : ContentView
             return;
         }
 
+        HideDescriptionSuggestions();
         var feedback = InteractionAnimations.PulseAsync(sender);
         await ToggleTransactionTypeAsync();
         await feedback;
@@ -127,6 +135,7 @@ public partial class AddTransactionView : ContentView
 
     private async void OnPaymentTapped(object? sender, TappedEventArgs e)
     {
+        HideDescriptionSuggestions();
         var feedback = InteractionAnimations.PulseAsync(sender);
         await OpenSelectorAsync(
             SelectorKind.PaymentMethod,
@@ -137,6 +146,7 @@ public partial class AddTransactionView : ContentView
 
     private async void OnCategoryTapped(object? sender, TappedEventArgs e)
     {
+        HideDescriptionSuggestions();
         var feedback = InteractionAnimations.PulseAsync(sender);
         var categories = selectedType.Key == "Income"
             ? TransactionCatalog.IncomeCategories
@@ -300,6 +310,8 @@ public partial class AddTransactionView : ContentView
 
     private async void OnKeypadTapped(object? sender, TappedEventArgs e)
     {
+        HideDescriptionSuggestions();
+
         if (e.Parameter is not string key || isSaving)
         {
             return;
@@ -446,8 +458,82 @@ public partial class AddTransactionView : ContentView
     private void OnTransactionDateSelected(object? sender, DateChangedEventArgs e) =>
         UpdateDateLabel(e.NewDate ?? DateTime.Today);
 
-    private void OnDescriptionTextChanged(object? sender, TextChangedEventArgs e) =>
+    private void OnDescriptionTextChanged(object? sender, TextChangedEventArgs e)
+    {
         UpdateSaveButton();
+        if (!isApplyingDescriptionSuggestion)
+        {
+            UpdateDescriptionSuggestions(e.NewTextValue);
+        }
+    }
+
+    private void OnDescriptionSuggestionSelected(
+        object? sender,
+        SelectionChangedEventArgs e)
+    {
+        if (e.CurrentSelection.FirstOrDefault() is not string description)
+        {
+            return;
+        }
+
+        isApplyingDescriptionSuggestion = true;
+        DescriptionEntry.Text = description;
+        DescriptionEntry.CursorPosition = description.Length;
+        isApplyingDescriptionSuggestion = false;
+        DescriptionSuggestionsView.SelectedItem = null;
+        HideDescriptionSuggestions();
+        DescriptionEntry.Focus();
+    }
+
+    private async Task LoadDescriptionHistoryAsync(LocalDatabase localDatabase)
+    {
+        try
+        {
+            var records = await localDatabase.GetTransactionsAsync();
+            descriptionHistory = records
+                .Select(record => record.Description.Trim())
+                .Where(description => !string.IsNullOrWhiteSpace(description))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+        catch
+        {
+            descriptionHistory = [];
+        }
+    }
+
+    private void UpdateDescriptionSuggestions(string? input)
+    {
+        var query = input?.Trim();
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            HideDescriptionSuggestions();
+            return;
+        }
+
+        var matches = descriptionHistory
+            .Where(description => description.Contains(
+                query,
+                StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(description => description.StartsWith(
+                query,
+                StringComparison.OrdinalIgnoreCase))
+            .Take(4)
+            .ToList();
+
+        DescriptionSuggestionsView.ItemsSource = matches;
+        DescriptionSuggestionsPanel.HeightRequest = matches.Count * 46 + 8;
+        DescriptionSuggestionsPanel.TranslationY =
+            DescriptionFieldContainer.Y + DescriptionFieldContainer.Height + 8;
+        DescriptionSuggestionsPanel.IsVisible = matches.Count > 0;
+    }
+
+    private void HideDescriptionSuggestions()
+    {
+        DescriptionSuggestionsPanel.IsVisible = false;
+        DescriptionSuggestionsPanel.HeightRequest = 0;
+        DescriptionSuggestionsView.SelectedItem = null;
+    }
 
     private void OnDescriptionEntryHandlerChanged(object? sender, EventArgs e)
     {
@@ -517,6 +603,8 @@ public partial class AddTransactionView : ContentView
 
     private async void OnSaveTapped(object? sender, TappedEventArgs e)
     {
+        HideDescriptionSuggestions();
+
         if (pendingOperator is not null)
         {
             if (isSaving || startNewInput)
@@ -587,6 +675,8 @@ public partial class AddTransactionView : ContentView
         pendingOperator = null;
         startNewInput = true;
         isSaving = false;
+        isApplyingDescriptionSuggestion = false;
+        HideDescriptionSuggestions();
         DescriptionEntry.Text = string.Empty;
         TransactionDatePicker.Date = DateTime.Today;
         CurrencySymbolLabel.Text = currency.Symbol;
