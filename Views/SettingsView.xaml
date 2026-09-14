@@ -525,59 +525,19 @@
                         </Border>
 
                         <VerticalStackLayout x:Name="ExpenseCategoriesPanel" Spacing="12">
-                            <Label Text="9 EXPENSE CATEGORIES" Style="{StaticResource SectionLabel}" FontSize="10" />
+                            <Label Text="11 EXPENSE CATEGORIES" Style="{StaticResource SectionLabel}" FontSize="10" />
                             <Border Style="{StaticResource SoftCard}" Padding="12,10">
                                 <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
                                     <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
-                                        <Image
-                                            Source="category_groceries.png"
-                                            WidthRequest="56"
-                                            HeightRequest="56"
-                                            Aspect="AspectFill"
-                                            HorizontalOptions="Center"
-                                            VerticalOptions="Center" />
+                                        <Image Source="category_beauty.png" WidthRequest="56" HeightRequest="56" Aspect="AspectFill" HorizontalOptions="Center" VerticalOptions="Center" />
                                     </Border>
-                                    <Label Grid.Column="1" Text="Groceries" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
+                                    <Label Grid.Column="1" Text="Beauty" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
                                 </Grid>
                             </Border>
                             <Border Style="{StaticResource SoftCard}" Padding="12,10">
                                 <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
                                     <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
-                                        <Image
-                                            Source="category_food_drinks.png"
-                                            WidthRequest="56"
-                                            HeightRequest="56"
-                                            Aspect="AspectFill"
-                                            HorizontalOptions="Center"
-                                            VerticalOptions="Center" />
-                                    </Border>
-                                    <Label Grid.Column="1" Text="Food &amp; Drinks" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
-                                </Grid>
-                            </Border>
-                            <Border Style="{StaticResource SoftCard}" Padding="12,10">
-                                <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
-                                    <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
-                                        <Image
-                                            Source="category_transportation.png"
-                                            WidthRequest="56"
-                                            HeightRequest="56"
-                                            Aspect="AspectFill"
-                                            HorizontalOptions="Center"
-                                            VerticalOptions="Center" />
-                                    </Border>
-                                    <Label Grid.Column="1" Text="Transportation" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
-                                </Grid>
-                            </Border>
-                            <Border Style="{StaticResource SoftCard}" Padding="12,10">
-                                <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
-                                    <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
-                                        <Image
-                                            Source="category_bills_utilities.png"
-                                            WidthRequest="56"
-                                            HeightRequest="56"
-                                            Aspect="AspectFill"
-                                            HorizontalOptions="Center"
-                                            VerticalOptions="Center" />
+                                        <Image Source="category_bills_utilities.png" WidthRequest="56" HeightRequest="56" Aspect="AspectFill" HorizontalOptions="Center" VerticalOptions="Center" />
                                     </Border>
                                     <Label Grid.Column="1" Text="Bills &amp; Utilities" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
                                 </Grid>
@@ -585,41 +545,7 @@
                             <Border Style="{StaticResource SoftCard}" Padding="12,10">
                                 <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
                                     <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
-                                        <Image
-                                            Source="category_health.png"
-                                            WidthRequest="56"
-                                            HeightRequest="56"
-                                            Aspect="AspectFill"
-                                            HorizontalOptions="Center"
-                                            VerticalOptions="Center" />
-                                    </Border>
-                                    <Label Grid.Column="1" Text="Health" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
-                                </Grid>
-                            </Border>
-                            <Border Style="{StaticResource SoftCard}" Padding="12,10">
-                                <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
-                                    <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
-                                        <Image
-                                            Source="category_shopping.png"
-                                            WidthRequest="56"
-                                            HeightRequest="56"
-                                            Aspect="AspectFill"
-                                            HorizontalOptions="Center"
-                                            VerticalOptions="Center" />
-                                    </Border>
-                                    <Label Grid.Column="1" Text="Shopping" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
-                                </Grid>
-                            </Border>
-                            <Border Style="{StaticResource SoftCard}" Padding="12,10">
-                                <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
-                                    <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
-                                        <Image
-                                            Source="category_entertainment.png"
-                                            WidthRequest="56"
-                                            HeightRequest="56"
-                                            Aspect="AspectFill"
-                                            HorizontalOptions="Center"
-                                            VerticalOptions="Center" />
+                                        <Image Source="category_entertainment.png" WidthRequest="56" HeightRequest="56" Aspect="AspectFill" HorizontalOptions="Center" VerticalOptions="Center" />
                                     </Border>
                                     <Label Grid.Column="1" Text="Entertainment" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
                                 </Grid>
@@ -627,13 +553,39 @@
                             <Border Style="{StaticResource SoftCard}" Padding="12,10">
                                 <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
                                     <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
-                                        <Image
-                                            Source="category_investment.png"
-                                            WidthRequest="56"
-                                            HeightRequest="56"
-                                            Aspect="AspectFill"
-                                            HorizontalOptions="Center"
-                                            VerticalOptions="Center" />
+                                        <Image Source="category_food_drinks.png" WidthRequest="56" HeightRequest="56" Aspect="AspectFill" HorizontalOptions="Center" VerticalOptions="Center" />
+                                    </Border>
+                                    <Label Grid.Column="1" Text="Food &amp; Drinks" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                            <Border Style="{StaticResource SoftCard}" Padding="12,10">
+                                <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
+                                    <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
+                                        <Image Source="category_gift.png" WidthRequest="56" HeightRequest="56" Aspect="AspectFill" HorizontalOptions="Center" VerticalOptions="Center" />
+                                    </Border>
+                                    <Label Grid.Column="1" Text="Gift" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                            <Border Style="{StaticResource SoftCard}" Padding="12,10">
+                                <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
+                                    <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
+                                        <Image Source="category_groceries.png" WidthRequest="56" HeightRequest="56" Aspect="AspectFill" HorizontalOptions="Center" VerticalOptions="Center" />
+                                    </Border>
+                                    <Label Grid.Column="1" Text="Groceries" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                            <Border Style="{StaticResource SoftCard}" Padding="12,10">
+                                <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
+                                    <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
+                                        <Image Source="category_health.png" WidthRequest="56" HeightRequest="56" Aspect="AspectFill" HorizontalOptions="Center" VerticalOptions="Center" />
+                                    </Border>
+                                    <Label Grid.Column="1" Text="Health" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                            <Border Style="{StaticResource SoftCard}" Padding="12,10">
+                                <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
+                                    <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
+                                        <Image Source="category_investment.png" WidthRequest="56" HeightRequest="56" Aspect="AspectFill" HorizontalOptions="Center" VerticalOptions="Center" />
                                     </Border>
                                     <Label Grid.Column="1" Text="Investment" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
                                 </Grid>
@@ -641,13 +593,23 @@
                             <Border Style="{StaticResource SoftCard}" Padding="12,10">
                                 <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
                                     <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
-                                        <Image
-                                            Source="category_expense_others.png"
-                                            WidthRequest="56"
-                                            HeightRequest="56"
-                                            Aspect="AspectFill"
-                                            HorizontalOptions="Center"
-                                            VerticalOptions="Center" />
+                                        <Image Source="category_shopping.png" WidthRequest="56" HeightRequest="56" Aspect="AspectFill" HorizontalOptions="Center" VerticalOptions="Center" />
+                                    </Border>
+                                    <Label Grid.Column="1" Text="Shopping" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                            <Border Style="{StaticResource SoftCard}" Padding="12,10">
+                                <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
+                                    <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
+                                        <Image Source="category_transportation.png" WidthRequest="56" HeightRequest="56" Aspect="AspectFill" HorizontalOptions="Center" VerticalOptions="Center" />
+                                    </Border>
+                                    <Label Grid.Column="1" Text="Transportation" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                            <Border Style="{StaticResource SoftCard}" Padding="12,10">
+                                <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
+                                    <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
+                                        <Image Source="category_expense_others.png" WidthRequest="56" HeightRequest="56" Aspect="AspectFill" HorizontalOptions="Center" VerticalOptions="Center" />
                                     </Border>
                                     <Label Grid.Column="1" Text="Others" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
                                 </Grid>
@@ -655,17 +617,35 @@
                         </VerticalStackLayout>
 
                         <VerticalStackLayout x:Name="IncomeCategoriesPanel" IsVisible="False" Spacing="12">
-                            <Label Text="2 INCOME CATEGORIES" Style="{StaticResource SectionLabel}" FontSize="10" />
+                            <Label Text="5 INCOME CATEGORIES" Style="{StaticResource SectionLabel}" FontSize="10" />
                             <Border Style="{StaticResource SoftCard}" Padding="12,10">
                                 <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
                                     <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
-                                        <Image
-                                            Source="category_salary.png"
-                                            WidthRequest="56"
-                                            HeightRequest="56"
-                                            Aspect="AspectFill"
-                                            HorizontalOptions="Center"
-                                            VerticalOptions="Center" />
+                                        <Image Source="category_bonus.png" WidthRequest="56" HeightRequest="56" Aspect="AspectFill" HorizontalOptions="Center" VerticalOptions="Center" />
+                                    </Border>
+                                    <Label Grid.Column="1" Text="Bonus" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                            <Border Style="{StaticResource SoftCard}" Padding="12,10">
+                                <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
+                                    <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
+                                        <Image Source="category_cashback.png" WidthRequest="56" HeightRequest="56" Aspect="AspectFill" HorizontalOptions="Center" VerticalOptions="Center" />
+                                    </Border>
+                                    <Label Grid.Column="1" Text="Cashback" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                            <Border Style="{StaticResource SoftCard}" Padding="12,10">
+                                <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
+                                    <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
+                                        <Image Source="category_refund.png" WidthRequest="56" HeightRequest="56" Aspect="AspectFill" HorizontalOptions="Center" VerticalOptions="Center" />
+                                    </Border>
+                                    <Label Grid.Column="1" Text="Refund" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                            <Border Style="{StaticResource SoftCard}" Padding="12,10">
+                                <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
+                                    <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
+                                        <Image Source="category_salary.png" WidthRequest="56" HeightRequest="56" Aspect="AspectFill" HorizontalOptions="Center" VerticalOptions="Center" />
                                     </Border>
                                     <Label Grid.Column="1" Text="Salary" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
                                 </Grid>
@@ -673,13 +653,7 @@
                             <Border Style="{StaticResource SoftCard}" Padding="12,10">
                                 <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
                                     <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
-                                        <Image
-                                            Source="category_others.png"
-                                            WidthRequest="56"
-                                            HeightRequest="56"
-                                            Aspect="AspectFill"
-                                            HorizontalOptions="Center"
-                                            VerticalOptions="Center" />
+                                        <Image Source="category_others.png" WidthRequest="56" HeightRequest="56" Aspect="AspectFill" HorizontalOptions="Center" VerticalOptions="Center" />
                                     </Border>
                                     <Label Grid.Column="1" Text="Others" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
                                 </Grid>
