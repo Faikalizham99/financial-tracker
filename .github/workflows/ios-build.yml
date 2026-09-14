@@ -149,7 +149,10 @@ jobs:
             exit 1
           fi
 
-          payload_app_count=$(unzip -Z1 "$ipa_path" | awk '/^Payload\/[^/]+\.app\/$/ { count++ } END { print count + 0 }')
+          payload_app_count=$(
+            unzip -Z1 "$ipa_path" |
+              awk -F/ '$1 == "Payload" && $2 ~ /[.]app$/ && $3 == "" && NF == 3 { count++ } END { print count + 0 }'
+          )
           if [[ "$payload_app_count" -ne 1 ]]; then
             echo "IPA must contain exactly one top-level Payload/*.app bundle." >&2
             unzip -Z1 "$ipa_path" | head -100
