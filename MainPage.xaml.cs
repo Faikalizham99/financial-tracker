@@ -1,31 +1,69 @@
 namespace FinancialTracker;
 
+using System.ComponentModel;
+using System.Globalization;
 using FinancialTracker.ViewModels;
 using FinancialTracker.Data;
 using FinancialTracker.Services;
 using FinancialTracker.Helpers;
+using FinancialTracker.Models;
 
 public partial class MainPage : ContentPage
 {
     private readonly SettingsViewModel settingsViewModel;
+    private readonly LocalDatabase localDatabase;
+    private readonly SemaphoreSlim transactionRefreshLock = new(1, 1);
     private int selectedSectionIndex = 1;
     private int navigationTransitionVersion;
 
     public MainPage()
-        : this(new SettingsViewModel(new SettingsService(new LocalDatabase())))
+        : this(new LocalDatabase())
+    {
+    }
+
+    private MainPage(LocalDatabase localDatabase)
+        : this(
+            new SettingsViewModel(new SettingsService(localDatabase)),
+            localDatabase)
     {
     }
 
     public MainPage(SettingsViewModel settingsViewModel)
+        : this(settingsViewModel, new LocalDatabase())
+    {
+    }
+
+    private MainPage(
+        SettingsViewModel settingsViewModel,
+        LocalDatabase localDatabase)
     {
         InitializeComponent();
         this.settingsViewModel = settingsViewModel;
+        this.localDatabase = localDatabase;
         BindingContext = settingsViewModel;
+        AddTransactionOverlay.TransactionSaved += OnTransactionSaved;
+        settingsViewModel.PropertyChanged += OnSettingsPropertyChanged;
         Loaded += OnLoaded;
     }
 
-    private async void OnLoaded(object? sender, EventArgs e) =>
+    private async void OnLoaded(object? sender, EventArgs e)
+    {
         await settingsViewModel.InitializeAsync();
+        await RefreshTransactionViewsAsync();
+    }
+
+    private async void OnTransactionSaved(object? sender, EventArgs e) =>
+        await RefreshTransactionViewsAsync();
+
+    private async void OnSettingsPropertyChanged(
+        object? sender,
+        PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(SettingsViewModel.SelectedCurrency))
+        {
+            await RefreshTransactionViewsAsync();
+        }
+    }
 
     private async void OnDashboardTapped(object? sender, TappedEventArgs e)
         => await NavigateToSectionAsync(0);
@@ -36,8 +74,14 @@ public partial class MainPage : ContentPage
     private async void OnSettingsTapped(object? sender, TappedEventArgs e)
         => await NavigateToSectionAsync(2);
 
-    private async void OnAddTapped(object? sender, TappedEventArgs e) =>
-        await InteractionAnimations.PulseAsync(sender);
+    private async void OnAddTapped(object? sender, TappedEventArgs e)
+    {
+        var feedback = InteractionAnimations.PulseAsync(sender);
+        await AddTransactionOverlay.OpenAsync(
+            localDatabase,
+            settingsViewModel.SelectedCurrency);
+        await feedback;
+    }
 
     private void OnNavigationTabsSizeChanged(object? sender, EventArgs e)
     {
@@ -46,6 +90,11 @@ public partial class MainPage : ContentPage
 
     private async Task NavigateToSectionAsync(int selectedIndex)
     {
+        if (selectedIndex <= 1)
+        {
+            await RefreshTransactionViewsAsync();
+        }
+
         var pages = new VisualElement[] { DashboardView, ExpensesView, SettingsView };
         var icons = new VisualElement[] { DashboardIcon, ExpensesIcon, SettingsIcon };
         var selectedIcon = icons[selectedIndex];
@@ -102,6 +151,66 @@ public partial class MainPage : ContentPage
         previousPage.TranslationY = 0;
         selectedPage.Opacity = 1;
         selectedPage.TranslationY = 0;
+    }
+
+    private async Task RefreshTransactionViewsAsync()
+    {
+        await transactionRefreshLock.WaitAsync();
+        try
+        {
+            var records = await localDatabase.GetTransactionsAsync();
+            var currency = settingsViewModel.SelectedCurrency;
+
+            ExpensesView.Refresh(records, currency);
+            RefreshDashboard(records, currency);
+        }
+        finally
+        {
+            transactionRefreshLock.Release();
+        }
+    }
+
+    private void RefreshDashboard(
+        IReadOnlyList<TransactionRecord> records,
+        CurrencyOption selectedCurrency)
+    {
+        var today = DateTime.Today;
+        var currentMonthRecords = records
+            .Where(record =>
+                record.CurrencyCode.Equals(selectedCurrency.Code, StringComparison.OrdinalIgnoreCase) &&
+                record.TransactionDate.Year == today.Year &&
+                record.TransactionDate.Month == today.Month)
+            .ToList();
+        var incomeMinor = currentMonthRecords
+            .Where(record => record.Type.Equals("Income", StringComparison.OrdinalIgnoreCase))
+            .Sum(record => record.AmountMinor);
+        var spentMinor = currentMonthRecords
+            .Where(record => record.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase))
+            .Sum(record => record.AmountMinor);
+
+        DashboardAvailableAmountLabel.Text = FormatMoney(
+            selectedCurrency,
+            incomeMinor - spentMinor);
+        DashboardIncomeAmountLabel.Text = FormatMoney(selectedCurrency, incomeMinor);
+        DashboardSpentAmountLabel.Text = FormatMoney(selectedCurrency, spentMinor);
+        DashboardMonthLabel.Text = today.ToString("MMM", CultureInfo.CurrentCulture).ToUpperInvariant();
+
+        var recentRecords = records.Take(5).ToList();
+        var recentActivity = recentRecords
+            .Select((record, index) => TransactionActivityItem.FromRecord(
+                record,
+                index < recentRecords.Count - 1))
+            .ToList();
+        BindableLayout.SetItemsSource(DashboardActivityLayout, recentActivity);
+        DashboardActivityCard.IsVisible = recentActivity.Count > 0;
+        DashboardEmptyActivityState.IsVisible = recentActivity.Count == 0;
+    }
+
+    private static string FormatMoney(CurrencyOption currency, long amountMinor)
+    {
+        var sign = amountMinor < 0 ? "− " : string.Empty;
+        var amount = Math.Abs(amountMinor) / 100m;
+        return $"{sign}{currency.Symbol} {amount.ToString("N2", CultureInfo.InvariantCulture)}";
     }
 
     private double GetSelectionPillOffset(int selectedIndex)

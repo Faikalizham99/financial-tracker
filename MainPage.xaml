@@ -3,6 +3,7 @@
     x:Class="FinancialTracker.MainPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:models="clr-namespace:FinancialTracker.Models"
     xmlns:views="clr-namespace:FinancialTracker.Views"
     Shell.NavBarIsVisible="False">
 
@@ -42,15 +43,17 @@
 
                 <VerticalStackLayout Spacing="13">
                     <Label Text="MONTHLY PULSE" Style="{StaticResource SectionLabel}" />
-                    <Border Style="{StaticResource Card}">
-                        <VerticalStackLayout Spacing="18">
+                    <Grid Margin="0,0,0,6">
+                        <Border Style="{StaticResource CardShadowLayer}" />
+                        <Border Style="{StaticResource CardSurface}">
+                            <VerticalStackLayout Spacing="18">
                             <Grid ColumnDefinitions="*,Auto">
                                 <VerticalStackLayout Spacing="3">
                                     <Label Text="Available to spend" Style="{StaticResource BodyMuted}" />
-                                    <Label Text="{Binding AvailableAmountText}" FontFamily="OpenSansSemibold" FontSize="31" />
+                                    <Label x:Name="DashboardAvailableAmountLabel" Text="RM 0.00" FontFamily="OpenSansSemibold" FontSize="31" />
                                 </VerticalStackLayout>
                                 <Border Grid.Column="1" Style="{StaticResource Pill}" VerticalOptions="Start">
-                                    <Label Text="SEP" FontFamily="OpenSansSemibold" FontSize="11" TextColor="{DynamicResource Accent}" />
+                                    <Label x:Name="DashboardMonthLabel" Text="SEP" FontFamily="OpenSansSemibold" FontSize="11" TextColor="{DynamicResource Accent}" />
                                 </Border>
                             </Grid>
                             <Grid HeightRequest="12">
@@ -65,36 +68,53 @@
                             <Grid ColumnDefinitions="*,*" ColumnSpacing="20">
                                 <VerticalStackLayout Spacing="2">
                                     <Label Text="INCOME" Style="{StaticResource SectionLabel}" FontSize="10" />
-                                    <Label Text="{Binding IncomeAmountText}" FontFamily="OpenSansSemibold" FontSize="16" />
+                                    <Label x:Name="DashboardIncomeAmountLabel" Text="RM 0.00" FontFamily="OpenSansSemibold" FontSize="16" />
                                 </VerticalStackLayout>
                                 <VerticalStackLayout Grid.Column="1" Spacing="2">
                                     <Label Text="SPENT" Style="{StaticResource SectionLabel}" FontSize="10" />
-                                    <Label Text="{Binding SpentAmountText}" FontFamily="OpenSansSemibold" FontSize="16" />
+                                    <Label x:Name="DashboardSpentAmountLabel" Text="RM 0.00" FontFamily="OpenSansSemibold" FontSize="16" />
                                 </VerticalStackLayout>
                             </Grid>
-                        </VerticalStackLayout>
-                    </Border>
+                            </VerticalStackLayout>
+                        </Border>
+                    </Grid>
                 </VerticalStackLayout>
 
                 <VerticalStackLayout Spacing="13">
                     <Label Text="RECENT ACTIVITY" Style="{StaticResource SectionLabel}" />
-                    <Border Style="{StaticResource Card}">
-                        <Grid ColumnDefinitions="46,*,Auto" ColumnSpacing="12">
-                            <Border
-                                WidthRequest="43"
-                                HeightRequest="43"
-                                BackgroundColor="{AppThemeBinding Light={StaticResource BlushLight}, Dark={StaticResource BlushDark}}"
-                                StrokeThickness="0"
-                                StrokeShape="RoundRectangle 13">
-                                <Label Text="B" FontFamily="OpenSansSemibold" HorizontalOptions="Center" VerticalOptions="Center" />
-                            </Border>
-                            <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
-                                <Label Text="Breakfast" Style="{StaticResource CardTitle}" FontSize="15" />
-                                <Label Text="Food &amp; drinks · Card" Style="{StaticResource BodyMuted}" FontSize="12" />
-                            </VerticalStackLayout>
-                            <Label Grid.Column="2" Text="{Binding BreakfastAmountText}" FontFamily="OpenSansSemibold" TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" VerticalOptions="Center" />
-                        </Grid>
+                    <Border x:Name="DashboardEmptyActivityState" Style="{StaticResource SoftCard}" Padding="22">
+                        <Label Text="Your saved transactions will appear here." Style="{StaticResource BodyMuted}" HorizontalTextAlignment="Center" />
                     </Border>
+                    <Grid x:Name="DashboardActivityCard" Margin="0,0,0,6" IsVisible="False">
+                        <Border Style="{StaticResource CardShadowLayer}" />
+                        <Border Style="{StaticResource CardSurface}" Padding="0">
+                            <VerticalStackLayout x:Name="DashboardActivityLayout" Spacing="0">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="models:TransactionActivityItem">
+                                    <Grid RowDefinitions="Auto,Auto">
+                                        <Grid Padding="14,12" ColumnDefinitions="48,*,Auto" ColumnSpacing="12">
+                                            <Border WidthRequest="46" HeightRequest="46" StrokeThickness="0" StrokeShape="RoundRectangle 14">
+                                                <Image Source="{Binding IconAsset}" WidthRequest="46" HeightRequest="46" Aspect="AspectFill" />
+                                            </Border>
+                                            <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                                <Label Text="{Binding Description}" Style="{StaticResource CardTitle}" FontSize="14" LineBreakMode="TailTruncation" MaxLines="1" />
+                                                <Label Text="{Binding DashboardDetailText}" Style="{StaticResource BodyMuted}" FontSize="11" LineBreakMode="TailTruncation" MaxLines="1" />
+                                            </VerticalStackLayout>
+                                            <Label Grid.Column="2" Text="{Binding AmountText}" FontFamily="OpenSansSemibold" FontSize="14" TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" HorizontalTextAlignment="End" VerticalOptions="Center">
+                                                <Label.Triggers>
+                                                    <DataTrigger TargetType="Label" Binding="{Binding IsIncome}" Value="True">
+                                                        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource PositiveLight}, Dark={StaticResource PositiveDark}}" />
+                                                    </DataTrigger>
+                                                </Label.Triggers>
+                                            </Label>
+                                        </Grid>
+                                        <BoxView Grid.Row="1" Margin="74,0,14,0" HeightRequest="1" IsVisible="{Binding ShowDivider}" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
+                        </Border>
+                    </Grid>
                 </VerticalStackLayout>
             </VerticalStackLayout>
         </ScrollView>
@@ -266,5 +286,10 @@
                     VerticalOptions="Center" />
             </Border>
         </Grid>
+
+        <views:AddTransactionView
+            x:Name="AddTransactionOverlay"
+            IsVisible="False"
+            ZIndex="100" />
     </Grid>
 </ContentPage>

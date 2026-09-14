@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+    x:Class="FinancialTracker.Views.AddTransactionView"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:models="clr-namespace:FinancialTracker.Models"
+    BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}">
+
+    <ContentView.Resources>
+        <Style x:Key="TransactionChip" TargetType="Border">
+            <Setter Property="HeightRequest" Value="46" />
+            <Setter Property="Padding" Value="11,0" />
+            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource SurfaceMutedDark}}" />
+            <Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+            <Setter Property="StrokeThickness" Value="1.5" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 23" />
+        </Style>
+
+        <Style x:Key="KeypadButton" TargetType="Border">
+            <Setter Property="HeightRequest" Value="52" />
+            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark=#202023}" />
+            <Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource DividerLight}, Dark=#2C2C30}" />
+            <Setter Property="StrokeThickness" Value="1" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 15" />
+        </Style>
+
+        <Style x:Key="KeypadLabel" TargetType="Label">
+            <Setter Property="FontFamily" Value="OpenSansSemibold" />
+            <Setter Property="FontSize" Value="22" />
+            <Setter Property="HorizontalTextAlignment" Value="Center" />
+            <Setter Property="VerticalTextAlignment" Value="Center" />
+        </Style>
+    </ContentView.Resources>
+
+    <Grid x:Name="OverlayRoot" Opacity="0">
+        <Grid
+            x:Name="TransactionSheet"
+            Padding="18,20,18,22"
+            RowDefinitions="Auto,*,Auto"
+            RowSpacing="14"
+            MaximumWidthRequest="560"
+            HorizontalOptions="Fill">
+
+            <Border
+                x:Name="CloseButton"
+                WidthRequest="50"
+                HeightRequest="50"
+                HorizontalOptions="Start"
+                BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource SurfaceMutedDark}}"
+                Stroke="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}"
+                StrokeThickness="1.5"
+                StrokeShape="RoundRectangle 25">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnCloseTapped" />
+                </Border.GestureRecognizers>
+                <Label Text="×" FontSize="29" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+            </Border>
+
+            <Border
+                Grid.Row="1"
+                Padding="14"
+                BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}"
+                Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                StrokeThickness="2"
+                StrokeShape="RoundRectangle 30">
+                <Border.Shadow>
+                    <Shadow Brush="{AppThemeBinding Light={StaticResource ShadowLight}, Dark={StaticResource ShadowDark}}" Offset="0,7" Opacity="0.32" Radius="0" />
+                </Border.Shadow>
+                <Grid RowDefinitions="*,Auto,Auto,Auto" RowSpacing="12">
+                    <Grid HorizontalOptions="Center" VerticalOptions="Center" ColumnDefinitions="Auto,Auto,4">
+                        <Label
+                            x:Name="CurrencySymbolLabel"
+                            Text="RM"
+                            Margin="0,20,8,0"
+                            FontFamily="OpenSansSemibold"
+                            FontSize="29"
+                            TextColor="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}"
+                            VerticalOptions="Center" />
+                        <Label
+                            x:Name="AmountLabel"
+                            Grid.Column="1"
+                            Text="0"
+                            FontFamily="OpenSansRegular"
+                            FontSize="70"
+                            CharacterSpacing="-2"
+                            VerticalOptions="Center" />
+                        <BoxView
+                            Grid.Column="2"
+                            Margin="1,9,0,9"
+                            WidthRequest="3"
+                            BackgroundColor="{DynamicResource Accent}"
+                            VerticalOptions="Fill" />
+                    </Grid>
+
+                    <Border
+                        Grid.Row="1"
+                        HeightRequest="62"
+                        Padding="15,0"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark=#202023}"
+                        Stroke="{AppThemeBinding Light={StaticResource DividerLight}, Dark=#2C2C30}"
+                        StrokeThickness="1"
+                        StrokeShape="RoundRectangle 19">
+                        <Grid ColumnDefinitions="24,*" ColumnSpacing="12">
+                            <Grid WidthRequest="24" HeightRequest="24" VerticalOptions="Center">
+                                <Path
+                                    Data="M 3,5 L 11,5 L 21,15 L 15,21 L 5,11 Z"
+                                    Stroke="{DynamicResource Accent}"
+                                    StrokeThickness="2"
+                                    StrokeLineJoin="Round"
+                                    Fill="Transparent"
+                                    Aspect="Uniform" />
+                                <Ellipse
+                                    WidthRequest="4"
+                                    HeightRequest="4"
+                                    Margin="6.5,6.5,0,0"
+                                    HorizontalOptions="Start"
+                                    VerticalOptions="Start"
+                                    Fill="{DynamicResource Accent}" />
+                            </Grid>
+                            <Entry
+                                x:Name="DescriptionEntry"
+                                Grid.Column="1"
+                                BackgroundColor="Transparent"
+                                ClearButtonVisibility="WhileEditing"
+                                FontSize="16"
+                                Focused="OnDescriptionEntryFocused"
+                                HandlerChanged="OnDescriptionEntryHandlerChanged"
+                                Placeholder="Merchant or description"
+                                PlaceholderColor="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}"
+                                TextColor="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}"
+                                TextChanged="OnDescriptionTextChanged"
+                                VerticalOptions="Center" />
+                        </Grid>
+                    </Border>
+
+                    <Grid Grid.Row="2" ColumnDefinitions="1.05*,0.9*,1.25*" ColumnSpacing="8">
+                        <Border Style="{StaticResource TransactionChip}">
+                            <Grid ColumnDefinitions="24,*" ColumnSpacing="7">
+                                <Path
+                                    WidthRequest="24"
+                                    HeightRequest="24"
+                                    Data="M 5,5 L 19,5 Q 21,5 21,7 L 21,19 Q 21,21 19,21 L 5,21 Q 3,21 3,19 L 3,7 Q 3,5 5,5 Z M 3,10 L 21,10 M 8,3 L 8,7 M 16,3 L 16,7 M 7,14 L 9,14 M 12,14 L 14,14 M 17,14 L 19,14 M 7,18 L 9,18 M 12,18 L 14,18"
+                                    Stroke="{DynamicResource Accent}"
+                                    StrokeThickness="1.8"
+                                    StrokeLineCap="Round"
+                                    StrokeLineJoin="Round"
+                                    Fill="Transparent"
+                                    Aspect="Uniform"
+                                    VerticalOptions="Center" />
+                                <Label x:Name="DateLabel" Grid.Column="1" Text="Today" FontFamily="OpenSansSemibold" FontSize="12" LineBreakMode="TailTruncation" VerticalOptions="Center" />
+                                <DatePicker
+                                    x:Name="TransactionDatePicker"
+                                    Grid.ColumnSpan="2"
+                                    Opacity="0.01"
+                                    DateSelected="OnTransactionDateSelected"
+                                    HorizontalOptions="Fill"
+                                    VerticalOptions="Fill" />
+                            </Grid>
+                        </Border>
+
+                        <Border x:Name="TypeChip" Grid.Column="1" Style="{StaticResource TransactionChip}">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnTypeTapped" />
+                            </Border.GestureRecognizers>
+                            <Grid ColumnDefinitions="24,*" ColumnSpacing="5">
+                                <Label
+                                    x:Name="TypeArrowLabel"
+                                    Text="↘"
+                                    FontFamily="OpenSansSemibold"
+                                    WidthRequest="24"
+                                    HeightRequest="24"
+                                    FontSize="24"
+                                    TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}"
+                                    HorizontalTextAlignment="Center"
+                                    VerticalTextAlignment="Center"
+                                    VerticalOptions="Center" />
+                                <Label
+                                    x:Name="TypeLabel"
+                                    Grid.Column="1"
+                                    Text="Expenses"
+                                    FontFamily="OpenSansSemibold"
+                                    FontSize="12"
+                                    LineBreakMode="TailTruncation"
+                                    VerticalOptions="Center" />
+                            </Grid>
+                        </Border>
+
+                        <Border x:Name="PaymentChip" Grid.Column="2" Style="{StaticResource TransactionChip}">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnPaymentTapped" />
+                            </Border.GestureRecognizers>
+                            <Grid ColumnDefinitions="24,*" ColumnSpacing="7">
+                                <Border WidthRequest="24" HeightRequest="24" StrokeThickness="0" StrokeShape="RoundRectangle 8">
+                                    <Image x:Name="PaymentIcon" Source="payment_cash.png" WidthRequest="24" HeightRequest="24" Aspect="AspectFill" />
+                                </Border>
+                                <Label x:Name="PaymentLabel" Grid.Column="1" Text="Cash" FontFamily="OpenSansSemibold" FontSize="12" LineBreakMode="TailTruncation" VerticalOptions="Center" />
+                            </Grid>
+                        </Border>
+                    </Grid>
+
+                    <Grid Grid.Row="3" RowDefinitions="52,52,52,52" ColumnDefinitions="*,*,*,*" RowSpacing="7" ColumnSpacing="7">
+                        <Border Style="{StaticResource KeypadButton}"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnKeypadTapped" CommandParameter="7" /></Border.GestureRecognizers><Label Text="7" Style="{StaticResource KeypadLabel}" /></Border>
+                        <Border Grid.Column="1" Style="{StaticResource KeypadButton}"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnKeypadTapped" CommandParameter="8" /></Border.GestureRecognizers><Label Text="8" Style="{StaticResource KeypadLabel}" /></Border>
+                        <Border Grid.Column="2" Style="{StaticResource KeypadButton}"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnKeypadTapped" CommandParameter="9" /></Border.GestureRecognizers><Label Text="9" Style="{StaticResource KeypadLabel}" /></Border>
+                        <Border Grid.Column="3" Style="{StaticResource KeypadButton}"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnKeypadTapped" CommandParameter="/" /></Border.GestureRecognizers><Label Text="÷" Style="{StaticResource KeypadLabel}" TextColor="{DynamicResource Accent}" /></Border>
+
+                        <Border Grid.Row="1" Style="{StaticResource KeypadButton}"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnKeypadTapped" CommandParameter="4" /></Border.GestureRecognizers><Label Text="4" Style="{StaticResource KeypadLabel}" /></Border>
+                        <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource KeypadButton}"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnKeypadTapped" CommandParameter="5" /></Border.GestureRecognizers><Label Text="5" Style="{StaticResource KeypadLabel}" /></Border>
+                        <Border Grid.Row="1" Grid.Column="2" Style="{StaticResource KeypadButton}"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnKeypadTapped" CommandParameter="6" /></Border.GestureRecognizers><Label Text="6" Style="{StaticResource KeypadLabel}" /></Border>
+                        <Border Grid.Row="1" Grid.Column="3" Style="{StaticResource KeypadButton}"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnKeypadTapped" CommandParameter="*" /></Border.GestureRecognizers><Label Text="×" Style="{StaticResource KeypadLabel}" TextColor="{DynamicResource Accent}" /></Border>
+
+                        <Border Grid.Row="2" Style="{StaticResource KeypadButton}"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnKeypadTapped" CommandParameter="1" /></Border.GestureRecognizers><Label Text="1" Style="{StaticResource KeypadLabel}" /></Border>
+                        <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource KeypadButton}"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnKeypadTapped" CommandParameter="2" /></Border.GestureRecognizers><Label Text="2" Style="{StaticResource KeypadLabel}" /></Border>
+                        <Border Grid.Row="2" Grid.Column="2" Style="{StaticResource KeypadButton}"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnKeypadTapped" CommandParameter="3" /></Border.GestureRecognizers><Label Text="3" Style="{StaticResource KeypadLabel}" /></Border>
+                        <Border Grid.Row="2" Grid.Column="3" Style="{StaticResource KeypadButton}"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnKeypadTapped" CommandParameter="-" /></Border.GestureRecognizers><Label Text="−" Style="{StaticResource KeypadLabel}" TextColor="{DynamicResource Accent}" /></Border>
+
+                        <Border Grid.Row="3" Style="{StaticResource KeypadButton}"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnKeypadTapped" CommandParameter="." /></Border.GestureRecognizers><Label Text="." Style="{StaticResource KeypadLabel}" /></Border>
+                        <Border Grid.Row="3" Grid.Column="1" Style="{StaticResource KeypadButton}"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnKeypadTapped" CommandParameter="0" /></Border.GestureRecognizers><Label Text="0" Style="{StaticResource KeypadLabel}" /></Border>
+                        <Border Grid.Row="3" Grid.Column="2" Style="{StaticResource KeypadButton}"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnKeypadTapped" CommandParameter="back" /></Border.GestureRecognizers><Label Text="⌫" Style="{StaticResource KeypadLabel}" FontSize="19" /></Border>
+                        <Border Grid.Row="3" Grid.Column="3" Style="{StaticResource KeypadButton}"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnKeypadTapped" CommandParameter="+" /></Border.GestureRecognizers><Label Text="+" Style="{StaticResource KeypadLabel}" TextColor="{DynamicResource Accent}" /></Border>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <Grid Grid.Row="2" ColumnDefinitions="*,132" ColumnSpacing="12">
+                <Border x:Name="CategoryChip" Style="{StaticResource TransactionChip}" HeightRequest="58" Padding="8,0">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnCategoryTapped" />
+                    </Border.GestureRecognizers>
+                    <Grid ColumnDefinitions="42,*" ColumnSpacing="10">
+                        <Border WidthRequest="42" HeightRequest="42" StrokeThickness="0" StrokeShape="RoundRectangle 14" VerticalOptions="Center">
+                            <Image x:Name="CategoryIcon" Source="category_expense_others.png" WidthRequest="42" HeightRequest="42" Aspect="AspectFill" />
+                        </Border>
+                        <Label x:Name="CategoryLabel" Grid.Column="1" Text="Others" FontFamily="OpenSansSemibold" FontSize="15" LineBreakMode="TailTruncation" VerticalOptions="Center" />
+                    </Grid>
+                </Border>
+
+                <Border
+                    x:Name="SaveButton"
+                    Grid.Column="1"
+                    HeightRequest="58"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}"
+                    Stroke="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 22">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnSaveTapped" />
+                    </Border.GestureRecognizers>
+                    <Label x:Name="SaveLabel" Text="Save" FontFamily="OpenSansSemibold" TextColor="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                </Border>
+            </Grid>
+        </Grid>
+
+        <Grid
+            x:Name="SelectorOverlay"
+            IsVisible="False"
+            Opacity="0"
+            ZIndex="20"
+            SizeChanged="OnSelectorOverlaySizeChanged">
+            <BoxView BackgroundColor="#99000000">
+                <BoxView.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnSelectorBackdropTapped" />
+                </BoxView.GestureRecognizers>
+            </BoxView>
+            <Border
+                x:Name="SelectorCard"
+                Margin="0,0,0,18"
+                Padding="18,18,18,22"
+                WidthRequest="500"
+                HeightRequest="520"
+                HorizontalOptions="Center"
+                VerticalOptions="End"
+                BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource CardBackgroundDark}}"
+                Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                StrokeThickness="2"
+                StrokeShape="RoundRectangle 30">
+                <Border.Shadow>
+                    <Shadow Brush="#000000" Offset="0,8" Opacity="0.32" Radius="18" />
+                </Border.Shadow>
+                <Grid RowDefinitions="Auto,*" RowSpacing="16">
+                    <Grid ColumnDefinitions="*,44">
+                        <VerticalStackLayout Spacing="3" VerticalOptions="Center">
+                            <Label x:Name="SelectorTitle" Text="Choose an option" Style="{StaticResource CardTitle}" FontSize="20" />
+                            <Label Text="Tap an option to select it" Style="{StaticResource BodyMuted}" FontSize="12" />
+                        </VerticalStackLayout>
+                        <Border Grid.Column="1" WidthRequest="42" HeightRequest="42" Style="{StaticResource Pill}" Padding="0">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnSelectorCloseTapped" />
+                            </Border.GestureRecognizers>
+                            <Label Text="×" FontSize="24" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                        </Border>
+                    </Grid>
+
+                    <CollectionView
+                        x:Name="SelectorCollection"
+                        Grid.Row="1"
+                        SelectionMode="Single"
+                        SelectionChanged="OnSelectorSelectionChanged"
+                        VerticalScrollBarVisibility="Never">
+                        <CollectionView.ItemsLayout>
+                            <LinearItemsLayout Orientation="Vertical" ItemSpacing="9" />
+                        </CollectionView.ItemsLayout>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="models:TransactionOption">
+                                <Border Style="{StaticResource SoftCard}" Padding="10,8">
+                                    <Grid ColumnDefinitions="48,*" ColumnSpacing="13">
+                                        <Border WidthRequest="46" HeightRequest="46" StrokeThickness="0" StrokeShape="RoundRectangle 14">
+                                            <Image Source="{Binding IconAsset}" WidthRequest="46" HeightRequest="46" Aspect="AspectFill" />
+                                        </Border>
+                                        <Label Grid.Column="1" Text="{Binding Title}" Style="{StaticResource CardTitle}" FontSize="15" LineBreakMode="TailTruncation" VerticalOptions="Center" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</ContentView>

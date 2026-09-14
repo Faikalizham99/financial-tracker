@@ -1,0 +1,699 @@
+using System.Globalization;
+using FinancialTracker.Data;
+using FinancialTracker.Helpers;
+using FinancialTracker.Models;
+using FinancialTracker.Services;
+
+namespace FinancialTracker.Views;
+
+public partial class AddTransactionView : ContentView
+{
+    public event EventHandler? TransactionSaved;
+
+    private enum SelectorKind
+    {
+        PaymentMethod,
+        Category
+    }
+
+    private LocalDatabase? database;
+    private CurrencyOption currency = SettingsViewModelDefaults.Currency;
+    private TransactionOption selectedType = TransactionCatalog.TransactionTypes[0];
+    private TransactionOption selectedPayment = TransactionCatalog.PaymentMethods.First(item => item.Key == "Cash");
+    private TransactionOption selectedCategory = TransactionCatalog.ExpenseCategories[^1];
+    private SelectorKind selectorKind;
+    private string currentInput = "0";
+    private decimal accumulator;
+    private string? pendingOperator;
+    private bool startNewInput = true;
+    private bool isOpen;
+    private bool isAnimating;
+    private bool isSelectorOpen;
+    private bool isSelectorAnimating;
+    private bool isTypeAnimating;
+    private bool isSaving;
+
+    public AddTransactionView()
+    {
+        InitializeComponent();
+        TransactionDatePicker.MaximumDate = DateTime.Today.AddYears(10);
+        TransactionDatePicker.MinimumDate = new DateTime(2000, 1, 1);
+    }
+
+    public async Task OpenAsync(LocalDatabase localDatabase, CurrencyOption selectedCurrency)
+    {
+        if (isOpen || isAnimating)
+        {
+            return;
+        }
+
+        database = localDatabase;
+        currency = selectedCurrency;
+        ResetForm();
+        isOpen = true;
+        isAnimating = true;
+        IsVisible = true;
+        OverlayRoot.Opacity = 0;
+        TransactionSheet.Opacity = 0;
+        TransactionSheet.TranslationY = 28;
+        TransactionSheet.Scale = 0.985;
+
+        try
+        {
+            await Task.WhenAll(
+                OverlayRoot.FadeToAsync(1, 170, Easing.CubicOut),
+                TransactionSheet.FadeToAsync(1, 190, Easing.CubicOut),
+                TransactionSheet.TranslateToAsync(0, 0, 260, Easing.CubicOut),
+                TransactionSheet.ScaleToAsync(1, 260, Easing.CubicOut));
+        }
+        finally
+        {
+            isAnimating = false;
+        }
+    }
+
+    public async Task CloseAsync()
+    {
+        if (!isOpen || isAnimating)
+        {
+            return;
+        }
+
+        if (isSelectorOpen)
+        {
+            await CloseSelectorAsync();
+        }
+
+        isAnimating = true;
+        DescriptionEntry.Unfocus();
+
+        try
+        {
+            await Task.WhenAll(
+                OverlayRoot.FadeToAsync(0, 150, Easing.CubicIn),
+                TransactionSheet.TranslateToAsync(0, 24, 190, Easing.CubicIn),
+                TransactionSheet.ScaleToAsync(0.99, 190, Easing.CubicIn));
+        }
+        finally
+        {
+            IsVisible = false;
+            OverlayRoot.Opacity = 0;
+            TransactionSheet.Opacity = 1;
+            TransactionSheet.TranslationY = 0;
+            TransactionSheet.Scale = 1;
+            isOpen = false;
+            isAnimating = false;
+        }
+    }
+
+    private async void OnCloseTapped(object? sender, TappedEventArgs e)
+    {
+        var feedback = InteractionAnimations.PulseAsync(sender);
+        await CloseAsync();
+        await feedback;
+    }
+
+    private async void OnTypeTapped(object? sender, TappedEventArgs e)
+    {
+        if (isTypeAnimating || isSaving)
+        {
+            return;
+        }
+
+        var feedback = InteractionAnimations.PulseAsync(sender);
+        await ToggleTransactionTypeAsync();
+        await feedback;
+    }
+
+    private async void OnPaymentTapped(object? sender, TappedEventArgs e)
+    {
+        var feedback = InteractionAnimations.PulseAsync(sender);
+        await OpenSelectorAsync(
+            SelectorKind.PaymentMethod,
+            "Choose payment method",
+            TransactionCatalog.PaymentMethods);
+        await feedback;
+    }
+
+    private async void OnCategoryTapped(object? sender, TappedEventArgs e)
+    {
+        var feedback = InteractionAnimations.PulseAsync(sender);
+        var categories = selectedType.Key == "Income"
+            ? TransactionCatalog.IncomeCategories
+            : TransactionCatalog.ExpenseCategories;
+        await OpenSelectorAsync(SelectorKind.Category, "Choose category", categories);
+        await feedback;
+    }
+
+    private async void OnSelectorBackdropTapped(object? sender, TappedEventArgs e) =>
+        await CloseSelectorAsync();
+
+    private async void OnSelectorCloseTapped(object? sender, TappedEventArgs e)
+    {
+        var feedback = InteractionAnimations.PulseAsync(sender);
+        await CloseSelectorAsync();
+        await feedback;
+    }
+
+    private async void OnSelectorSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (e.CurrentSelection.FirstOrDefault() is not TransactionOption option)
+        {
+            return;
+        }
+
+        switch (selectorKind)
+        {
+            case SelectorKind.PaymentMethod:
+                selectedPayment = option;
+                UpdatePaymentMethod();
+                break;
+            case SelectorKind.Category:
+                selectedCategory = option;
+                UpdateCategory();
+                break;
+        }
+
+        SelectorCollection.SelectedItem = null;
+        await CloseSelectorAsync();
+    }
+
+    private async Task ToggleTransactionTypeAsync()
+    {
+        isTypeAnimating = true;
+        TypeArrowLabel.CancelAnimations();
+        TypeLabel.CancelAnimations();
+
+        try
+        {
+            await Task.WhenAll(
+                TypeArrowLabel.TranslateToAsync(0, -10, 105, Easing.CubicIn),
+                TypeArrowLabel.FadeToAsync(0, 90, Easing.CubicIn),
+                TypeLabel.FadeToAsync(0.35, 90, Easing.CubicIn));
+
+            selectedType = selectedType.Key == "Expense"
+                ? TransactionCatalog.TransactionTypes.First(item => item.Key == "Income")
+                : TransactionCatalog.TransactionTypes.First(item => item.Key == "Expense");
+            selectedCategory = selectedType.Key == "Income"
+                ? TransactionCatalog.IncomeCategories[^1]
+                : TransactionCatalog.ExpenseCategories[^1];
+            UpdateTypeAndCategory();
+            TypeArrowLabel.TranslationY = 10;
+
+            await Task.WhenAll(
+                TypeArrowLabel.TranslateToAsync(0, 0, 190, Easing.SpringOut),
+                TypeArrowLabel.FadeToAsync(1, 145, Easing.CubicOut),
+                TypeLabel.FadeToAsync(1, 145, Easing.CubicOut));
+        }
+        finally
+        {
+            TypeArrowLabel.Opacity = 1;
+            TypeArrowLabel.TranslationY = 0;
+            TypeLabel.Opacity = 1;
+            isTypeAnimating = false;
+        }
+    }
+
+    private async Task OpenSelectorAsync(
+        SelectorKind kind,
+        string title,
+        IReadOnlyList<TransactionOption> options)
+    {
+        if (isSelectorOpen || isSelectorAnimating)
+        {
+            return;
+        }
+
+        selectorKind = kind;
+        SelectorTitle.Text = title;
+        SelectorCollection.ItemsSource = options;
+        SelectorCollection.SelectedItem = null;
+        isSelectorOpen = true;
+        isSelectorAnimating = true;
+        SelectorOverlay.IsVisible = true;
+        UpdateSelectorCardBounds();
+        SelectorOverlay.Opacity = 0;
+        SelectorCard.TranslationY = 42;
+        SelectorCard.Opacity = 0.85;
+
+        try
+        {
+            await Task.WhenAll(
+                SelectorOverlay.FadeToAsync(1, 170, Easing.CubicOut),
+                SelectorCard.TranslateToAsync(0, 0, 260, Easing.CubicOut),
+                SelectorCard.FadeToAsync(1, 210, Easing.CubicOut));
+        }
+        finally
+        {
+            isSelectorAnimating = false;
+        }
+    }
+
+    private void OnSelectorOverlaySizeChanged(object? sender, EventArgs e) =>
+        UpdateSelectorCardBounds();
+
+    private void UpdateSelectorCardBounds()
+    {
+        var availableWidth = SelectorOverlay.Width > 0
+            ? SelectorOverlay.Width
+            : Width;
+        var availableHeight = SelectorOverlay.Height > 0
+            ? SelectorOverlay.Height
+            : Height;
+
+        if (availableWidth > 0)
+        {
+            SelectorCard.WidthRequest = Math.Min(540, Math.Max(0, availableWidth - 36));
+        }
+
+        if (availableHeight > 0)
+        {
+            SelectorCard.HeightRequest = Math.Min(620, Math.Max(0, availableHeight - 136));
+        }
+    }
+
+    private async Task CloseSelectorAsync()
+    {
+        if (!isSelectorOpen || isSelectorAnimating)
+        {
+            return;
+        }
+
+        isSelectorAnimating = true;
+
+        try
+        {
+            await Task.WhenAll(
+                SelectorOverlay.FadeToAsync(0, 140, Easing.CubicIn),
+                SelectorCard.TranslateToAsync(0, 34, 175, Easing.CubicIn));
+        }
+        finally
+        {
+            SelectorOverlay.IsVisible = false;
+            SelectorOverlay.Opacity = 0;
+            SelectorCard.Opacity = 1;
+            SelectorCard.TranslationY = 0;
+            isSelectorOpen = false;
+            isSelectorAnimating = false;
+        }
+    }
+
+    private async void OnKeypadTapped(object? sender, TappedEventArgs e)
+    {
+        if (e.Parameter is not string key || isSaving)
+        {
+            return;
+        }
+
+        var feedback = InteractionAnimations.PulseAsync(sender);
+
+        if (key == "back")
+        {
+            RemoveLastCharacter();
+        }
+        else if (key is "+" or "-" or "*" or "/")
+        {
+            SelectOperator(key);
+        }
+        else
+        {
+            AppendInput(key);
+        }
+
+        UpdateAmountAndSaveState();
+        await feedback;
+    }
+
+    private void AppendInput(string key)
+    {
+        if (startNewInput)
+        {
+            currentInput = key == "." ? "0." : key;
+            startNewInput = false;
+            return;
+        }
+
+        if (key == ".")
+        {
+            if (!currentInput.Contains('.'))
+            {
+                currentInput += ".";
+            }
+
+            return;
+        }
+
+        var decimalIndex = currentInput.IndexOf('.');
+        if (decimalIndex >= 0 && currentInput.Length - decimalIndex > 2)
+        {
+            return;
+        }
+
+        if (currentInput.Replace(".", string.Empty, StringComparison.Ordinal).Length >= 10)
+        {
+            return;
+        }
+
+        currentInput = currentInput == "0" ? key : currentInput + key;
+    }
+
+    private void RemoveLastCharacter()
+    {
+        if (pendingOperator is not null && startNewInput)
+        {
+            currentInput = FormatAmount(accumulator);
+            accumulator = 0;
+            pendingOperator = null;
+            startNewInput = false;
+            return;
+        }
+
+        if (startNewInput)
+        {
+            currentInput = "0";
+            startNewInput = false;
+            return;
+        }
+
+        currentInput = currentInput.Length <= 1
+            ? "0"
+            : currentInput[..^1];
+    }
+
+    private void SelectOperator(string operation)
+    {
+        var currentValue = ParseCurrentInput();
+        if (pendingOperator is not null && !startNewInput)
+        {
+            accumulator = Calculate(accumulator, currentValue, pendingOperator);
+            currentInput = FormatAmount(accumulator);
+        }
+        else
+        {
+            accumulator = currentValue;
+        }
+
+        pendingOperator = operation;
+        startNewInput = true;
+    }
+
+    private decimal GetEffectiveAmount()
+    {
+        if (pendingOperator is null || startNewInput)
+        {
+            return ParseCurrentInput();
+        }
+
+        return Calculate(accumulator, ParseCurrentInput(), pendingOperator);
+    }
+
+    private void CompleteCalculation()
+    {
+        if (pendingOperator is null || startNewInput)
+        {
+            return;
+        }
+
+        currentInput = FormatAmount(
+            Calculate(accumulator, ParseCurrentInput(), pendingOperator));
+        accumulator = 0;
+        pendingOperator = null;
+        startNewInput = false;
+    }
+
+    private static decimal Calculate(decimal left, decimal right, string operation) =>
+        operation switch
+        {
+            "+" => left + right,
+            "-" => left - right,
+            "*" => left * right,
+            "/" when right != 0 => left / right,
+            _ => left
+        };
+
+    private decimal ParseCurrentInput() =>
+        decimal.TryParse(
+            currentInput.TrimEnd('.'),
+            NumberStyles.Number,
+            CultureInfo.InvariantCulture,
+            out var amount)
+            ? amount
+            : 0;
+
+    private static string FormatAmount(decimal amount) =>
+        amount.ToString("0.##", CultureInfo.InvariantCulture);
+
+    private void OnTransactionDateSelected(object? sender, DateChangedEventArgs e) =>
+        UpdateDateLabel(e.NewDate ?? DateTime.Today);
+
+    private void OnDescriptionTextChanged(object? sender, TextChangedEventArgs e) =>
+        UpdateSaveButton();
+
+    private void OnDescriptionEntryHandlerChanged(object? sender, EventArgs e)
+    {
+        if (sender is not Entry entry || entry.Handler?.PlatformView is null)
+        {
+            return;
+        }
+
+#if WINDOWS
+        if (entry.Handler.PlatformView is Microsoft.UI.Xaml.Controls.TextBox textBox)
+        {
+            MakeWindowsTextBoxBorderless(textBox);
+        }
+#elif ANDROID
+        if (entry.Handler.PlatformView is Android.Widget.EditText editText)
+        {
+            editText.BackgroundTintList = Android.Content.Res.ColorStateList.ValueOf(
+                Android.Graphics.Color.Transparent);
+            editText.SetBackgroundColor(Android.Graphics.Color.Transparent);
+        }
+#elif IOS || MACCATALYST
+        if (entry.Handler.PlatformView is UIKit.UITextField textField)
+        {
+            textField.BorderStyle = UIKit.UITextBorderStyle.None;
+            textField.BackgroundColor = UIKit.UIColor.Clear;
+        }
+#endif
+    }
+
+    private void OnDescriptionEntryFocused(object? sender, FocusEventArgs e)
+    {
+#if WINDOWS
+        Dispatcher.Dispatch(() =>
+        {
+            if (DescriptionEntry.Handler?.PlatformView is Microsoft.UI.Xaml.Controls.TextBox textBox)
+            {
+                MakeWindowsTextBoxBorderless(textBox);
+            }
+        });
+#endif
+    }
+
+#if WINDOWS
+    private static void MakeWindowsTextBoxBorderless(
+        Microsoft.UI.Xaml.Controls.TextBox textBox)
+    {
+        var transparent = new Microsoft.UI.Xaml.Media.SolidColorBrush(
+            Microsoft.UI.Colors.Transparent);
+        var noBorder = new Microsoft.UI.Xaml.Thickness(0);
+
+        textBox.UseSystemFocusVisuals = false;
+        textBox.BorderThickness = noBorder;
+        textBox.BorderBrush = transparent;
+        textBox.Background = transparent;
+        textBox.Resources["TextControlBorderThemeThickness"] = noBorder;
+        textBox.Resources["TextControlBorderThemeThicknessFocused"] = noBorder;
+        textBox.Resources["TextControlBorderBrush"] = transparent;
+        textBox.Resources["TextControlBorderBrushPointerOver"] = transparent;
+        textBox.Resources["TextControlBorderBrushFocused"] = transparent;
+        textBox.Resources["TextControlBorderBrushDisabled"] = transparent;
+        textBox.Resources["TextControlBackground"] = transparent;
+        textBox.Resources["TextControlBackgroundPointerOver"] = transparent;
+        textBox.Resources["TextControlBackgroundFocused"] = transparent;
+        textBox.Resources["TextControlBackgroundDisabled"] = transparent;
+    }
+#endif
+
+    private async void OnSaveTapped(object? sender, TappedEventArgs e)
+    {
+        if (pendingOperator is not null)
+        {
+            if (isSaving || startNewInput)
+            {
+                return;
+            }
+
+            var equalsFeedback = InteractionAnimations.PulseAsync(sender);
+            CompleteCalculation();
+            UpdateAmountAndSaveState();
+            await equalsFeedback;
+            return;
+        }
+
+        var amount = GetEffectiveAmount();
+        if (isSaving ||
+            amount <= 0 ||
+            string.IsNullOrWhiteSpace(DescriptionEntry.Text) ||
+            database is null)
+        {
+            return;
+        }
+
+        var feedback = InteractionAnimations.PulseAsync(sender);
+        isSaving = true;
+        UpdateSaveButton();
+
+        try
+        {
+            var transaction = new TransactionRecord
+            {
+                Type = selectedType.Key,
+                Category = selectedCategory.Key,
+                PaymentMethod = selectedPayment.Key,
+                Description = DescriptionEntry.Text?.Trim() ?? string.Empty,
+                AmountMinor = decimal.ToInt64(decimal.Round(amount * 100, 0, MidpointRounding.AwayFromZero)),
+                CurrencyCode = currency.Code,
+                TransactionDate = (TransactionDatePicker.Date ?? DateTime.Today).Date,
+                CreatedAtUtc = DateTime.UtcNow
+            };
+
+            await database.SaveTransactionAsync(transaction);
+            TransactionSaved?.Invoke(this, EventArgs.Empty);
+            SaveLabel.Text = "Saved";
+            await Task.Delay(420);
+            await CloseAsync();
+        }
+        catch
+        {
+            SaveLabel.Text = "Try again";
+            await Task.Delay(900);
+        }
+        finally
+        {
+            isSaving = false;
+            UpdateSaveButton();
+            await feedback;
+        }
+    }
+
+    private void ResetForm()
+    {
+        selectedType = TransactionCatalog.TransactionTypes[0];
+        selectedPayment = TransactionCatalog.PaymentMethods.First(item => item.Key == "Cash");
+        selectedCategory = TransactionCatalog.ExpenseCategories[^1];
+        currentInput = "0";
+        accumulator = 0;
+        pendingOperator = null;
+        startNewInput = true;
+        isSaving = false;
+        DescriptionEntry.Text = string.Empty;
+        TransactionDatePicker.Date = DateTime.Today;
+        CurrencySymbolLabel.Text = currency.Symbol;
+        UpdateDateLabel(DateTime.Today);
+        UpdateTypeAndCategory();
+        UpdatePaymentMethod();
+        UpdateAmountAndSaveState();
+    }
+
+    private void UpdateDateLabel(DateTime date)
+    {
+        DateLabel.Text = date.Date == DateTime.Today
+            ? "Today"
+            : date.ToString("d MMM", CultureInfo.CurrentCulture);
+    }
+
+    private void UpdateTypeAndCategory()
+    {
+        TypeLabel.Text = selectedType.Title;
+        TypeArrowLabel.Text = selectedType.Key == "Income" ? "↗" : "↘";
+        var resources = Application.Current!.Resources;
+        var isDark = Application.Current.RequestedTheme == AppTheme.Dark;
+        TypeArrowLabel.TextColor = (Color)resources[
+            selectedType.Key == "Income"
+                ? isDark ? "PositiveDark" : "PositiveLight"
+                : isDark ? "NegativeDark" : "NegativeLight"];
+        UpdateCategory();
+    }
+
+    private void UpdatePaymentMethod()
+    {
+        PaymentLabel.Text = selectedPayment.Title;
+        PaymentIcon.Source = selectedPayment.IconAsset;
+    }
+
+    private void UpdateCategory()
+    {
+        CategoryLabel.Text = selectedCategory.Title;
+        CategoryIcon.Source = selectedCategory.IconAsset;
+    }
+
+    private void UpdateAmountAndSaveState()
+    {
+        var amountText = GetAmountDisplayText();
+        AmountLabel.Text = amountText;
+        AmountLabel.FontSize = amountText.Length switch
+        {
+            > 20 => 31,
+            > 15 => 37,
+            > 11 => 44,
+            > 7 => 54,
+            _ => 70
+        };
+        UpdateSaveButton();
+    }
+
+    private string GetAmountDisplayText()
+    {
+        if (pendingOperator is null)
+        {
+            return currentInput;
+        }
+
+        var operation = pendingOperator switch
+        {
+            "*" => "×",
+            "/" => "÷",
+            "-" => "−",
+            _ => "+"
+        };
+        var left = FormatAmount(accumulator);
+        return startNewInput
+            ? $"{left} {operation}"
+            : $"{left} {operation} {currentInput}";
+    }
+
+    private void UpdateSaveButton()
+    {
+        var isEqualsAction = pendingOperator is not null;
+        var hasDescription = !string.IsNullOrWhiteSpace(DescriptionEntry.Text);
+        var canSave = GetEffectiveAmount() > 0 && hasDescription;
+        var canCalculate = isEqualsAction && !startNewInput;
+        var isActionEnabled = !isSaving &&
+            (isEqualsAction ? canCalculate : canSave);
+        var resources = Application.Current!.Resources;
+        var isDark = Application.Current.RequestedTheme == AppTheme.Dark;
+
+        SaveButton.IsEnabled = isActionEnabled;
+        SaveButton.BackgroundColor = isActionEnabled
+            ? (Color)resources["Accent"]
+            : (Color)resources[isDark ? "SurfaceMutedDark" : "SurfaceMutedLight"];
+        SaveButton.Stroke = isActionEnabled
+            ? Brush.Transparent
+            : new SolidColorBrush((Color)resources[isDark ? "DividerDark" : "DividerLight"]);
+        SaveLabel.Text = isSaving
+            ? "Saving…"
+            : isEqualsAction ? "=" : "Save";
+        SaveLabel.FontSize = isEqualsAction ? 23 : 14;
+        SaveLabel.TextColor = isActionEnabled
+            ? (Color)resources["AccentForeground"]
+            : (Color)resources[isDark ? "SecondaryTextDark" : "SecondaryTextLight"];
+        SaveButton.Opacity = isSaving ? 0.7 : 1;
+    }
+
+    private static class SettingsViewModelDefaults
+    {
+        public static CurrencyOption Currency { get; } =
+            new("", "flag_myr.png", "MYR", "Malaysian Ringgit", "RM");
+    }
+}

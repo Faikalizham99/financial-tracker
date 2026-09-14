@@ -2,327 +2,109 @@
 <ContentView
     x:Class="FinancialTracker.Views.ExpensesView"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:models="clr-namespace:FinancialTracker.Models">
 
     <ScrollView VerticalScrollBarVisibility="Never">
         <VerticalStackLayout Padding="22,28,22,126" Spacing="21">
-            <!-- Month controls and actions -->
             <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="9">
                 <HorizontalStackLayout Spacing="10" VerticalOptions="Center">
-                    <Label
-                        Text="‹"
-                        FontSize="31"
-                        VerticalTextAlignment="Center"
-                        TextColor="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" />
-                    <Label
-                        Text="September 2026"
-                        FontFamily="OpenSansSemibold"
-                        FontSize="15"
-                        VerticalTextAlignment="Center" />
-                    <Label
-                        Text="›"
-                        FontSize="31"
-                        VerticalTextAlignment="Center"
-                        TextColor="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" />
+                    <Label Text="‹" FontSize="31" VerticalTextAlignment="Center" TextColor="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" />
+                    <Label x:Name="MonthLabel" Text="September 2026" FontFamily="OpenSansSemibold" FontSize="15" VerticalTextAlignment="Center" />
+                    <Label Text="›" FontSize="31" VerticalTextAlignment="Center" TextColor="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" />
                 </HorizontalStackLayout>
 
-                <Border
-                    Grid.Column="1"
-                    WidthRequest="44"
-                    HeightRequest="44"
-                    BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}"
-                    Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
-                    StrokeThickness="2"
-                    StrokeShape="RoundRectangle 22">
-                    <Label
-                        Text="⌕"
-                        FontFamily="OpenSansSemibold"
-                        FontSize="25"
-                        HorizontalOptions="Center"
-                        VerticalOptions="Center" />
+                <Border Grid.Column="1" WidthRequest="44" HeightRequest="44" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="2" StrokeShape="RoundRectangle 22">
+                    <Label Text="⌕" FontFamily="OpenSansSemibold" FontSize="25" HorizontalOptions="Center" VerticalOptions="Center" />
                 </Border>
 
-                <Border
-                    Grid.Column="2"
-                    WidthRequest="44"
-                    HeightRequest="44"
-                    BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}"
-                    Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
-                    StrokeThickness="2"
-                    StrokeShape="RoundRectangle 22">
-                    <Label
-                        Text="+"
-                        FontSize="27"
-                        HorizontalOptions="Center"
-                        VerticalOptions="Center" />
+                <Border Grid.Column="2" WidthRequest="44" HeightRequest="44" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="2" StrokeShape="RoundRectangle 22">
+                    <Label Text="+" FontSize="27" HorizontalOptions="Center" VerticalOptions="Center" />
                 </Border>
             </Grid>
 
-            <Label
-                Text="Expenses"
-                Style="{StaticResource PageTitle}"
-                FontSize="38" />
+            <Label Text="Expenses" Style="{StaticResource PageTitle}" FontSize="38" />
 
-            <!-- Monthly summary -->
-            <Border Style="{StaticResource Card}" Padding="18,17">
-                <VerticalStackLayout Spacing="15">
+            <Grid Margin="0,0,0,6">
+                <Border Style="{StaticResource CardShadowLayer}" />
+                <Border Style="{StaticResource CardSurface}" Padding="18,17">
+                    <VerticalStackLayout Spacing="15">
                     <Grid ColumnDefinitions="*,Auto" ColumnSpacing="15">
                         <VerticalStackLayout Spacing="3">
                             <Label Text="Total spending" Style="{StaticResource BodyMuted}" FontSize="12" />
-                            <Label
-                                Text="{Binding TotalSpendingText}"
-                                FontFamily="OpenSansSemibold"
-                                FontSize="27" />
+                            <Label x:Name="TotalSpendingLabel" Text="RM 0.00" FontFamily="OpenSansSemibold" FontSize="27" />
                         </VerticalStackLayout>
                         <VerticalStackLayout Grid.Column="1" Spacing="3">
-                            <Label
-                                Text="Transaction count"
-                                Style="{StaticResource BodyMuted}"
-                                FontSize="12"
-                                HorizontalTextAlignment="End" />
-                            <Label
-                                Text="35"
-                                FontFamily="OpenSansSemibold"
-                                FontSize="28"
-                                HorizontalTextAlignment="End" />
+                            <Label Text="Transaction count" Style="{StaticResource BodyMuted}" FontSize="12" HorizontalTextAlignment="End" />
+                            <Label x:Name="TransactionCountLabel" Text="0" FontFamily="OpenSansSemibold" FontSize="28" HorizontalTextAlignment="End" />
                         </VerticalStackLayout>
                     </Grid>
                     <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
-                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-                        <Label
-                            Text="↗"
-                            FontSize="16"
-                            TextColor="{DynamicResource Accent}"
-                            VerticalTextAlignment="Center" />
-                        <Label
-                            Grid.Column="1"
-                            Text="Since last month"
-                            Style="{StaticResource BodyMuted}"
-                            VerticalTextAlignment="Center" />
-                        <Label
-                            Grid.Column="2"
-                            Text="›"
-                            FontSize="25"
-                            VerticalTextAlignment="Center" />
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                        <Label Text="↗" FontSize="16" TextColor="{DynamicResource Accent}" VerticalTextAlignment="Center" />
+                        <Label Grid.Column="1" Text="Saved locally on this device" Style="{StaticResource BodyMuted}" VerticalTextAlignment="Center" />
                     </Grid>
-                </VerticalStackLayout>
-            </Border>
+                    </VerticalStackLayout>
+                </Border>
+            </Grid>
 
-            <!-- Filters -->
             <HorizontalStackLayout Spacing="9">
-                <Border
-                    Padding="17,8"
-                    BackgroundColor="{DynamicResource Accent}"
-                    StrokeThickness="0"
-                    StrokeShape="RoundRectangle 20">
+                <Border Padding="17,8" BackgroundColor="{DynamicResource Accent}" StrokeThickness="0" StrokeShape="RoundRectangle 20">
                     <Label Text="All" FontFamily="OpenSansSemibold" TextColor="{DynamicResource AccentForeground}" />
                 </Border>
-                <Border
-                    Padding="17,8"
-                    BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}"
-                    Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
-                    StrokeThickness="1.5"
-                    StrokeShape="RoundRectangle 20">
-                    <Label Text="Cash" Style="{StaticResource BodyMuted}" />
+                <Border Padding="17,8" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="1.5" StrokeShape="RoundRectangle 20">
+                    <Label Text="Expenses" Style="{StaticResource BodyMuted}" />
                 </Border>
-                <Border
-                    Padding="17,8"
-                    BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}"
-                    Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
-                    StrokeThickness="1.5"
-                    StrokeShape="RoundRectangle 20">
-                    <Label Text="Online" Style="{StaticResource BodyMuted}" />
+                <Border Padding="17,8" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="1.5" StrokeShape="RoundRectangle 20">
+                    <Label Text="Income" Style="{StaticResource BodyMuted}" />
                 </Border>
             </HorizontalStackLayout>
 
-            <!-- Today -->
-            <VerticalStackLayout Spacing="12">
-                <Label Text="TODAY" Style="{StaticResource SectionLabel}" />
-                <Border Style="{StaticResource Card}" Padding="0">
-                    <VerticalStackLayout Spacing="0">
-                        <Grid Padding="16,15" ColumnDefinitions="46,*,Auto" ColumnSpacing="12">
-                            <Border
-                                WidthRequest="43"
-                                HeightRequest="43"
-                                BackgroundColor="{DynamicResource AccentTint}"
-                                StrokeThickness="0"
-                                StrokeShape="RoundRectangle 13">
-                                <Label
-                                    Text="+"
-                                    FontFamily="OpenSansSemibold"
-                                    FontSize="21"
-                                    HorizontalOptions="Center"
-                                    VerticalOptions="Center" />
-                            </Border>
-                            <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
-                                <Label
-                                    Text="Medical card · Maybank"
-                                    Style="{StaticResource CardTitle}"
-                                    FontSize="14"
-                                    LineBreakMode="TailTruncation"
-                                    MaxLines="2" />
-                                <Label Text="Health" Style="{StaticResource BodyMuted}" FontSize="12" />
-                            </VerticalStackLayout>
-                            <VerticalStackLayout Grid.Column="2" Spacing="2" VerticalOptions="Center">
-                                <Label
-                                    Text="{Binding MedicalAmountText}"
-                                    FontFamily="OpenSansSemibold"
-                                    FontSize="14"
-                                    TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}"
-                                    HorizontalTextAlignment="End" />
-                                <Label Text="Online" Style="{StaticResource BodyMuted}" FontSize="11" HorizontalTextAlignment="End" />
-                            </VerticalStackLayout>
-                        </Grid>
-                        <BoxView Margin="74,0,16,0" HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+            <Border x:Name="EmptyActivityState" Style="{StaticResource SoftCard}" Padding="24" IsVisible="True">
+                <VerticalStackLayout Spacing="5" HorizontalOptions="Center">
+                    <Label Text="No transactions yet" Style="{StaticResource CardTitle}" FontSize="16" HorizontalTextAlignment="Center" />
+                    <Label Text="Tap + to record your first transaction." Style="{StaticResource BodyMuted}" FontSize="12" HorizontalTextAlignment="Center" />
+                </VerticalStackLayout>
+            </Border>
 
-                        <Grid Padding="16,15" ColumnDefinitions="46,*,Auto" ColumnSpacing="12">
-                            <Border
-                                WidthRequest="43"
-                                HeightRequest="43"
-                                BackgroundColor="{AppThemeBinding Light={StaticResource MintLight}, Dark={StaticResource MintDark}}"
-                                StrokeThickness="0"
-                                StrokeShape="RoundRectangle 13">
-                                <Label Text="G" FontFamily="OpenSansSemibold" FontSize="17" HorizontalOptions="Center" VerticalOptions="Center" />
-                            </Border>
-                            <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
-                                <Label
-                                    Text="Groceries from Mydin"
-                                    Style="{StaticResource CardTitle}"
-                                    FontSize="14"
-                                    LineBreakMode="TailTruncation"
-                                    MaxLines="2" />
-                                <Label Text="Groceries" Style="{StaticResource BodyMuted}" FontSize="12" />
-                            </VerticalStackLayout>
-                            <VerticalStackLayout Grid.Column="2" Spacing="2" VerticalOptions="Center">
-                                <Label
-                                    Text="{Binding GroceryAmountText}"
-                                    FontFamily="OpenSansSemibold"
-                                    FontSize="14"
-                                    TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}"
-                                    HorizontalTextAlignment="End" />
-                                <Label Text="Online" Style="{StaticResource BodyMuted}" FontSize="11" HorizontalTextAlignment="End" />
-                            </VerticalStackLayout>
-                        </Grid>
-                        <BoxView Margin="74,0,16,0" HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
-
-                        <Grid Padding="16,15" ColumnDefinitions="46,*,Auto" ColumnSpacing="12">
-                            <Border
-                                WidthRequest="43"
-                                HeightRequest="43"
-                                BackgroundColor="{AppThemeBinding Light={StaticResource BlushLight}, Dark={StaticResource BlushDark}}"
-                                StrokeThickness="0"
-                                StrokeShape="RoundRectangle 13">
-                                <Label Text="♥" FontSize="17" HorizontalOptions="Center" VerticalOptions="Center" />
-                            </Border>
-                            <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
-                                <Label
-                                    Text="Family contribution"
-                                    Style="{StaticResource CardTitle}"
-                                    FontSize="14"
-                                    LineBreakMode="TailTruncation" />
-                                <Label Text="Other" Style="{StaticResource BodyMuted}" FontSize="12" />
-                            </VerticalStackLayout>
-                            <VerticalStackLayout Grid.Column="2" Spacing="2" VerticalOptions="Center">
-                                <Label
-                                    Text="{Binding FamilyAmountText}"
-                                    FontFamily="OpenSansSemibold"
-                                    FontSize="14"
-                                    TextColor="{AppThemeBinding Light={StaticResource PositiveLight}, Dark={StaticResource PositiveDark}}"
-                                    HorizontalTextAlignment="End" />
-                                <Label Text="Cash" Style="{StaticResource BodyMuted}" FontSize="11" HorizontalTextAlignment="End" />
-                            </VerticalStackLayout>
-                        </Grid>
-                        <BoxView Margin="74,0,16,0" HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
-
-                        <Grid Padding="16,15" ColumnDefinitions="46,*,Auto" ColumnSpacing="12">
-                            <Border
-                                WidthRequest="43"
-                                HeightRequest="43"
-                                BackgroundColor="{DynamicResource AccentTint}"
-                                StrokeThickness="0"
-                                StrokeShape="RoundRectangle 13">
-                                <Label Text="T" FontFamily="OpenSansSemibold" FontSize="17" HorizontalOptions="Center" VerticalOptions="Center" />
-                            </Border>
-                            <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
-                                <Label
-                                    Text="Motor fuel · Visa"
-                                    Style="{StaticResource CardTitle}"
-                                    FontSize="14"
-                                    LineBreakMode="TailTruncation" />
-                                <Label Text="Transport" Style="{StaticResource BodyMuted}" FontSize="12" />
-                            </VerticalStackLayout>
-                            <VerticalStackLayout Grid.Column="2" Spacing="2" VerticalOptions="Center">
-                                <Label
-                                    Text="{Binding FuelAmountText}"
-                                    FontFamily="OpenSansSemibold"
-                                    FontSize="14"
-                                    TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}"
-                                    HorizontalTextAlignment="End" />
-                                <Label Text="Online" Style="{StaticResource BodyMuted}" FontSize="11" HorizontalTextAlignment="End" />
-                            </VerticalStackLayout>
-                        </Grid>
-                    </VerticalStackLayout>
-                </Border>
-            </VerticalStackLayout>
-
-            <!-- Yesterday -->
-            <VerticalStackLayout Spacing="12">
-                <Label Text="YESTERDAY" Style="{StaticResource SectionLabel}" />
-                <Border Style="{StaticResource Card}" Padding="0">
-                    <VerticalStackLayout Spacing="0">
-                        <Grid Padding="16,15" ColumnDefinitions="46,*,Auto" ColumnSpacing="12">
-                            <Border
-                                WidthRequest="43"
-                                HeightRequest="43"
-                                BackgroundColor="{AppThemeBinding Light={StaticResource MintLight}, Dark={StaticResource MintDark}}"
-                                StrokeThickness="0"
-                                StrokeShape="RoundRectangle 13">
-                                <Label Text="G" FontFamily="OpenSansSemibold" FontSize="17" HorizontalOptions="Center" VerticalOptions="Center" />
-                            </Border>
-                            <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
-                                <Label Text="Market groceries" Style="{StaticResource CardTitle}" FontSize="14" />
-                                <Label Text="Groceries" Style="{StaticResource BodyMuted}" FontSize="12" />
-                            </VerticalStackLayout>
-                            <VerticalStackLayout Grid.Column="2" Spacing="2" VerticalOptions="Center">
-                                <Label
-                                    Text="{Binding MarketAmountText}"
-                                    FontFamily="OpenSansSemibold"
-                                    FontSize="14"
-                                    TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}"
-                                    HorizontalTextAlignment="End" />
-                                <Label Text="Cash" Style="{StaticResource BodyMuted}" FontSize="11" HorizontalTextAlignment="End" />
-                            </VerticalStackLayout>
-                        </Grid>
-                        <BoxView Margin="74,0,16,0" HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
-                        <Grid Padding="16,15" ColumnDefinitions="46,*,Auto" ColumnSpacing="12">
-                            <Border
-                                WidthRequest="43"
-                                HeightRequest="43"
-                                BackgroundColor="{AppThemeBinding Light={StaticResource BlushLight}, Dark={StaticResource BlushDark}}"
-                                StrokeThickness="0"
-                                StrokeShape="RoundRectangle 13">
-                                <Label Text="+" FontFamily="OpenSansSemibold" FontSize="20" HorizontalOptions="Center" VerticalOptions="Center" />
-                            </Border>
-                            <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
-                                <Label
-                                    Text="Pharmacy"
-                                    Style="{StaticResource CardTitle}"
-                                    FontSize="14"
-                                    LineBreakMode="TailTruncation" />
-                                <Label Text="Health" Style="{StaticResource BodyMuted}" FontSize="12" />
-                            </VerticalStackLayout>
-                            <VerticalStackLayout Grid.Column="2" Spacing="2" VerticalOptions="Center">
-                                <Label
-                                    Text="{Binding PharmacyAmountText}"
-                                    FontFamily="OpenSansSemibold"
-                                    FontSize="14"
-                                    TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}"
-                                    HorizontalTextAlignment="End" />
-                                <Label Text="Online" Style="{StaticResource BodyMuted}" FontSize="11" HorizontalTextAlignment="End" />
-                            </VerticalStackLayout>
-                        </Grid>
-                    </VerticalStackLayout>
-                </Border>
+            <VerticalStackLayout x:Name="ActivityGroupsLayout" Spacing="19" IsVisible="False">
+                <BindableLayout.ItemTemplate>
+                    <DataTemplate x:DataType="models:TransactionActivityGroup">
+                        <VerticalStackLayout Spacing="10">
+                            <Label Text="{Binding Title}" Style="{StaticResource SectionLabel}" />
+                            <Grid Margin="0,0,0,6">
+                                <Border Style="{StaticResource CardShadowLayer}" />
+                                <Border Style="{StaticResource CardSurface}" Padding="0">
+                                    <VerticalStackLayout Spacing="0" BindableLayout.ItemsSource="{Binding Items}">
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate x:DataType="models:TransactionActivityItem">
+                                            <Grid RowDefinitions="Auto,Auto">
+                                                <Grid Padding="14,12" ColumnDefinitions="48,*,Auto" ColumnSpacing="12">
+                                                    <Border WidthRequest="46" HeightRequest="46" StrokeThickness="0" StrokeShape="RoundRectangle 14">
+                                                        <Image Source="{Binding IconAsset}" WidthRequest="46" HeightRequest="46" Aspect="AspectFill" />
+                                                    </Border>
+                                                    <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                                        <Label Text="{Binding Description}" Style="{StaticResource CardTitle}" FontSize="14" LineBreakMode="TailTruncation" MaxLines="1" />
+                                                        <Label Text="{Binding DetailText}" Style="{StaticResource BodyMuted}" FontSize="11" LineBreakMode="TailTruncation" MaxLines="1" />
+                                                    </VerticalStackLayout>
+                                                    <Label Grid.Column="2" Text="{Binding AmountText}" FontFamily="OpenSansSemibold" FontSize="14" TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" HorizontalTextAlignment="End" VerticalOptions="Center">
+                                                        <Label.Triggers>
+                                                            <DataTrigger TargetType="Label" Binding="{Binding IsIncome}" Value="True">
+                                                                <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource PositiveLight}, Dark={StaticResource PositiveDark}}" />
+                                                            </DataTrigger>
+                                                        </Label.Triggers>
+                                                    </Label>
+                                                </Grid>
+                                                <BoxView Grid.Row="1" Margin="74,0,14,0" HeightRequest="1" IsVisible="{Binding ShowDivider}" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
+                                    </VerticalStackLayout>
+                                </Border>
+                            </Grid>
+                        </VerticalStackLayout>
+                    </DataTemplate>
+                </BindableLayout.ItemTemplate>
             </VerticalStackLayout>
         </VerticalStackLayout>
     </ScrollView>

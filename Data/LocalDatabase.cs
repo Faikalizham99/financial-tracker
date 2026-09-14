@@ -5,7 +5,7 @@ namespace FinancialTracker.Data;
 
 public sealed class LocalDatabase
 {
-    private const int CurrentSchemaVersion = 2;
+    private const int CurrentSchemaVersion = 3;
     private readonly SemaphoreSlim initializationLock = new(1, 1);
     private SQLiteAsyncConnection? connection;
     private bool isInitialized;
@@ -37,12 +37,20 @@ public sealed class LocalDatabase
             if (version < 1)
             {
                 await Connection.CreateTableAsync<AppSettingsRecord>();
-                await Connection.ExecuteAsync($"PRAGMA user_version = {CurrentSchemaVersion}");
             }
             else if (version < 2)
             {
                 await Connection.ExecuteAsync(
                     "ALTER TABLE AppSettings ADD COLUMN AccentColorHex TEXT NOT NULL DEFAULT '#5044E4'");
+            }
+
+            if (version < 3)
+            {
+                await Connection.CreateTableAsync<TransactionRecord>();
+            }
+
+            if (version < CurrentSchemaVersion)
+            {
                 await Connection.ExecuteAsync($"PRAGMA user_version = {CurrentSchemaVersion}");
             }
 
@@ -79,5 +87,18 @@ public sealed class LocalDatabase
         settings.Id = 1;
         settings.UpdatedAtUtc = DateTime.UtcNow;
         await Connection.InsertOrReplaceAsync(settings);
+    }
+
+    public async Task<int> SaveTransactionAsync(TransactionRecord transaction)
+    {
+        await InitializeAsync();
+        return await Connection.InsertAsync(transaction);
+    }
+
+    public async Task<IReadOnlyList<TransactionRecord>> GetTransactionsAsync()
+    {
+        await InitializeAsync();
+        return await Connection.QueryAsync<TransactionRecord>(
+            "SELECT * FROM Transactions ORDER BY TransactionDate DESC, CreatedAtUtc DESC, Id DESC");
     }
 }

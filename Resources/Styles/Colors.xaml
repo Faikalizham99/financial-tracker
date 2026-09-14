@@ -42,7 +42,7 @@
     <Color x:Key="NegativeLight">#C54558</Color>
     <Color x:Key="NegativeDark">#FF8D9C</Color>
     <Color x:Key="ShadowLight">#17142D</Color>
-    <Color x:Key="ShadowDark">#000000</Color>
+    <Color x:Key="ShadowDark">#3A3558</Color>
 
     <!-- Compatibility aliases used by platform resources and controls -->
     <Color x:Key="Primary">#5044E4</Color>
