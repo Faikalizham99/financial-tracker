@@ -3,7 +3,7 @@ name: Build LiveContainer IPA
 on:
   push:
     tags:
-      - '*'
+      - 'v*.*.*'
 
 permissions:
   contents: read
@@ -27,6 +27,23 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v6
 
+      - name: Resolve app version from tag
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v([0-9]+\.[0-9]+\.[0-9]+)$ ]]; then
+            echo "Release tags must use the format vMAJOR.MINOR.PATCH, for example v1.0.1." >&2
+            exit 1
+          fi
+
+          app_display_version="${BASH_REMATCH[1]}"
+          app_build_version="$GITHUB_RUN_NUMBER"
+
+          echo "APP_DISPLAY_VERSION=$app_display_version" >> "$GITHUB_ENV"
+          echo "APP_BUILD_VERSION=$app_build_version" >> "$GITHUB_ENV"
+          echo "Building Financial Tracker $app_display_version ($app_build_version)"
+
       - name: Set up .NET 10
         uses: actions/setup-dotnet@v5
         with:
@@ -46,6 +63,8 @@ jobs:
           dotnet restore "$PROJECT_PATH"
           -p:TargetFramework="$TARGET_FRAMEWORK"
           -p:RuntimeIdentifier="$RUNTIME_IDENTIFIER"
+          -p:ApplicationDisplayVersion="$APP_DISPLAY_VERSION"
+          -p:ApplicationVersion="$APP_BUILD_VERSION"
 
       - name: Build unsigned ARM64 iPhone app
         run: >-
@@ -58,6 +77,8 @@ jobs:
           -p:BuildIpa=false
           -p:EnableCodeSigning=false
           -p:CodesignRequireProvisioningProfile=false
+          -p:ApplicationDisplayVersion="$APP_DISPLAY_VERSION"
+          -p:ApplicationVersion="$APP_BUILD_VERSION"
 
       - name: Package and verify LiveContainer IPA
         id: package
@@ -106,10 +127,22 @@ jobs:
 
           bundle_id=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$info_plist")
           executable_name=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$info_plist")
+          bundle_display_version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$info_plist")
+          bundle_build_version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$info_plist")
           executable_path="$app_path/$executable_name"
 
           if [[ "$bundle_id" != "com.faikalizham.financial-tracker" ]]; then
             echo "Unexpected bundle identifier: $bundle_id" >&2
+            exit 1
+          fi
+
+          if [[ "$bundle_display_version" != "$APP_DISPLAY_VERSION" ]]; then
+            echo "Unexpected app version: $bundle_display_version (expected $APP_DISPLAY_VERSION)" >&2
+            exit 1
+          fi
+
+          if [[ "$bundle_build_version" != "$APP_BUILD_VERSION" ]]; then
+            echo "Unexpected build number: $bundle_build_version (expected $APP_BUILD_VERSION)" >&2
             exit 1
           fi
 
@@ -167,6 +200,7 @@ jobs:
 
           echo "App bundle: $app_path"
           echo "Bundle ID: $bundle_id"
+          echo "Version: $bundle_display_version ($bundle_build_version)"
           echo "Architectures: $architectures"
           echo "Signing: $signing_state"
           echo "IPA: $ipa_path"
@@ -177,6 +211,7 @@ jobs:
             echo "### FinancialTracker iOS artifact"
             echo "- App bundle: \`$app_path\`"
             echo "- Bundle ID: \`$bundle_id\`"
+            echo "- Version: \`$bundle_display_version ($bundle_build_version)\`"
             echo "- Architectures: \`$architectures\`"
             echo "- Signing: $signing_state"
             echo "- IPA: \`$ipa_path\`"
