@@ -13,6 +13,10 @@ public partial class SettingsView : ContentView
     private bool isSynchronizingColorWheel;
     private bool isCurrencySelectorExpanded;
     private bool isCurrencySelectorAnimating;
+    private bool isDataDrawerOpen;
+    private bool isDataDrawerAnimating;
+    private bool isCategoryTypeAnimating;
+    private string selectedCategoryType = "Expense";
 
     public SettingsView()
     {
@@ -68,6 +72,40 @@ public partial class SettingsView : ContentView
         {
             await viewModel.SelectThemeAsync(theme);
             UpdateSelectionVisuals();
+        }
+
+        await feedback;
+    }
+
+    private async void OnCategoriesTapped(object? sender, TappedEventArgs e)
+    {
+        var feedback = InteractionAnimations.PulseAsync(sender);
+        ConfigureDataDrawer(showCategories: true);
+        await OpenDataDrawerAsync();
+        await feedback;
+    }
+
+    private async void OnPaymentMethodsTapped(object? sender, TappedEventArgs e)
+    {
+        var feedback = InteractionAnimations.PulseAsync(sender);
+        ConfigureDataDrawer(showCategories: false);
+        await OpenDataDrawerAsync();
+        await feedback;
+    }
+
+    private async void OnDataDrawerCloseTapped(object? sender, TappedEventArgs e)
+    {
+        var feedback = InteractionAnimations.PulseAsync(sender);
+        await CloseDataDrawerAsync();
+        await feedback;
+    }
+
+    private async void OnCategoryTypeTapped(object? sender, TappedEventArgs e)
+    {
+        var feedback = InteractionAnimations.PulseAsync(sender);
+        if (e.Parameter is string categoryType)
+        {
+            await SelectCategoryTypeAsync(categoryType);
         }
 
         await feedback;
@@ -229,6 +267,136 @@ public partial class SettingsView : ContentView
     private static Style GetStyle(bool isSelected) =>
         (Style)Application.Current!.Resources[
             isSelected ? "SelectedOptionCard" : "OptionCard"];
+
+    private void ConfigureDataDrawer(bool showCategories)
+    {
+        DataDrawerTitle.Text = showCategories ? "Categories" : "Payment methods";
+        CategoriesDrawerContent.IsVisible = showCategories;
+        PaymentMethodsDrawerContent.IsVisible = !showCategories;
+
+        if (showCategories)
+        {
+            selectedCategoryType = "Expense";
+            ExpenseCategoriesPanel.IsVisible = true;
+            IncomeCategoriesPanel.IsVisible = false;
+            UpdateCategoryTypeVisuals();
+        }
+    }
+
+    private async Task OpenDataDrawerAsync()
+    {
+        if (isDataDrawerOpen || isDataDrawerAnimating)
+        {
+            return;
+        }
+
+        isDataDrawerAnimating = true;
+        isDataDrawerOpen = true;
+        ZIndex = 30;
+        DataDrawerOverlay.IsVisible = true;
+        DataDrawerOverlay.Opacity = 0;
+        DataDrawerCard.Opacity = 0;
+        DataDrawerCard.TranslationX = 44;
+
+        try
+        {
+            await Task.WhenAll(
+                DataDrawerOverlay.FadeToAsync(1, 190, Easing.CubicOut),
+                DataDrawerCard.FadeToAsync(1, 210, Easing.CubicOut),
+                DataDrawerCard.TranslateToAsync(0, 0, 285, Easing.CubicOut));
+        }
+        finally
+        {
+            isDataDrawerAnimating = false;
+        }
+    }
+
+    private async Task CloseDataDrawerAsync()
+    {
+        if (!isDataDrawerOpen || isDataDrawerAnimating)
+        {
+            return;
+        }
+
+        isDataDrawerAnimating = true;
+        isDataDrawerOpen = false;
+
+        try
+        {
+            await Task.WhenAll(
+                DataDrawerOverlay.FadeToAsync(0, 170, Easing.CubicIn),
+                DataDrawerCard.FadeToAsync(0, 150, Easing.CubicIn),
+                DataDrawerCard.TranslateToAsync(44, 0, 210, Easing.CubicIn));
+        }
+        finally
+        {
+            DataDrawerOverlay.IsVisible = false;
+            DataDrawerOverlay.Opacity = 0;
+            DataDrawerCard.Opacity = 1;
+            DataDrawerCard.TranslationX = 0;
+            ZIndex = 0;
+            isDataDrawerAnimating = false;
+        }
+    }
+
+    private async Task SelectCategoryTypeAsync(string categoryType)
+    {
+        if (isCategoryTypeAnimating ||
+            categoryType == selectedCategoryType ||
+            categoryType is not ("Expense" or "Income"))
+        {
+            return;
+        }
+
+        isCategoryTypeAnimating = true;
+        var outgoingPanel = selectedCategoryType == "Expense"
+            ? ExpenseCategoriesPanel
+            : IncomeCategoriesPanel;
+        var incomingPanel = categoryType == "Expense"
+            ? ExpenseCategoriesPanel
+            : IncomeCategoriesPanel;
+
+        selectedCategoryType = categoryType;
+        UpdateCategoryTypeVisuals();
+
+        try
+        {
+            outgoingPanel.CancelAnimations();
+            incomingPanel.CancelAnimations();
+            await outgoingPanel.FadeToAsync(0, 90, Easing.CubicIn);
+            outgoingPanel.IsVisible = false;
+            outgoingPanel.Opacity = 1;
+
+            incomingPanel.IsVisible = true;
+            incomingPanel.Opacity = 0;
+            incomingPanel.TranslationY = 6;
+            await Task.WhenAll(
+                incomingPanel.FadeToAsync(1, 150, Easing.CubicOut),
+                incomingPanel.TranslateToAsync(0, 0, 170, Easing.CubicOut));
+        }
+        finally
+        {
+            incomingPanel.Opacity = 1;
+            incomingPanel.TranslationY = 0;
+            isCategoryTypeAnimating = false;
+        }
+    }
+
+    private void UpdateCategoryTypeVisuals()
+    {
+        var expenseSelected = selectedCategoryType == "Expense";
+        ExpenseCategoryTab.Style = GetResourceStyle(
+            expenseSelected ? "SelectedCategorySegmentTab" : "CategorySegmentTab");
+        IncomeCategoryTab.Style = GetResourceStyle(
+            expenseSelected ? "CategorySegmentTab" : "SelectedCategorySegmentTab");
+        ExpenseCategoryLabel.Style = GetResourceStyle(
+            expenseSelected ? "SelectedCategorySegmentLabel" : "CategorySegmentLabel");
+        IncomeCategoryLabel.Style = GetResourceStyle(
+            expenseSelected ? "CategorySegmentLabel" : "SelectedCategorySegmentLabel");
+    }
+
+    private static Style GetResourceStyle(string key) =>
+        (Style)Application.Current!.Resources[key];
 
     private async Task SetCurrencySelectorExpandedAsync(bool isExpanded)
     {

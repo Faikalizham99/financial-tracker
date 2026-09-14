@@ -130,4 +130,37 @@
         <Setter Property="Stroke" Value="{DynamicResource Accent}" />
         <Setter Property="StrokeThickness" Value="2" />
     </Style>
+
+    <Style x:Key="CategorySegmentTab" TargetType="Border">
+        <Setter Property="Padding" Value="13,8" />
+        <Setter Property="BackgroundColor" Value="Transparent" />
+        <Setter Property="Stroke" Value="Transparent" />
+        <Setter Property="StrokeThickness" Value="0" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 11" />
+    </Style>
+
+    <Style x:Key="SelectedCategorySegmentTab" TargetType="Border" BasedOn="{StaticResource CategorySegmentTab}">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark=#242426}" />
+        <Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource DividerLight}, Dark=#353539}" />
+        <Setter Property="StrokeThickness" Value="1.5" />
+        <Setter Property="Shadow">
+            <Setter.Value>
+                <Shadow
+                    Brush="{AppThemeBinding Light={StaticResource ShadowLight}, Dark={StaticResource ShadowDark}}"
+                    Offset="0,2"
+                    Opacity="0.18"
+                    Radius="4" />
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="CategorySegmentLabel" TargetType="Label" BasedOn="{StaticResource BodyMuted}">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="HorizontalTextAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="SelectedCategorySegmentLabel" TargetType="Label" BasedOn="{StaticResource CategorySegmentLabel}">
+        <Setter Property="FontFamily" Value="OpenSansSemibold" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" />
+    </Style>
 </ResourceDictionary>

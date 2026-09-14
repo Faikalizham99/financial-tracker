@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
 
+    <Grid>
     <ScrollView VerticalScrollBarVisibility="Never">
         <VerticalStackLayout Padding="24,30,24,126" Spacing="27">
             <VerticalStackLayout Spacing="5">
@@ -175,6 +176,67 @@
                     </Grid>
                 </Border>
                         </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="13">
+                <Label Text="DATA" Style="{StaticResource SectionLabel}" />
+                <Label
+                    Text="Manage the lists used when recording transactions."
+                    Style="{StaticResource BodyMuted}"
+                    FontSize="12" />
+                <Border Style="{StaticResource Card}" Padding="0">
+                    <VerticalStackLayout Spacing="0">
+                        <Grid Padding="18,16" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnCategoriesTapped" />
+                            </Grid.GestureRecognizers>
+                            <Border
+                                WidthRequest="44"
+                                HeightRequest="44"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 14">
+                                <Image
+                                    Source="settings_categories.png"
+                                    WidthRequest="44"
+                                    HeightRequest="44"
+                                    Aspect="AspectFill"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center" />
+                            </Border>
+                            <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                <Label Text="Categories" Style="{StaticResource CardTitle}" FontSize="15" />
+                                <Label Text="Expense and income categories" Style="{StaticResource BodyMuted}" FontSize="12" />
+                            </VerticalStackLayout>
+                            <Label Grid.Column="2" Text="›" FontSize="27" VerticalOptions="Center" />
+                        </Grid>
+
+                        <BoxView Margin="76,0,18,0" HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+
+                        <Grid Padding="18,16" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnPaymentMethodsTapped" />
+                            </Grid.GestureRecognizers>
+                            <Border
+                                WidthRequest="44"
+                                HeightRequest="44"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 14">
+                                <Image
+                                    Source="settings_payment_methods.png"
+                                    WidthRequest="44"
+                                    HeightRequest="44"
+                                    Aspect="AspectFill"
+                                    HorizontalOptions="Center"
+                                    VerticalOptions="Center" />
+                            </Border>
+                            <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                <Label Text="Payment methods" Style="{StaticResource CardTitle}" FontSize="15" />
+                                <Label Text="Cash, cards and bank accounts" Style="{StaticResource BodyMuted}" FontSize="12" />
+                            </VerticalStackLayout>
+                            <Label Grid.Column="2" Text="›" FontSize="27" VerticalOptions="Center" />
+                        </Grid>
                     </VerticalStackLayout>
                 </Border>
             </VerticalStackLayout>
@@ -386,4 +448,163 @@
             </VerticalStackLayout>
         </VerticalStackLayout>
     </ScrollView>
+
+        <Grid
+            x:Name="DataDrawerOverlay"
+            ZIndex="20"
+            IsVisible="False"
+            Opacity="0"
+            BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}">
+            <Border
+                x:Name="DataDrawerCard"
+                Margin="0"
+                Padding="24,30,24,24"
+                HorizontalOptions="Fill"
+                VerticalOptions="Fill"
+                BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}"
+                StrokeThickness="0">
+                <Grid RowDefinitions="Auto,*">
+                    <Grid ColumnDefinitions="44,*,44" ColumnSpacing="14">
+                        <Label
+                            x:Name="DataDrawerTitle"
+                            Grid.Column="1"
+                            Text="Categories"
+                            Style="{StaticResource CardTitle}"
+                            FontSize="21"
+                            HorizontalTextAlignment="Center"
+                            VerticalTextAlignment="Center" />
+                        <Border
+                            Grid.Column="2"
+                            WidthRequest="42"
+                            HeightRequest="42"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}"
+                            Stroke="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 21">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnDataDrawerCloseTapped" />
+                            </Border.GestureRecognizers>
+                            <Label
+                                Text="&#x2190;"
+                                FontSize="22"
+                                TextColor="{DynamicResource Accent}"
+                                HorizontalTextAlignment="Center"
+                                VerticalTextAlignment="Center" />
+                        </Border>
+                    </Grid>
+
+                    <Grid Grid.Row="1" Margin="0,27,0,0">
+                    <VerticalStackLayout x:Name="CategoriesDrawerContent" Spacing="25">
+                        <Border
+                            WidthRequest="204"
+                            HeightRequest="46"
+                            Padding="3"
+                            HorizontalOptions="Start"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark=#3A3A3D}"
+                            Stroke="{AppThemeBinding Light={StaticResource DividerLight}, Dark=#48484C}"
+                            StrokeThickness="1.5"
+                            StrokeShape="RoundRectangle 14">
+                            <Grid ColumnDefinitions="*,*">
+                                <Border x:Name="ExpenseCategoryTab" Style="{StaticResource SelectedCategorySegmentTab}">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnCategoryTypeTapped" CommandParameter="Expense" />
+                                    </Border.GestureRecognizers>
+                                    <Label x:Name="ExpenseCategoryLabel" Text="Expense" Style="{StaticResource SelectedCategorySegmentLabel}" />
+                                </Border>
+                                <Border x:Name="IncomeCategoryTab" Grid.Column="1" Style="{StaticResource CategorySegmentTab}">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnCategoryTypeTapped" CommandParameter="Income" />
+                                    </Border.GestureRecognizers>
+                                    <Label x:Name="IncomeCategoryLabel" Text="Income" Style="{StaticResource CategorySegmentLabel}" />
+                                </Border>
+                            </Grid>
+                        </Border>
+
+                        <VerticalStackLayout x:Name="ExpenseCategoriesPanel" Spacing="12">
+                            <Label Text="2 EXPENSE CATEGORIES" Style="{StaticResource SectionLabel}" FontSize="10" />
+                            <Border Style="{StaticResource SoftCard}" Padding="12,10">
+                                <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
+                                    <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
+                                        <Image
+                                            Source="category_groceries.png"
+                                            WidthRequest="56"
+                                            HeightRequest="56"
+                                            Aspect="AspectFill"
+                                            HorizontalOptions="Center"
+                                            VerticalOptions="Center" />
+                                    </Border>
+                                    <Label Grid.Column="1" Text="Groceries" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                            <Border Style="{StaticResource SoftCard}" Padding="12,10">
+                                <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
+                                    <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
+                                        <Image
+                                            Source="category_food_drinks.png"
+                                            WidthRequest="56"
+                                            HeightRequest="56"
+                                            Aspect="AspectFill"
+                                            HorizontalOptions="Center"
+                                            VerticalOptions="Center" />
+                                    </Border>
+                                    <Label Grid.Column="1" Text="Food &amp; Drinks" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout x:Name="IncomeCategoriesPanel" IsVisible="False" Spacing="12">
+                            <Label Text="2 INCOME CATEGORIES" Style="{StaticResource SectionLabel}" FontSize="10" />
+                            <Border Style="{StaticResource SoftCard}" Padding="12,10">
+                                <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
+                                    <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
+                                        <Image
+                                            Source="category_salary.png"
+                                            WidthRequest="56"
+                                            HeightRequest="56"
+                                            Aspect="AspectFill"
+                                            HorizontalOptions="Center"
+                                            VerticalOptions="Center" />
+                                    </Border>
+                                    <Label Grid.Column="1" Text="Salary" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                            <Border Style="{StaticResource SoftCard}" Padding="12,10">
+                                <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
+                                    <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
+                                        <Image
+                                            Source="category_others.png"
+                                            WidthRequest="56"
+                                            HeightRequest="56"
+                                            Aspect="AspectFill"
+                                            HorizontalOptions="Center"
+                                            VerticalOptions="Center" />
+                                    </Border>
+                                    <Label Grid.Column="1" Text="Others" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout x:Name="PaymentMethodsDrawerContent" IsVisible="False" Spacing="12">
+                        <Label Text="1 AVAILABLE PAYMENT METHOD" Style="{StaticResource SectionLabel}" FontSize="10" />
+                        <Border Style="{StaticResource SoftCard}" Padding="12,10">
+                            <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
+                                <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
+                                    <Image
+                                        Source="payment_cash.png"
+                                        WidthRequest="56"
+                                        HeightRequest="56"
+                                        Aspect="AspectFill"
+                                        HorizontalOptions="Center"
+                                        VerticalOptions="Center" />
+                                </Border>
+                                <Label Grid.Column="1" Text="Cash" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
+                            </Grid>
+                        </Border>
+                    </VerticalStackLayout>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
 </ContentView>
