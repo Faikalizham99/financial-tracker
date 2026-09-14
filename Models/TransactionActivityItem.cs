@@ -15,6 +15,7 @@ public sealed class TransactionActivityItem
     public string DashboardDetailText { get; private init; } = string.Empty;
     public string AmountText { get; private init; } = string.Empty;
     public string IconAsset { get; private init; } = string.Empty;
+    public string PaymentMethodIconAsset { get; private init; } = string.Empty;
     public bool IsIncome { get; private init; }
     public bool ShowDivider { get; private init; }
     public DateTime TransactionDate { get; private init; }
@@ -30,6 +31,9 @@ public sealed class TransactionActivityItem
         var category = categories.FirstOrDefault(item =>
                 item.Key.Equals(record.Category, StringComparison.OrdinalIgnoreCase))
             ?? categories[^1];
+        var paymentMethod = TransactionCatalog.PaymentMethods.FirstOrDefault(item =>
+                item.Key.Equals(record.PaymentMethod, StringComparison.OrdinalIgnoreCase))
+            ?? TransactionCatalog.PaymentMethods[^1];
         var symbol = record.CurrencyCode.ToUpperInvariant() switch
         {
             "USD" => "$",
@@ -52,6 +56,7 @@ public sealed class TransactionActivityItem
             DashboardDetailText = $"{record.Category} · {record.PaymentMethod} · {dateText}",
             AmountText = $"{(isIncome ? "+" : "−")} {symbol} {(record.AmountMinor / 100m).ToString("N2", CultureInfo.InvariantCulture)}",
             IconAsset = category.IconAsset,
+            PaymentMethodIconAsset = paymentMethod.IconAsset,
             IsIncome = isIncome,
             ShowDivider = showDivider,
             TransactionDate = record.TransactionDate.Date

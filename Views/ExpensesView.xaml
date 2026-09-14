@@ -45,8 +45,8 @@
                         <TapGestureRecognizer Tapped="OnPaymentFilterTapped" />
                     </Border.GestureRecognizers>
                     <Grid ColumnDefinitions="28,*" ColumnSpacing="7">
-                        <Border WidthRequest="28" HeightRequest="28" Padding="2" BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="1" StrokeShape="RoundRectangle 9">
-                            <Image x:Name="PaymentFilterIcon" Source="settings_payment_methods.png" WidthRequest="22" HeightRequest="22" Aspect="AspectFill" />
+                        <Border WidthRequest="28" HeightRequest="28" Padding="0" StrokeThickness="0" StrokeShape="RoundRectangle 9">
+                            <Image x:Name="PaymentFilterIcon" Source="settings_payment_methods.png" WidthRequest="28" HeightRequest="28" Aspect="AspectFill" />
                         </Border>
                         <Label x:Name="PaymentFilterLabel" Grid.Column="1" Text="Payment method" Style="{StaticResource BodyMuted}" FontSize="12" LineBreakMode="TailTruncation" MaxLines="1" VerticalTextAlignment="Center" />
                     </Grid>
@@ -56,8 +56,8 @@
                         <TapGestureRecognizer Tapped="OnCategoryFilterTapped" />
                     </Border.GestureRecognizers>
                     <Grid ColumnDefinitions="28,*" ColumnSpacing="7">
-                        <Border WidthRequest="28" HeightRequest="28" Padding="2" BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="1" StrokeShape="RoundRectangle 9">
-                            <Image x:Name="CategoryFilterIcon" Source="settings_categories.png" WidthRequest="22" HeightRequest="22" Aspect="AspectFill" />
+                        <Border WidthRequest="28" HeightRequest="28" Padding="0" StrokeThickness="0" StrokeShape="RoundRectangle 9">
+                            <Image x:Name="CategoryFilterIcon" Source="settings_categories.png" WidthRequest="28" HeightRequest="28" Aspect="AspectFill" />
                         </Border>
                         <Label x:Name="CategoryFilterLabel" Grid.Column="1" Text="Category" Style="{StaticResource BodyMuted}" FontSize="12" LineBreakMode="TailTruncation" MaxLines="1" VerticalTextAlignment="Center" />
                     </Grid>
@@ -82,25 +82,49 @@
                                     <VerticalStackLayout Spacing="0" BindableLayout.ItemsSource="{Binding Items}">
                                     <BindableLayout.ItemTemplate>
                                         <DataTemplate x:DataType="models:TransactionActivityItem">
-                                            <Grid RowDefinitions="Auto,Auto">
-                                                <Grid Padding="14,12" ColumnDefinitions="48,*,Auto" ColumnSpacing="12">
-                                                    <Border WidthRequest="46" HeightRequest="46" StrokeThickness="0" StrokeShape="RoundRectangle 14">
-                                                        <Image Source="{Binding IconAsset}" WidthRequest="46" HeightRequest="46" Aspect="AspectFill" />
-                                                    </Border>
-                                                    <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
-                                                        <Label Text="{Binding Description}" Style="{StaticResource CardTitle}" FontSize="14" LineBreakMode="TailTruncation" MaxLines="1" />
-                                                        <Label Text="{Binding DetailText}" Style="{StaticResource BodyMuted}" FontSize="11" LineBreakMode="TailTruncation" MaxLines="1" />
-                                                    </VerticalStackLayout>
-                                                    <Label Grid.Column="2" Text="{Binding AmountText}" FontFamily="OpenSansSemibold" FontSize="14" TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" HorizontalTextAlignment="End" VerticalOptions="Center">
-                                                        <Label.Triggers>
-                                                            <DataTrigger TargetType="Label" Binding="{Binding IsIncome}" Value="True">
-                                                                <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource PositiveLight}, Dark={StaticResource PositiveDark}}" />
-                                                            </DataTrigger>
-                                                        </Label.Triggers>
-                                                    </Label>
+                                            <SwipeView>
+                                                <SwipeView.RightItems>
+                                                    <SwipeItems Mode="Reveal" SwipeBehaviorOnInvoked="Close">
+                                                        <SwipeItemView Invoked="OnEditTransactionInvoked">
+                                                            <VerticalStackLayout WidthRequest="84" Padding="0,10" Spacing="4" BackgroundColor="{DynamicResource Accent}" HorizontalOptions="Fill" VerticalOptions="Fill">
+                                                                <Path WidthRequest="22" HeightRequest="22" Data="M 4,20 L 8,19 L 19,8 L 16,5 L 5,16 Z M 14,7 L 17,10" Stroke="{DynamicResource AccentForeground}" StrokeThickness="2" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" HorizontalOptions="Center" />
+                                                                <Label Text="Edit" FontFamily="OpenSansSemibold" FontSize="12" TextColor="{DynamicResource AccentForeground}" HorizontalTextAlignment="Center" />
+                                                            </VerticalStackLayout>
+                                                        </SwipeItemView>
+                                                        <SwipeItemView Invoked="OnDeleteTransactionInvoked">
+                                                            <VerticalStackLayout WidthRequest="84" Padding="0,10" Spacing="4" BackgroundColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" HorizontalOptions="Fill" VerticalOptions="Fill">
+                                                                <Path WidthRequest="22" HeightRequest="22" Data="M 5,7 L 19,7 M 9,7 L 9,4 L 15,4 L 15,7 M 7,7 L 8,20 L 16,20 L 17,7 M 10,11 L 10,17 M 14,11 L 14,17" Stroke="#FFFFFF" StrokeThickness="2" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" HorizontalOptions="Center" />
+                                                                <Label Text="Delete" FontFamily="OpenSansSemibold" FontSize="12" TextColor="#FFFFFF" HorizontalTextAlignment="Center" />
+                                                            </VerticalStackLayout>
+                                                        </SwipeItemView>
+                                                    </SwipeItems>
+                                                </SwipeView.RightItems>
+                                                <Grid RowDefinitions="Auto,Auto" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}">
+                                                    <Grid Padding="14,12" ColumnDefinitions="90,*,Auto" ColumnSpacing="12">
+                                                        <Grid ColumnDefinitions="38,14,38">
+                                                            <Border WidthRequest="38" HeightRequest="38" StrokeThickness="0" StrokeShape="RoundRectangle 12" VerticalOptions="Center">
+                                                                <Image Source="{Binding IconAsset}" WidthRequest="38" HeightRequest="38" Aspect="AspectFill" />
+                                                            </Border>
+                                                            <Label Grid.Column="1" Text="×" Style="{StaticResource BodyMuted}" FontSize="13" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                                            <Border Grid.Column="2" WidthRequest="38" HeightRequest="38" StrokeThickness="0" StrokeShape="RoundRectangle 12" VerticalOptions="Center">
+                                                                <Image Source="{Binding PaymentMethodIconAsset}" WidthRequest="38" HeightRequest="38" Aspect="AspectFill" />
+                                                            </Border>
+                                                        </Grid>
+                                                        <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                                            <Label Text="{Binding Description}" Style="{StaticResource CardTitle}" FontSize="14" LineBreakMode="TailTruncation" MaxLines="1" />
+                                                            <Label Text="{Binding DetailText}" Style="{StaticResource BodyMuted}" FontSize="11" LineBreakMode="TailTruncation" MaxLines="1" />
+                                                        </VerticalStackLayout>
+                                                        <Label Grid.Column="2" Text="{Binding AmountText}" FontFamily="OpenSansSemibold" FontSize="14" TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" HorizontalTextAlignment="End" VerticalOptions="Center">
+                                                            <Label.Triggers>
+                                                                <DataTrigger TargetType="Label" Binding="{Binding IsIncome}" Value="True">
+                                                                    <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource PositiveLight}, Dark={StaticResource PositiveDark}}" />
+                                                                </DataTrigger>
+                                                            </Label.Triggers>
+                                                        </Label>
+                                                    </Grid>
+                                                    <BoxView Grid.Row="1" Margin="116,0,14,0" HeightRequest="1" IsVisible="{Binding ShowDivider}" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
                                                 </Grid>
-                                                <BoxView Grid.Row="1" Margin="74,0,14,0" HeightRequest="1" IsVisible="{Binding ShowDivider}" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
-                                            </Grid>
+                                            </SwipeView>
                                         </DataTemplate>
                                     </BindableLayout.ItemTemplate>
                                     </VerticalStackLayout>

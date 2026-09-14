@@ -7,6 +7,9 @@ using FinancialTracker.Services;
 
 public partial class ExpensesView : ContentView
 {
+    public event Action<int>? EditTransactionRequested;
+    public event Action<int>? DeleteTransactionRequested;
+
     private enum FilterSelectorKind
     {
         PaymentMethod,
@@ -79,6 +82,22 @@ public partial class ExpensesView : ContentView
         selectedCategoryFilter = null;
         RenderDisplayedMonth();
         await feedback;
+    }
+
+    private void OnEditTransactionInvoked(object? sender, EventArgs e)
+    {
+        if (sender is SwipeItemView { BindingContext: TransactionActivityItem item })
+        {
+            EditTransactionRequested?.Invoke(item.Id);
+        }
+    }
+
+    private void OnDeleteTransactionInvoked(object? sender, EventArgs e)
+    {
+        if (sender is SwipeItemView { BindingContext: TransactionActivityItem item })
+        {
+            DeleteTransactionRequested?.Invoke(item.Id);
+        }
     }
 
     private async void OnPaymentFilterTapped(object? sender, TappedEventArgs e)

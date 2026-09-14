@@ -14,6 +14,9 @@ public partial class MainPage : ContentPage
     private readonly SemaphoreSlim transactionRefreshLock = new(1, 1);
     private int selectedSectionIndex = 1;
     private int navigationTransitionVersion;
+    private TransactionRecord? pendingDeleteTransaction;
+    private bool isDeleteConfirmationAnimating;
+    private bool isDeletingTransaction;
 
     public MainPage()
         : this(new LocalDatabase())
@@ -41,6 +44,8 @@ public partial class MainPage : ContentPage
         this.localDatabase = localDatabase;
         BindingContext = settingsViewModel;
         AddTransactionOverlay.TransactionSaved += OnTransactionSaved;
+        ExpensesView.EditTransactionRequested += OnTransactionEditRequested;
+        ExpensesView.DeleteTransactionRequested += OnTransactionDeleteRequested;
         settingsViewModel.PropertyChanged += OnSettingsPropertyChanged;
         Loaded += OnLoaded;
     }
@@ -80,6 +85,178 @@ public partial class MainPage : ContentPage
             localDatabase,
             settingsViewModel.SelectedCurrency);
         await feedback;
+    }
+
+    private async void OnTransactionEditRequested(int transactionId) =>
+        await OpenTransactionForEditAsync(transactionId);
+
+    private async void OnTransactionDeleteRequested(int transactionId) =>
+        await OpenDeleteConfirmationAsync(transactionId);
+
+    private async void OnDashboardEditTransactionInvoked(object? sender, EventArgs e)
+    {
+        if (sender is SwipeItemView { BindingContext: TransactionActivityItem item })
+        {
+            await OpenTransactionForEditAsync(item.Id);
+        }
+    }
+
+    private async void OnDashboardDeleteTransactionInvoked(object? sender, EventArgs e)
+    {
+        if (sender is SwipeItemView { BindingContext: TransactionActivityItem item })
+        {
+            await OpenDeleteConfirmationAsync(item.Id);
+        }
+    }
+
+    private async Task OpenTransactionForEditAsync(int transactionId)
+    {
+        var transaction = await localDatabase.GetTransactionAsync(transactionId);
+        if (transaction is null)
+        {
+            await RefreshTransactionViewsAsync();
+            return;
+        }
+
+        await AddTransactionOverlay.OpenAsync(
+            localDatabase,
+            settingsViewModel.SelectedCurrency,
+            transaction);
+    }
+
+    private async Task OpenDeleteConfirmationAsync(int transactionId)
+    {
+        if (DeleteConfirmationOverlay.IsVisible || isDeleteConfirmationAnimating)
+        {
+            return;
+        }
+
+        var transaction = await localDatabase.GetTransactionAsync(transactionId);
+        if (transaction is null)
+        {
+            await RefreshTransactionViewsAsync();
+            return;
+        }
+
+        pendingDeleteTransaction = transaction;
+        DeleteDescriptionLabel.Text =
+            $"“{transaction.Description}” will be permanently removed. This cannot be undone.";
+        UpdateDeleteConfirmationCardWidth();
+        DeleteConfirmLabel.Text = "Delete";
+        DeleteConfirmButton.IsEnabled = true;
+        DeleteConfirmationOverlay.IsVisible = true;
+        DeleteConfirmationOverlay.Opacity = 0;
+        DeleteConfirmationCard.Opacity = 0;
+        DeleteConfirmationCard.Scale = 0.96;
+        DeleteConfirmationCard.TranslationY = 16;
+        isDeleteConfirmationAnimating = true;
+
+        try
+        {
+            await Task.WhenAll(
+                DeleteConfirmationOverlay.FadeToAsync(1, 150, Easing.CubicOut),
+                DeleteConfirmationCard.FadeToAsync(1, 180, Easing.CubicOut),
+                DeleteConfirmationCard.ScaleToAsync(1, 210, Easing.CubicOut),
+                DeleteConfirmationCard.TranslateToAsync(0, 0, 210, Easing.CubicOut));
+        }
+        finally
+        {
+            isDeleteConfirmationAnimating = false;
+        }
+    }
+
+    private async void OnDeleteConfirmationBackdropTapped(object? sender, TappedEventArgs e) =>
+        await CloseDeleteConfirmationAsync();
+
+    private async void OnDeleteConfirmationCancelTapped(object? sender, TappedEventArgs e)
+    {
+        var feedback = InteractionAnimations.PulseAsync(sender);
+        await CloseDeleteConfirmationAsync();
+        await feedback;
+    }
+
+    private async void OnDeleteConfirmationConfirmedTapped(object? sender, TappedEventArgs e)
+    {
+        if (pendingDeleteTransaction is null || isDeletingTransaction)
+        {
+            return;
+        }
+
+        var feedback = InteractionAnimations.PulseAsync(sender);
+        isDeletingTransaction = true;
+        DeleteConfirmButton.IsEnabled = false;
+        DeleteConfirmButton.Opacity = 0.72;
+        DeleteConfirmLabel.Text = "Deleting…";
+
+        try
+        {
+            await localDatabase.DeleteTransactionAsync(pendingDeleteTransaction.Id);
+            await RefreshTransactionViewsAsync();
+            isDeletingTransaction = false;
+            await CloseDeleteConfirmationAsync();
+        }
+        catch
+        {
+            DeleteConfirmLabel.Text = "Try again";
+            await Task.Delay(900);
+        }
+        finally
+        {
+            isDeletingTransaction = false;
+            DeleteConfirmButton.IsEnabled = true;
+            DeleteConfirmButton.Opacity = 1;
+            if (DeleteConfirmationOverlay.IsVisible)
+            {
+                DeleteConfirmLabel.Text = "Delete";
+            }
+
+            await feedback;
+        }
+    }
+
+    private async Task CloseDeleteConfirmationAsync()
+    {
+        if (!DeleteConfirmationOverlay.IsVisible ||
+            isDeleteConfirmationAnimating ||
+            isDeletingTransaction)
+        {
+            return;
+        }
+
+        isDeleteConfirmationAnimating = true;
+        try
+        {
+            await Task.WhenAll(
+                DeleteConfirmationOverlay.FadeToAsync(0, 130, Easing.CubicIn),
+                DeleteConfirmationCard.ScaleToAsync(0.97, 150, Easing.CubicIn),
+                DeleteConfirmationCard.TranslateToAsync(0, 12, 150, Easing.CubicIn));
+        }
+        finally
+        {
+            DeleteConfirmationOverlay.IsVisible = false;
+            DeleteConfirmationOverlay.Opacity = 0;
+            DeleteConfirmationCard.Opacity = 1;
+            DeleteConfirmationCard.Scale = 1;
+            DeleteConfirmationCard.TranslationY = 0;
+            pendingDeleteTransaction = null;
+            isDeleteConfirmationAnimating = false;
+        }
+    }
+
+    private void OnDeleteConfirmationOverlaySizeChanged(object? sender, EventArgs e) =>
+        UpdateDeleteConfirmationCardWidth();
+
+    private void UpdateDeleteConfirmationCardWidth()
+    {
+        var availableWidth = DeleteConfirmationOverlay.Width > 0
+            ? DeleteConfirmationOverlay.Width
+            : Width;
+        if (availableWidth > 0)
+        {
+            DeleteConfirmationCard.WidthRequest = Math.Min(
+                420,
+                Math.Max(280, availableWidth - 40));
+        }
     }
 
     private void OnNavigationTabsSizeChanged(object? sender, EventArgs e)

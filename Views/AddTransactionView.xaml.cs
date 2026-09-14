@@ -3,6 +3,7 @@ using FinancialTracker.Data;
 using FinancialTracker.Helpers;
 using FinancialTracker.Models;
 using FinancialTracker.Services;
+using FinancialTracker.ViewModels;
 
 namespace FinancialTracker.Views;
 
@@ -34,6 +35,7 @@ public partial class AddTransactionView : ContentView
     private bool isSaving;
     private bool isApplyingDescriptionSuggestion;
     private IReadOnlyList<string> descriptionHistory = [];
+    private TransactionRecord? editingTransaction;
 
     public AddTransactionView()
     {
@@ -42,7 +44,10 @@ public partial class AddTransactionView : ContentView
         TransactionDatePicker.MinimumDate = new DateTime(2000, 1, 1);
     }
 
-    public async Task OpenAsync(LocalDatabase localDatabase, CurrencyOption selectedCurrency)
+    public async Task OpenAsync(
+        LocalDatabase localDatabase,
+        CurrencyOption selectedCurrency,
+        TransactionRecord? transactionToEdit = null)
     {
         if (isOpen || isAnimating)
         {
@@ -50,7 +55,14 @@ public partial class AddTransactionView : ContentView
         }
 
         database = localDatabase;
-        currency = selectedCurrency;
+        editingTransaction = transactionToEdit;
+        currency = transactionToEdit is null
+            ? selectedCurrency
+            : SettingsViewModel.SupportedCurrencies.FirstOrDefault(option =>
+                option.Code.Equals(
+                    transactionToEdit.CurrencyCode,
+                    StringComparison.OrdinalIgnoreCase))
+              ?? selectedCurrency;
         var descriptionHistoryTask = LoadDescriptionHistoryAsync(localDatabase);
         ResetForm();
         isOpen = true;
@@ -75,7 +87,14 @@ public partial class AddTransactionView : ContentView
         }
 
         await descriptionHistoryTask;
-        UpdateDescriptionSuggestions(DescriptionEntry.Text);
+        if (editingTransaction is null)
+        {
+            UpdateDescriptionSuggestions(DescriptionEntry.Text);
+        }
+        else
+        {
+            HideDescriptionSuggestions();
+        }
     }
 
     public async Task CloseAsync()
@@ -636,6 +655,7 @@ public partial class AddTransactionView : ContentView
         {
             var transaction = new TransactionRecord
             {
+                Id = editingTransaction?.Id ?? 0,
                 Type = selectedType.Key,
                 Category = selectedCategory.Key,
                 PaymentMethod = selectedPayment.Key,
@@ -643,12 +663,20 @@ public partial class AddTransactionView : ContentView
                 AmountMinor = decimal.ToInt64(decimal.Round(amount * 100, 0, MidpointRounding.AwayFromZero)),
                 CurrencyCode = currency.Code,
                 TransactionDate = (TransactionDatePicker.Date ?? DateTime.Today).Date,
-                CreatedAtUtc = DateTime.UtcNow
+                CreatedAtUtc = editingTransaction?.CreatedAtUtc ?? DateTime.UtcNow
             };
 
-            await database.SaveTransactionAsync(transaction);
+            if (editingTransaction is null)
+            {
+                await database.SaveTransactionAsync(transaction);
+            }
+            else
+            {
+                await database.UpdateTransactionAsync(transaction);
+            }
+
             TransactionSaved?.Invoke(this, EventArgs.Empty);
-            SaveLabel.Text = "Saved";
+            SaveLabel.Text = editingTransaction is null ? "Saved" : "Updated";
             await Task.Delay(420);
             await CloseAsync();
         }
@@ -667,20 +695,41 @@ public partial class AddTransactionView : ContentView
 
     private void ResetForm()
     {
-        selectedType = TransactionCatalog.TransactionTypes[0];
-        selectedPayment = TransactionCatalog.PaymentMethods.First(item => item.Key == "Cash");
-        selectedCategory = TransactionCatalog.ExpenseCategories[^1];
-        currentInput = "0";
+        var transaction = editingTransaction;
+        selectedType = transaction is null
+            ? TransactionCatalog.TransactionTypes[0]
+            : TransactionCatalog.TransactionTypes.FirstOrDefault(item =>
+                item.Key.Equals(transaction.Type, StringComparison.OrdinalIgnoreCase))
+              ?? TransactionCatalog.TransactionTypes[0];
+        selectedPayment = transaction is null
+            ? TransactionCatalog.PaymentMethods.First(item => item.Key == "Cash")
+            : TransactionCatalog.PaymentMethods.FirstOrDefault(item =>
+                item.Key.Equals(transaction.PaymentMethod, StringComparison.OrdinalIgnoreCase))
+              ?? TransactionCatalog.PaymentMethods.First(item => item.Key == "Cash");
+        var categories = selectedType.Key == "Income"
+            ? TransactionCatalog.IncomeCategories
+            : TransactionCatalog.ExpenseCategories;
+        selectedCategory = transaction is null
+            ? categories[^1]
+            : categories.FirstOrDefault(item =>
+                item.Key.Equals(transaction.Category, StringComparison.OrdinalIgnoreCase))
+              ?? categories[^1];
+        currentInput = transaction is null
+            ? "0"
+            : FormatAmount(transaction.AmountMinor / 100m);
         accumulator = 0;
         pendingOperator = null;
         startNewInput = true;
         isSaving = false;
         isApplyingDescriptionSuggestion = false;
         HideDescriptionSuggestions();
-        DescriptionEntry.Text = string.Empty;
-        TransactionDatePicker.Date = DateTime.Today;
+        isApplyingDescriptionSuggestion = true;
+        DescriptionEntry.Text = transaction?.Description ?? string.Empty;
+        isApplyingDescriptionSuggestion = false;
+        var transactionDate = transaction?.TransactionDate.Date ?? DateTime.Today;
+        TransactionDatePicker.Date = transactionDate;
         CurrencySymbolLabel.Text = currency.Symbol;
-        UpdateDateLabel(DateTime.Today);
+        UpdateDateLabel(transactionDate);
         UpdateTypeAndCategory();
         UpdatePaymentMethod();
         UpdateAmountAndSaveState();
@@ -773,7 +822,7 @@ public partial class AddTransactionView : ContentView
             : new SolidColorBrush((Color)resources[isDark ? "DividerDark" : "DividerLight"]);
         SaveLabel.Text = isSaving
             ? "Saving…"
-            : isEqualsAction ? "=" : "Save";
+            : isEqualsAction ? "=" : editingTransaction is null ? "Save" : "Update";
         SaveLabel.FontSize = isEqualsAction ? 23 : 14;
         SaveLabel.TextColor = isActionEnabled
             ? (Color)resources["AccentForeground"]

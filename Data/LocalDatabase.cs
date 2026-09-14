@@ -95,6 +95,26 @@ public sealed class LocalDatabase
         return await Connection.InsertAsync(transaction);
     }
 
+    public async Task<int> UpdateTransactionAsync(TransactionRecord transaction)
+    {
+        await InitializeAsync();
+        return await Connection.UpdateAsync(transaction);
+    }
+
+    public async Task<int> DeleteTransactionAsync(int transactionId)
+    {
+        await InitializeAsync();
+        return await Connection.ExecuteAsync(
+            "DELETE FROM Transactions WHERE Id = ?",
+            transactionId);
+    }
+
+    public async Task<TransactionRecord?> GetTransactionAsync(int transactionId)
+    {
+        await InitializeAsync();
+        return await Connection.FindAsync<TransactionRecord>(transactionId);
+    }
+
     public async Task<IReadOnlyList<TransactionRecord>> GetTransactionsAsync()
     {
         await InitializeAsync();
