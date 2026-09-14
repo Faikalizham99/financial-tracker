@@ -662,7 +662,37 @@
                     </VerticalStackLayout>
 
                     <VerticalStackLayout x:Name="PaymentMethodsDrawerContent" IsVisible="False" Spacing="12">
-                        <Label Text="1 AVAILABLE PAYMENT METHOD" Style="{StaticResource SectionLabel}" FontSize="10" />
+                        <Label Text="13 AVAILABLE PAYMENT METHODS" Style="{StaticResource SectionLabel}" FontSize="10" />
+                        <Border Style="{StaticResource SoftCard}" Padding="12,10">
+                            <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
+                                <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
+                                    <Image Source="payment_ambank.png" WidthRequest="56" HeightRequest="56" Aspect="AspectFill" HorizontalOptions="Center" VerticalOptions="Center" />
+                                </Border>
+                                <Label Grid.Column="1" Text="AmBank" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
+                            </Grid>
+                        </Border>
+                        <Border Style="{StaticResource SoftCard}" Padding="12,10">
+                            <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
+                                <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
+                                    <Image
+                                        Source="payment_amex_maybank.png"
+                                        WidthRequest="56"
+                                        HeightRequest="56"
+                                        Aspect="AspectFill"
+                                        HorizontalOptions="Center"
+                                        VerticalOptions="Center" />
+                                </Border>
+                                <Label Grid.Column="1" Text="AMEX Maybank" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
+                            </Grid>
+                        </Border>
+                        <Border Style="{StaticResource SoftCard}" Padding="12,10">
+                            <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
+                                <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
+                                    <Image Source="payment_bank_islam.png" WidthRequest="56" HeightRequest="56" Aspect="AspectFill" HorizontalOptions="Center" VerticalOptions="Center" />
+                                </Border>
+                                <Label Grid.Column="1" Text="Bank Islam" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
+                            </Grid>
+                        </Border>
                         <Border Style="{StaticResource SoftCard}" Padding="12,10">
                             <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
                                 <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
@@ -675,6 +705,90 @@
                                         VerticalOptions="Center" />
                                 </Border>
                                 <Label Grid.Column="1" Text="Cash" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
+                            </Grid>
+                        </Border>
+                        <Border Style="{StaticResource SoftCard}" Padding="12,10">
+                            <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
+                                <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
+                                    <Image Source="payment_cimb_bank.png" WidthRequest="56" HeightRequest="56" Aspect="AspectFill" HorizontalOptions="Center" VerticalOptions="Center" />
+                                </Border>
+                                <Label Grid.Column="1" Text="CIMB Bank" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
+                            </Grid>
+                        </Border>
+                        <Border Style="{StaticResource SoftCard}" Padding="12,10">
+                            <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
+                                <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
+                                    <Image Source="payment_gxbank.png" WidthRequest="56" HeightRequest="56" Aspect="AspectFill" HorizontalOptions="Center" VerticalOptions="Center" />
+                                </Border>
+                                <Label Grid.Column="1" Text="GXBank" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
+                            </Grid>
+                        </Border>
+                        <Border Style="{StaticResource SoftCard}" Padding="12,10">
+                            <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
+                                <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
+                                    <Image
+                                        Source="payment_maybank.png"
+                                        WidthRequest="56"
+                                        HeightRequest="56"
+                                        Aspect="AspectFill"
+                                        HorizontalOptions="Center"
+                                        VerticalOptions="Center" />
+                                </Border>
+                                <Label Grid.Column="1" Text="Maybank" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
+                            </Grid>
+                        </Border>
+                        <Border Style="{StaticResource SoftCard}" Padding="12,10">
+                            <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
+                                <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
+                                    <Image Source="payment_ryt_bank.png" WidthRequest="56" HeightRequest="56" Aspect="AspectFill" HorizontalOptions="Center" VerticalOptions="Center" />
+                                </Border>
+                                <Label Grid.Column="1" Text="Ryt Bank" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
+                            </Grid>
+                        </Border>
+                        <Border Style="{StaticResource SoftCard}" Padding="12,10">
+                            <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
+                                <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
+                                    <Image Source="payment_standard_chartered.png" WidthRequest="56" HeightRequest="56" Aspect="AspectFill" HorizontalOptions="Center" VerticalOptions="Center" />
+                                </Border>
+                                <Label Grid.Column="1" Text="Standard Chartered" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
+                            </Grid>
+                        </Border>
+                        <Border Style="{StaticResource SoftCard}" Padding="12,10">
+                            <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
+                                <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
+                                    <Image Source="payment_touch_n_go_ewallet.png" WidthRequest="56" HeightRequest="56" Aspect="AspectFill" HorizontalOptions="Center" VerticalOptions="Center" />
+                                </Border>
+                                <Label Grid.Column="1" Text="Touch N Go eWallet" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
+                            </Grid>
+                        </Border>
+                        <Border Style="{StaticResource SoftCard}" Padding="12,10">
+                            <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
+                                <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
+                                    <Image Source="payment_touch_n_go_nfc_card.png" WidthRequest="56" HeightRequest="56" Aspect="AspectFill" HorizontalOptions="Center" VerticalOptions="Center" />
+                                </Border>
+                                <Label Grid.Column="1" Text="Touch N Go NFC Card" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
+                            </Grid>
+                        </Border>
+                        <Border Style="{StaticResource SoftCard}" Padding="12,10">
+                            <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
+                                <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
+                                    <Image
+                                        Source="payment_visa_maybank.png"
+                                        WidthRequest="56"
+                                        HeightRequest="56"
+                                        Aspect="AspectFill"
+                                        HorizontalOptions="Center"
+                                        VerticalOptions="Center" />
+                                </Border>
+                                <Label Grid.Column="1" Text="VISA Maybank" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
+                            </Grid>
+                        </Border>
+                        <Border Style="{StaticResource SoftCard}" Padding="12,10">
+                            <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
+                                <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
+                                    <Image Source="payment_others.png" WidthRequest="56" HeightRequest="56" Aspect="AspectFill" HorizontalOptions="Center" VerticalOptions="Center" />
+                                </Border>
+                                <Label Grid.Column="1" Text="Others" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
                             </Grid>
                         </Border>
                     </VerticalStackLayout>
