@@ -103,8 +103,8 @@
     </Style>
 
     <Style x:Key="NavIcon" TargetType="Path">
-        <Setter Property="WidthRequest" Value="22" />
-        <Setter Property="HeightRequest" Value="21" />
+        <Setter Property="WidthRequest" Value="24" />
+        <Setter Property="HeightRequest" Value="24" />
         <Setter Property="Aspect" Value="Uniform" />
         <Setter Property="HorizontalOptions" Value="Center" />
         <Setter Property="Fill" Value="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" />

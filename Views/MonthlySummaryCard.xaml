@@ -46,6 +46,7 @@
                         Text="RM 0.00"
                         FontFamily="OpenSansRegular"
                         FontSize="40"
+                        FontAutoScalingEnabled="False"
                         CharacterSpacing="-0.5"
                         LineBreakMode="NoWrap"
                         VerticalTextAlignment="Center" />
@@ -57,7 +58,7 @@
                         HorizontalOptions="End"
                         VerticalOptions="Center">
                         <Label Text="TOTAL TRANSACTIONS" Style="{StaticResource SectionLabel}" FontSize="10" HorizontalTextAlignment="End" />
-                        <Label x:Name="SummaryTransactionCountLabel" Text="0" FontFamily="OpenSansSemibold" FontSize="30" HorizontalTextAlignment="End" />
+                        <Label x:Name="SummaryTransactionCountLabel" Text="0" FontFamily="OpenSansSemibold" FontSize="30" FontAutoScalingEnabled="False" HorizontalTextAlignment="End" />
                     </VerticalStackLayout>
                 </Grid>
 
@@ -106,8 +107,18 @@
                     <VerticalStackLayout Spacing="6">
                         <Label Text="TOTAL INCOME" Style="{StaticResource SectionLabel}" FontSize="11" />
                         <HorizontalStackLayout Spacing="8">
-                            <Label x:Name="SummaryIncomeAmountLabel" Text="RM 0.00" FontFamily="OpenSansSemibold" FontSize="21" VerticalTextAlignment="Center" />
-                            <Label Text="↗" FontFamily="OpenSansSemibold" FontSize="23" TextColor="{AppThemeBinding Light={StaticResource PositiveLight}, Dark={StaticResource PositiveDark}}" VerticalTextAlignment="Center" />
+                            <Label x:Name="SummaryIncomeAmountLabel" Text="RM 0.00" FontFamily="OpenSansSemibold" FontSize="21" FontAutoScalingEnabled="False" VerticalTextAlignment="Center" />
+                            <Path
+                                WidthRequest="20"
+                                HeightRequest="20"
+                                Data="M 4,18 L 18,4 M 9,4 L 18,4 L 18,13"
+                                Stroke="{AppThemeBinding Light={StaticResource PositiveLight}, Dark={StaticResource PositiveDark}}"
+                                StrokeThickness="2.2"
+                                StrokeLineCap="Round"
+                                StrokeLineJoin="Round"
+                                Fill="Transparent"
+                                Aspect="Uniform"
+                                VerticalOptions="Center" />
                         </HorizontalStackLayout>
                     </VerticalStackLayout>
 
@@ -116,8 +127,18 @@
                     <VerticalStackLayout Grid.Column="2" Spacing="6">
                         <Label Text="TOTAL EXPENSE" Style="{StaticResource SectionLabel}" FontSize="11" />
                         <HorizontalStackLayout Spacing="8">
-                            <Label x:Name="SummaryExpenseAmountLabel" Text="RM 0.00" FontFamily="OpenSansSemibold" FontSize="21" VerticalTextAlignment="Center" />
-                            <Label Text="↗" FontFamily="OpenSansSemibold" FontSize="23" TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" VerticalTextAlignment="Center" />
+                            <Label x:Name="SummaryExpenseAmountLabel" Text="RM 0.00" FontFamily="OpenSansSemibold" FontSize="21" FontAutoScalingEnabled="False" VerticalTextAlignment="Center" />
+                            <Path
+                                WidthRequest="20"
+                                HeightRequest="20"
+                                Data="M 4,4 L 18,18 M 9,18 L 18,18 L 18,9"
+                                Stroke="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}"
+                                StrokeThickness="2.2"
+                                StrokeLineCap="Round"
+                                StrokeLineJoin="Round"
+                                Fill="Transparent"
+                                Aspect="Uniform"
+                                VerticalOptions="Center" />
                         </HorizontalStackLayout>
                     </VerticalStackLayout>
                 </Grid>

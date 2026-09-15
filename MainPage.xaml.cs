@@ -387,7 +387,7 @@ public partial class MainPage : ContentPage
     {
         var tabs = new[] { DashboardTab, ExpensesTab, SettingsTab };
 
-        var icons = new[] { DashboardIcon, ExpensesIcon };
+        var icons = new[] { DashboardIcon, ExpensesIcon, SettingsIcon };
         var labels = new[] { DashboardLabel, ExpensesLabel, SettingsLabel };
         var resources = Application.Current!.Resources;
 
@@ -398,15 +398,8 @@ public partial class MainPage : ContentPage
             labels[index].Style = (Style)resources[
                 isSelected ? "SelectedNavLabel" : "NavLabel"];
 
-            if (index < icons.Length)
-            {
-                icons[index].Style = (Style)resources[
-                    isSelected ? "SelectedNavLabel" : "NavLabel"];
-                icons[index].FontSize = index == 0 ? 21 : 20;
-            }
+            icons[index].Style = (Style)resources[
+                isSelected ? "SelectedNavIcon" : "NavIcon"];
         }
-
-        SettingsIcon.Style = (Style)resources[
-            selectedIndex == 2 ? "SelectedNavIcon" : "NavIcon"];
     }
 }

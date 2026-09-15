@@ -9,10 +9,24 @@
     <Grid>
     <ScrollView VerticalScrollBarVisibility="Never">
         <VerticalStackLayout Padding="22,28,22,126" Spacing="21">
-            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="9">
-                <Label Text="Transactions" Style="{StaticResource PageTitle}" FontSize="38" VerticalTextAlignment="Center" />
+            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto,Auto" RowSpacing="6" ColumnSpacing="9">
+                <Label
+                    Grid.ColumnSpan="{OnIdiom Phone=2, Tablet=1, Desktop=1}"
+                    Text="Transactions"
+                    Style="{StaticResource PageTitle}"
+                    FontSize="{OnIdiom Phone=29, Tablet=38, Desktop=38}"
+                    FontAutoScalingEnabled="False"
+                    LineBreakMode="NoWrap"
+                    MaxLines="1"
+                    VerticalTextAlignment="Center" />
 
-                <HorizontalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                <HorizontalStackLayout
+                    Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
+                    Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}"
+                    Grid.ColumnSpan="{OnIdiom Phone=3, Tablet=1, Desktop=1}"
+                    Spacing="2"
+                    HorizontalOptions="End"
+                    VerticalOptions="Center">
                     <Label Text="‹" FontFamily="OpenSansSemibold" FontSize="28" WidthRequest="24" HorizontalTextAlignment="Center" VerticalTextAlignment="Center">
                         <Label.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnPreviousMonthTapped" />

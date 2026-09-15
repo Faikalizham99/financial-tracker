@@ -82,8 +82,28 @@ public partial class MonthlySummaryCard : ContentView
         SummaryExpenseAmountLabel.Text = areAmountsVisible
             ? expenseAmountText
             : "••••••";
+        UpdateAmountFontSizes();
         OpenEyeIcon.IsVisible = areAmountsVisible;
         ClosedEyeIcon.IsVisible = !areAmountsVisible;
+    }
+
+    private void UpdateAmountFontSizes()
+    {
+        var isPhone = DeviceInfo.Idiom == DeviceIdiom.Phone;
+        var availableLength = SummaryAvailableAmountLabel.Text.Length;
+
+        SummaryAvailableAmountLabel.FontSize = (isPhone, ShowTransactionCount, availableLength) switch
+        {
+            (true, true, > 14) => 25,
+            (true, true, > 10) => 29,
+            (true, true, _) => 34,
+            (true, false, > 16) => 30,
+            (true, false, > 12) => 34,
+            (true, false, _) => 38,
+            (false, _, > 18) => 30,
+            (false, _, > 14) => 35,
+            _ => 40
+        };
     }
 
     private static string FormatMoney(CurrencyOption currency, long amountMinor)
