@@ -7,7 +7,7 @@
     xmlns:views="clr-namespace:FinancialTracker.Views">
 
     <Grid>
-    <ScrollView x:Name="TransactionsScrollView" VerticalScrollBarVisibility="Never">
+    <ScrollView x:Name="TransactionsScrollView" Scrolled="OnTransactionsScrolled" VerticalScrollBarVisibility="Never">
         <VerticalStackLayout Padding="22,28,22,126" Spacing="21">
             <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto,Auto,Auto" RowSpacing="6" ColumnSpacing="9">
                 <Label
@@ -163,12 +163,28 @@
                 </VerticalStackLayout>
             </Border>
 
-            <VerticalStackLayout x:Name="ActivityGroupsLayout" Spacing="19" IsVisible="False">
+            <VerticalStackLayout x:Name="ActivityGroupsLayout" Spacing="19" IsVisible="False" SizeChanged="OnActivityGroupsLayoutSizeChanged">
                 <BindableLayout.ItemTemplate>
                     <DataTemplate x:DataType="models:TransactionActivityGroup">
-                        <VerticalStackLayout Spacing="10">
-                            <Grid Margin="14,0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                        <VerticalStackLayout ClassId="TransactionActivityGroup" Spacing="10">
+                            <Grid Margin="14,0" ColumnDefinitions="16,Auto,*,Auto" ColumnSpacing="9">
+                                <Grid.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnActivityGroupHeaderTapped" CommandParameter="{Binding .}" />
+                                </Grid.GestureRecognizers>
+                                <Path
+                                    WidthRequest="13"
+                                    HeightRequest="13"
+                                    Data="M 6,4 L 14,12 L 6,20"
+                                    Rotation="{Binding ChevronRotation}"
+                                    Stroke="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}"
+                                    StrokeThickness="2.2"
+                                    StrokeLineCap="Round"
+                                    StrokeLineJoin="Round"
+                                    Fill="Transparent"
+                                    Aspect="Uniform"
+                                    VerticalOptions="Center" />
                                 <Label
+                                    Grid.Column="1"
                                     Text="{Binding Title}"
                                     Style="{StaticResource SectionLabel}"
                                     FontSize="11"
@@ -176,12 +192,12 @@
                                     MaxLines="1"
                                     VerticalTextAlignment="Center" />
                                 <BoxView
-                                    Grid.Column="1"
+                                    Grid.Column="2"
                                     HeightRequest="1"
                                     BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}"
                                     VerticalOptions="Center" />
                                 <Border
-                                    Grid.Column="2"
+                                    Grid.Column="3"
                                     Padding="10,5"
                                     BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}"
                                     StrokeThickness="0"
@@ -206,7 +222,7 @@
                                     </Label>
                                 </Border>
                             </Grid>
-                            <Grid Margin="0,0,0,6">
+                            <Grid ClassId="TransactionActivityGroupBody" Margin="0,0,0,6" IsVisible="{Binding IsExpanded}">
                                 <Border Style="{StaticResource CardShadowLayer}" />
                                 <Border Style="{StaticResource CardSurface}" Padding="0">
                                     <VerticalStackLayout Spacing="0" BindableLayout.ItemsSource="{Binding Items}">
@@ -272,6 +288,62 @@
             </VerticalStackLayout>
         </VerticalStackLayout>
     </ScrollView>
+
+    <Border
+        x:Name="StickyActivityHeader"
+        Margin="22,8,22,0"
+        Padding="12,8"
+        IsVisible="False"
+        ZIndex="10"
+        HorizontalOptions="Fill"
+        VerticalOptions="Start"
+        BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}"
+        Stroke="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}"
+        StrokeThickness="1"
+        StrokeShape="RoundRectangle 18">
+        <Border.Shadow>
+            <Shadow Brush="{AppThemeBinding Light={StaticResource ShadowLight}, Dark={StaticResource ShadowDark}}" Offset="0,4" Opacity="0.14" Radius="12" />
+        </Border.Shadow>
+        <Border.GestureRecognizers>
+            <TapGestureRecognizer Tapped="OnActivityGroupHeaderTapped" CommandParameter="{Binding .}" />
+        </Border.GestureRecognizers>
+        <Grid ColumnDefinitions="16,Auto,*,Auto" ColumnSpacing="9">
+            <Path
+                WidthRequest="13"
+                HeightRequest="13"
+                Data="M 6,4 L 14,12 L 6,20"
+                Rotation="{Binding ChevronRotation}"
+                Stroke="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}"
+                StrokeThickness="2.2"
+                StrokeLineCap="Round"
+                StrokeLineJoin="Round"
+                Fill="Transparent"
+                Aspect="Uniform"
+                VerticalOptions="Center" />
+            <Label Grid.Column="1" Text="{Binding Title}" Style="{StaticResource SectionLabel}" FontSize="11" LineBreakMode="TailTruncation" MaxLines="1" VerticalTextAlignment="Center" />
+            <BoxView Grid.Column="2" HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" VerticalOptions="Center" />
+            <Border Grid.Column="3" Padding="10,5" BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}" StrokeThickness="0" StrokeShape="RoundRectangle 999">
+                <Border.Triggers>
+                    <DataTrigger TargetType="Border" Binding="{Binding IsNetExpense}" Value="True">
+                        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource BlushLight}, Dark={StaticResource BlushDark}}" />
+                    </DataTrigger>
+                    <DataTrigger TargetType="Border" Binding="{Binding IsNetIncome}" Value="True">
+                        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource MintLight}, Dark={StaticResource MintDark}}" />
+                    </DataTrigger>
+                </Border.Triggers>
+                <Label Text="{Binding DailyTotalText}" FontFamily="OpenSansSemibold" FontSize="11" TextColor="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" HorizontalTextAlignment="End" VerticalTextAlignment="Center">
+                    <Label.Triggers>
+                        <DataTrigger TargetType="Label" Binding="{Binding IsNetExpense}" Value="True">
+                            <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" />
+                        </DataTrigger>
+                        <DataTrigger TargetType="Label" Binding="{Binding IsNetIncome}" Value="True">
+                            <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource PositiveLight}, Dark={StaticResource PositiveDark}}" />
+                        </DataTrigger>
+                    </Label.Triggers>
+                </Label>
+            </Border>
+        </Grid>
+    </Border>
 
     <Grid x:Name="FilterSelectorOverlay" IsVisible="False" Opacity="0" ZIndex="40" SizeChanged="OnFilterSelectorOverlaySizeChanged">
         <BoxView BackgroundColor="#99000000">

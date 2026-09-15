@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Globalization;
 using FinancialTracker.Helpers;
 using FinancialTracker.Services;
@@ -58,16 +59,22 @@ public sealed class TransactionActivityItem
     }
 }
 
-public sealed class TransactionActivityGroup
+public sealed class TransactionActivityGroup : INotifyPropertyChanged
 {
+    private bool isExpanded;
+
     public TransactionActivityGroup(
+        DateTime date,
         string title,
         IReadOnlyList<TransactionActivityItem> items,
         long netAmountMinor,
-        string currencySymbol)
+        string currencySymbol,
+        bool isExpanded = true)
     {
+        Date = date.Date;
         Title = title;
         Items = items;
+        this.isExpanded = isExpanded;
         DailyTotalText = MoneyFormatter.FormatMinor(
             netAmountMinor,
             currencySymbol,
@@ -77,9 +84,34 @@ public sealed class TransactionActivityGroup
         IsNetExpense = netAmountMinor < 0;
     }
 
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    public DateTime Date { get; }
     public string Title { get; }
     public IReadOnlyList<TransactionActivityItem> Items { get; }
     public string DailyTotalText { get; }
     public bool IsNetIncome { get; }
     public bool IsNetExpense { get; }
+
+    public bool IsExpanded
+    {
+        get => isExpanded;
+        set
+        {
+            if (isExpanded == value)
+            {
+                return;
+            }
+
+            isExpanded = value;
+            PropertyChanged?.Invoke(
+                this,
+                new PropertyChangedEventArgs(nameof(IsExpanded)));
+            PropertyChanged?.Invoke(
+                this,
+                new PropertyChangedEventArgs(nameof(ChevronRotation)));
+        }
+    }
+
+    public double ChevronRotation => IsExpanded ? 90 : 0;
 }

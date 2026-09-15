@@ -46,6 +46,8 @@ public partial class ExpensesView : ContentView
     private DateTime? selectedStartDate;
     private DateTime? selectedEndDate;
     private IReadOnlyList<SelectableTransactionOption> filterSelectorOptions = [];
+    private readonly HashSet<DateTime> collapsedActivityGroupDates = [];
+    private readonly HashSet<DateTime> animatingActivityGroupDates = [];
     private FilterSelectorKind filterSelectorKind;
     private bool isFilterSelectorOpen;
     private bool isFilterSelectorAnimating;
@@ -91,6 +93,7 @@ public partial class ExpensesView : ContentView
         selectedCategoryFilter = null;
         selectedStartDate = null;
         selectedEndDate = null;
+        collapsedActivityGroupDates.Remove(transaction.TransactionDate.Date);
         RenderDisplayedMonth(cancelPendingFocus: false);
 
         BoxView? highlight = null;
@@ -192,6 +195,135 @@ public partial class ExpensesView : ContentView
 
     private async void OnNextMonthTapped(object? sender, TappedEventArgs e) =>
         await ChangeDisplayedMonthAsync(1, sender);
+
+    private async void OnActivityGroupHeaderTapped(object? sender, TappedEventArgs e)
+    {
+        if (e.Parameter is not TransactionActivityGroup group ||
+            !animatingActivityGroupDates.Add(group.Date))
+        {
+            return;
+        }
+
+        var body = FindActivityGroupBody(group);
+        try
+        {
+            if (group.IsExpanded)
+            {
+                if (body is not null)
+                {
+                    await body.FadeToAsync(0.25, 85, Easing.CubicIn);
+                }
+
+                collapsedActivityGroupDates.Add(group.Date);
+                group.IsExpanded = false;
+            }
+            else
+            {
+                collapsedActivityGroupDates.Remove(group.Date);
+                group.IsExpanded = true;
+                if (body is not null)
+                {
+                    body.Opacity = 0;
+                    body.TranslationY = -5;
+                    await Task.WhenAll(
+                        body.FadeToAsync(1, 145, Easing.CubicOut),
+                        body.TranslateToAsync(0, 0, 155, Easing.CubicOut));
+                }
+            }
+        }
+        finally
+        {
+            if (body is not null)
+            {
+                body.Opacity = 1;
+                body.TranslationY = 0;
+            }
+
+            animatingActivityGroupDates.Remove(group.Date);
+            Dispatcher.Dispatch(UpdateStickyActivityHeader);
+        }
+    }
+
+    private VisualElement? FindActivityGroupBody(TransactionActivityGroup group)
+    {
+        var groupView = ActivityGroupsLayout.Children
+            .OfType<VerticalStackLayout>()
+            .FirstOrDefault(view => ReferenceEquals(view.BindingContext, group));
+        return groupView?.Children
+            .OfType<VisualElement>()
+            .FirstOrDefault(view => view.ClassId == "TransactionActivityGroupBody");
+    }
+
+    private void OnTransactionsScrolled(object? sender, ScrolledEventArgs e) =>
+        UpdateStickyActivityHeader(e.ScrollY);
+
+    private void OnActivityGroupsLayoutSizeChanged(object? sender, EventArgs e) =>
+        UpdateStickyActivityHeader();
+
+    private void UpdateStickyActivityHeader() =>
+        UpdateStickyActivityHeader(TransactionsScrollView.ScrollY);
+
+    private void UpdateStickyActivityHeader(double scrollY)
+    {
+        if (!ActivityGroupsLayout.IsVisible)
+        {
+            HideStickyActivityHeader();
+            return;
+        }
+
+        var groupViews = ActivityGroupsLayout.Children
+            .OfType<VerticalStackLayout>()
+            .Where(view => view.BindingContext is TransactionActivityGroup)
+            .ToList();
+        var stickyTopInset = StickyActivityHeader.Margin.Top;
+        var activeIndex = -1;
+        var groupOffsets = new double[groupViews.Count];
+
+        for (var index = 0; index < groupViews.Count; index++)
+        {
+            var offset = GetVerticalOffsetWithinScrollContent(groupViews[index]);
+            groupOffsets[index] = offset;
+            if (offset >= 0 && offset <= scrollY + stickyTopInset)
+            {
+                activeIndex = index;
+            }
+        }
+
+        if (groupOffsets.Length == 0 || groupOffsets[0] <= 1)
+        {
+            HideStickyActivityHeader();
+            return;
+        }
+
+        if (activeIndex < 0 ||
+            groupViews[activeIndex].BindingContext is not TransactionActivityGroup activeGroup)
+        {
+            HideStickyActivityHeader();
+            return;
+        }
+
+        StickyActivityHeader.BindingContext = activeGroup;
+        StickyActivityHeader.IsVisible = true;
+        var stickyHeight = Math.Max(StickyActivityHeader.Height, 42);
+        var translationY = 0d;
+        if (activeIndex + 1 < groupOffsets.Length)
+        {
+            var nextHeaderTop = groupOffsets[activeIndex + 1] - scrollY - stickyTopInset;
+            if (nextHeaderTop < stickyHeight)
+            {
+                translationY = Math.Min(0, nextHeaderTop - stickyHeight);
+            }
+        }
+
+        StickyActivityHeader.TranslationY = translationY;
+    }
+
+    private void HideStickyActivityHeader()
+    {
+        StickyActivityHeader.IsVisible = false;
+        StickyActivityHeader.TranslationY = 0;
+        StickyActivityHeader.BindingContext = null;
+    }
 
     private async Task ChangeDisplayedMonthAsync(int monthOffset, object? sender)
     {
@@ -706,13 +838,16 @@ public partial class ExpensesView : ContentView
                         : -record.AmountMinor);
 
                 return new TransactionActivityGroup(
+                    group.Key,
                     GetDateGroupTitle(group.Key),
                     items,
                     netAmountMinor,
-                    selectedCurrency.Symbol);
+                    selectedCurrency.Symbol,
+                    !collapsedActivityGroupDates.Contains(group.Key));
             })
             .ToList();
 
+        HideStickyActivityHeader();
         BindableLayout.SetItemsSource(ActivityGroupsLayout, groups);
         ActivityGroupsLayout.IsVisible = groups.Count > 0;
         EmptyActivityState.IsVisible = groups.Count == 0;
@@ -727,6 +862,7 @@ public partial class ExpensesView : ContentView
             displayedMonth);
         UpdateMonthSwitcherLabel();
         UpdateFilterChips();
+        Dispatcher.Dispatch(UpdateStickyActivityHeader);
     }
 
     private void UpdateFilterChips()
