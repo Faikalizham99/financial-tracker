@@ -36,6 +36,7 @@ public partial class AddTransactionView : ContentView
     private bool isApplyingDescriptionSuggestion;
     private IReadOnlyList<string> descriptionHistory = [];
     private TransactionRecord? editingTransaction;
+    private IReadOnlyList<SelectableTransactionOption> selectorOptions = [];
 
     public AddTransactionView()
     {
@@ -184,26 +185,38 @@ public partial class AddTransactionView : ContentView
         await feedback;
     }
 
-    private async void OnSelectorSelectionChanged(object? sender, SelectionChangedEventArgs e)
+    private async void OnSelectorSelectionChanged(
+        object? sender,
+        SelectionChangedEventArgs e)
     {
-        if (e.CurrentSelection.FirstOrDefault() is not TransactionOption option)
+        if (isSelectorAnimating ||
+            e.CurrentSelection.FirstOrDefault() is not SelectableTransactionOption selectedOption)
         {
             return;
+        }
+
+        // Keep selection handling reliable on every platform while preventing the
+        // native iOS selected-cell rectangle from replacing our rounded highlight.
+        SelectorCollection.SelectedItem = null;
+
+        foreach (var option in selectorOptions)
+        {
+            option.IsSelected = ReferenceEquals(option, selectedOption);
         }
 
         switch (selectorKind)
         {
             case SelectorKind.PaymentMethod:
-                selectedPayment = option;
+                selectedPayment = selectedOption.Option;
                 UpdatePaymentMethod();
                 break;
             case SelectorKind.Category:
-                selectedCategory = option;
+                selectedCategory = selectedOption.Option;
                 UpdateCategory();
                 break;
         }
 
-        SelectorCollection.SelectedItem = null;
+        await Task.Delay(110);
         await CloseSelectorAsync();
     }
 
@@ -255,7 +268,15 @@ public partial class AddTransactionView : ContentView
 
         selectorKind = kind;
         SelectorTitle.Text = title;
-        SelectorCollection.ItemsSource = options;
+        var selectedKey = kind == SelectorKind.PaymentMethod
+            ? selectedPayment.Key
+            : selectedCategory.Key;
+        selectorOptions = options
+            .Select(option => new SelectableTransactionOption(
+                option,
+                option.Key.Equals(selectedKey, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+        SelectorCollection.ItemsSource = selectorOptions;
         SelectorCollection.SelectedItem = null;
         isSelectorOpen = true;
         isSelectorAnimating = true;
@@ -275,6 +296,16 @@ public partial class AddTransactionView : ContentView
         finally
         {
             isSelectorAnimating = false;
+        }
+
+        var selectedOption = selectorOptions.FirstOrDefault(option => option.IsSelected);
+        if (selectedOption is not null)
+        {
+            await Task.Delay(40);
+            SelectorCollection.ScrollTo(
+                selectedOption,
+                position: ScrollToPosition.Center,
+                animate: false);
         }
     }
 

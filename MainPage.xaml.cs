@@ -109,6 +109,40 @@ public partial class MainPage : ContentPage
         }
     }
 
+    private void OnDashboardTransactionRowHandlerChanged(object? sender, EventArgs e)
+    {
+#if WINDOWS
+        if (sender is not Grid row ||
+            row.Handler?.PlatformView is not Microsoft.UI.Xaml.FrameworkElement nativeRow)
+        {
+            return;
+        }
+
+        var editItem = new Microsoft.UI.Xaml.Controls.MenuFlyoutItem { Text = "Edit" };
+        editItem.Click += async (_, _) =>
+        {
+            if (row.BindingContext is TransactionActivityItem item)
+            {
+                await OpenTransactionForEditAsync(item.Id);
+            }
+        };
+
+        var deleteItem = new Microsoft.UI.Xaml.Controls.MenuFlyoutItem { Text = "Delete" };
+        deleteItem.Click += async (_, _) =>
+        {
+            if (row.BindingContext is TransactionActivityItem item)
+            {
+                await OpenDeleteConfirmationAsync(item.Id);
+            }
+        };
+
+        var flyout = new Microsoft.UI.Xaml.Controls.MenuFlyout();
+        flyout.Items.Add(editItem);
+        flyout.Items.Add(deleteItem);
+        nativeRow.ContextFlyout = flyout;
+#endif
+    }
+
     private async Task OpenTransactionForEditAsync(int transactionId)
     {
         var transaction = await localDatabase.GetTransactionAsync(transactionId);

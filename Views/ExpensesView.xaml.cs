@@ -41,6 +41,7 @@ public partial class ExpensesView : ContentView
     private CurrencyOption? selectedCurrency;
     private TransactionOption? selectedPaymentFilter;
     private TransactionOption? selectedCategoryFilter;
+    private IReadOnlyList<SelectableTransactionOption> filterSelectorOptions = [];
     private FilterSelectorKind filterSelectorKind;
     private bool isFilterSelectorOpen;
     private bool isFilterSelectorAnimating;
@@ -100,6 +101,40 @@ public partial class ExpensesView : ContentView
         }
     }
 
+    private void OnTransactionRowHandlerChanged(object? sender, EventArgs e)
+    {
+#if WINDOWS
+        if (sender is not Grid row ||
+            row.Handler?.PlatformView is not Microsoft.UI.Xaml.FrameworkElement nativeRow)
+        {
+            return;
+        }
+
+        var editItem = new Microsoft.UI.Xaml.Controls.MenuFlyoutItem { Text = "Edit" };
+        editItem.Click += (_, _) =>
+        {
+            if (row.BindingContext is TransactionActivityItem item)
+            {
+                EditTransactionRequested?.Invoke(item.Id);
+            }
+        };
+
+        var deleteItem = new Microsoft.UI.Xaml.Controls.MenuFlyoutItem { Text = "Delete" };
+        deleteItem.Click += (_, _) =>
+        {
+            if (row.BindingContext is TransactionActivityItem item)
+            {
+                DeleteTransactionRequested?.Invoke(item.Id);
+            }
+        };
+
+        var flyout = new Microsoft.UI.Xaml.Controls.MenuFlyout();
+        flyout.Items.Add(editItem);
+        flyout.Items.Add(deleteItem);
+        nativeRow.ContextFlyout = flyout;
+#endif
+    }
+
     private async void OnPaymentFilterTapped(object? sender, TappedEventArgs e)
     {
         var feedback = InteractionAnimations.PulseAsync(sender);
@@ -134,10 +169,21 @@ public partial class ExpensesView : ContentView
         object? sender,
         SelectionChangedEventArgs e)
     {
-        if (e.CurrentSelection.FirstOrDefault() is not TransactionOption option)
+        if (e.CurrentSelection.FirstOrDefault() is not SelectableTransactionOption selectedOption)
         {
             return;
         }
+
+        // Clear the platform selection immediately so iOS does not draw its
+        // rectangular selected-cell overlay over the custom rounded state.
+        FilterSelectorCollection.SelectedItem = null;
+
+        foreach (var selectorOption in filterSelectorOptions)
+        {
+            selectorOption.IsSelected = ReferenceEquals(selectorOption, selectedOption);
+        }
+
+        var option = selectedOption.Option;
 
         if (filterSelectorKind == FilterSelectorKind.PaymentMethod)
         {
@@ -165,7 +211,15 @@ public partial class ExpensesView : ContentView
 
         filterSelectorKind = kind;
         FilterSelectorTitle.Text = title;
-        FilterSelectorCollection.ItemsSource = options;
+        var selectedKey = kind == FilterSelectorKind.PaymentMethod
+            ? selectedPaymentFilter?.Key ?? string.Empty
+            : selectedCategoryFilter?.Key ?? string.Empty;
+        filterSelectorOptions = options
+            .Select(option => new SelectableTransactionOption(
+                option,
+                option.Key.Equals(selectedKey, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+        FilterSelectorCollection.ItemsSource = filterSelectorOptions;
         FilterSelectorCollection.SelectedItem = null;
         UpdateFilterSelectorCardBounds();
         isFilterSelectorOpen = true;
@@ -185,6 +239,16 @@ public partial class ExpensesView : ContentView
         finally
         {
             isFilterSelectorAnimating = false;
+        }
+
+        var selectedOption = filterSelectorOptions.FirstOrDefault(option => option.IsSelected);
+        if (selectedOption is not null)
+        {
+            await Task.Delay(40);
+            FilterSelectorCollection.ScrollTo(
+                selectedOption,
+                position: ScrollToPosition.Center,
+                animate: false);
         }
     }
 
