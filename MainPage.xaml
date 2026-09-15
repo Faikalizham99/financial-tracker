@@ -292,6 +292,133 @@
             ZIndex="100" />
 
         <Grid
+            x:Name="TransactionSearchOverlay"
+            IsVisible="False"
+            Opacity="0"
+            ZIndex="110"
+            BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}">
+            <Grid Padding="{OnIdiom Phone='20,30,20,24', Tablet='28,30,28,24', Desktop='28,30,28,24'}" RowDefinitions="Auto,*" RowSpacing="22">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                    <Border
+                        HeightRequest="52"
+                        Padding="14,0"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}"
+                        Stroke="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}"
+                        StrokeThickness="1.5"
+                        StrokeShape="RoundRectangle 18">
+                        <Grid ColumnDefinitions="24,*,32" ColumnSpacing="9">
+                            <Path WidthRequest="20" HeightRequest="20" Data="M 10,3 A 7,7 0 1 0 10,17 A 7,7 0 1 0 10,3 M 15,15 L 21,21" Stroke="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" StrokeThickness="2" StrokeLineCap="Round" Fill="Transparent" Aspect="Uniform" VerticalOptions="Center" />
+                            <Entry
+                                x:Name="TransactionSearchEntry"
+                                Grid.Column="1"
+                                Placeholder="Search transactions"
+                                TextChanged="OnTransactionSearchTextChanged"
+                                Completed="OnTransactionSearchCompleted"
+                                ReturnType="Search"
+                                ClearButtonVisibility="Never"
+                                BackgroundColor="Transparent"
+                                FontSize="15"
+                                TextColor="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}"
+                                PlaceholderColor="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" />
+                            <Border x:Name="TransactionSearchClearButton" Grid.Column="2" WidthRequest="28" HeightRequest="28" IsVisible="False" BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}" StrokeThickness="0" StrokeShape="RoundRectangle 14" VerticalOptions="Center">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnTransactionSearchClearTapped" />
+                                </Border.GestureRecognizers>
+                                <Label Text="×" FontSize="18" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                            </Border>
+                        </Grid>
+                    </Border>
+
+                    <Border Grid.Column="1" HeightRequest="52" Padding="16,0" Style="{StaticResource Pill}" StrokeShape="RoundRectangle 18">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnTransactionSearchCancelTapped" />
+                        </Border.GestureRecognizers>
+                        <Label Text="Cancel" FontFamily="OpenSansSemibold" TextColor="{DynamicResource Accent}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                    </Border>
+                </Grid>
+
+                <ScrollView Grid.Row="1" VerticalScrollBarVisibility="Never">
+                    <VerticalStackLayout Spacing="22">
+                        <VerticalStackLayout x:Name="RecentSearchesPanel" Spacing="12">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <Label Text="RECENT SEARCHES" Style="{StaticResource SectionLabel}" VerticalTextAlignment="Center" />
+                                <Label Grid.Column="1" Text="Clear" FontFamily="OpenSansSemibold" FontSize="12" TextColor="{DynamicResource Accent}" VerticalTextAlignment="Center">
+                                    <Label.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnClearRecentSearchesTapped" />
+                                    </Label.GestureRecognizers>
+                                </Label>
+                            </Grid>
+                            <Label x:Name="NoRecentSearchesLabel" Text="No recent searches yet." Style="{StaticResource BodyMuted}" FontSize="13" />
+                            <Border x:Name="RecentSearchesCard" Style="{StaticResource Card}" Padding="0" IsVisible="False">
+                                <VerticalStackLayout x:Name="RecentSearchesLayout" Spacing="0">
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid Padding="14,12" ColumnDefinitions="24,*,20" ColumnSpacing="11">
+                                                <Grid.GestureRecognizers>
+                                                    <TapGestureRecognizer Tapped="OnRecentSearchTapped" CommandParameter="{Binding .}" />
+                                                </Grid.GestureRecognizers>
+                                                <Path WidthRequest="19" HeightRequest="19" Data="M 12,3 A 9,9 0 1 0 21,12 M 12,7 L 12,12 L 16,14" Stroke="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" VerticalOptions="Center" />
+                                                <Label Grid.Column="1" Text="{Binding .}" FontFamily="OpenSansSemibold" FontSize="14" LineBreakMode="TailTruncation" MaxLines="1" VerticalTextAlignment="Center" />
+                                                <Path Grid.Column="2" WidthRequest="15" HeightRequest="15" Data="M 16,5 L 7,14 M 7,7 L 7,14 L 14,14" Stroke="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" VerticalOptions="Center" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
+                                </VerticalStackLayout>
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout x:Name="SearchResultsPanel" IsVisible="False" Spacing="12">
+                            <Label x:Name="SearchResultsCountLabel" Text="TRANSACTIONS" Style="{StaticResource SectionLabel}" />
+                            <Label x:Name="SearchNoResultsLabel" Text="No matching transactions." Style="{StaticResource BodyMuted}" FontSize="13" IsVisible="False" />
+                            <Grid x:Name="SearchResultsCard" Margin="0,0,0,8" IsVisible="False">
+                                <Border Style="{StaticResource CardShadowLayer}" />
+                                <Border Style="{StaticResource CardSurface}" Padding="0">
+                                    <VerticalStackLayout x:Name="SearchResultsLayout" Spacing="0">
+                                        <BindableLayout.ItemTemplate>
+                                            <DataTemplate x:DataType="models:TransactionActivityItem">
+                                                <Grid RowDefinitions="Auto,Auto" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}">
+                                                    <Grid.GestureRecognizers>
+                                                        <TapGestureRecognizer Tapped="OnTransactionSearchResultTapped" CommandParameter="{Binding .}" />
+                                                    </Grid.GestureRecognizers>
+                                                    <Grid Padding="14,12" ColumnDefinitions="90,*,Auto" ColumnSpacing="12">
+                                                        <Grid ColumnDefinitions="38,14,38">
+                                                            <Border WidthRequest="38" HeightRequest="38" StrokeThickness="0" StrokeShape="RoundRectangle 12" VerticalOptions="Center">
+                                                                <Image Source="{Binding IconAsset}" WidthRequest="38" HeightRequest="38" Aspect="AspectFill" />
+                                                            </Border>
+                                                            <Label Grid.Column="1" Text="×" Style="{StaticResource BodyMuted}" FontSize="13" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                                                            <Border Grid.Column="2" WidthRequest="38" HeightRequest="38" StrokeThickness="0" StrokeShape="RoundRectangle 12" VerticalOptions="Center">
+                                                                <Image Source="{Binding PaymentMethodIconAsset}" WidthRequest="38" HeightRequest="38" Aspect="AspectFill" />
+                                                            </Border>
+                                                        </Grid>
+                                                        <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                                            <Label Text="{Binding Description}" Style="{StaticResource CardTitle}" FontSize="14" LineBreakMode="TailTruncation" MaxLines="1" />
+                                                            <Label Text="{Binding DetailText}" Style="{StaticResource BodyMuted}" FontSize="11" LineBreakMode="TailTruncation" MaxLines="1" />
+                                                        </VerticalStackLayout>
+                                                        <VerticalStackLayout Grid.Column="2" Spacing="2" HorizontalOptions="End" VerticalOptions="Center">
+                                                            <Label Text="{Binding AmountText}" FontFamily="OpenSansSemibold" FontSize="14" TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" HorizontalTextAlignment="End">
+                                                                <Label.Triggers>
+                                                                    <DataTrigger TargetType="Label" Binding="{Binding IsIncome}" Value="True">
+                                                                        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource PositiveLight}, Dark={StaticResource PositiveDark}}" />
+                                                                    </DataTrigger>
+                                                                </Label.Triggers>
+                                                            </Label>
+                                                            <Label Text="{Binding DashboardDateText}" Style="{StaticResource BodyMuted}" FontSize="11" HorizontalTextAlignment="End" LineBreakMode="NoWrap" MaxLines="1" />
+                                                        </VerticalStackLayout>
+                                                    </Grid>
+                                                    <BoxView Grid.Row="1" Margin="14,0" HeightRequest="1" IsVisible="{Binding ShowDivider}" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+                                                </Grid>
+                                            </DataTemplate>
+                                        </BindableLayout.ItemTemplate>
+                                    </VerticalStackLayout>
+                                </Border>
+                            </Grid>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </ScrollView>
+            </Grid>
+        </Grid>
+
+        <Grid
             x:Name="DeleteConfirmationOverlay"
             IsVisible="False"
             Opacity="0"

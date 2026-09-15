@@ -4,11 +4,13 @@ using System.Globalization;
 using FinancialTracker.Helpers;
 using FinancialTracker.Models;
 using FinancialTracker.Services;
+using Microsoft.Maui;
 
 public partial class ExpensesView : ContentView
 {
     public event Action<int>? EditTransactionRequested;
     public event Action<int>? DeleteTransactionRequested;
+    public event Action? SearchRequested;
 
     private enum FilterSelectorKind
     {
@@ -45,6 +47,7 @@ public partial class ExpensesView : ContentView
     private FilterSelectorKind filterSelectorKind;
     private bool isFilterSelectorOpen;
     private bool isFilterSelectorAnimating;
+    private CancellationTokenSource? transactionFocusCancellation;
 
     public ExpensesView()
     {
@@ -60,6 +63,117 @@ public partial class ExpensesView : ContentView
         transactionRecords = records;
         this.selectedCurrency = selectedCurrency;
         RenderDisplayedMonth();
+    }
+
+    public async Task FocusTransactionAsync(int transactionId)
+    {
+        CancelTransactionFocusAnimation();
+        var focusCancellation = new CancellationTokenSource();
+        transactionFocusCancellation = focusCancellation;
+        var cancellationToken = focusCancellation.Token;
+        var transaction = transactionRecords.FirstOrDefault(record => record.Id == transactionId);
+        if (transaction is null)
+        {
+            transactionFocusCancellation = null;
+            return;
+        }
+
+        displayedMonth = new DateTime(
+            transaction.TransactionDate.Year,
+            transaction.TransactionDate.Month,
+            1);
+        selectedPaymentFilter = null;
+        selectedCategoryFilter = null;
+        RenderDisplayedMonth(cancelPendingFocus: false);
+
+        BoxView? highlight = null;
+        for (var attempt = 0; attempt < 20 && highlight is null; attempt++)
+        {
+            await Task.Delay(50);
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+
+            highlight = ActivityGroupsLayout
+                .GetVisualTreeDescendants()
+                .OfType<BoxView>()
+                .FirstOrDefault(view =>
+                    view.ClassId == "TransactionSearchHighlight" &&
+                    view.BindingContext is TransactionActivityItem item &&
+                    item.Id == transactionId);
+        }
+
+        if (highlight is null)
+        {
+            if (ReferenceEquals(transactionFocusCancellation, focusCancellation))
+            {
+                transactionFocusCancellation = null;
+            }
+
+            return;
+        }
+
+        try
+        {
+            await Task.Delay(80, cancellationToken);
+            var targetOffset = GetVerticalOffsetWithinScrollContent(highlight);
+            if (targetOffset >= 0)
+            {
+                var visibleTop = TransactionsScrollView.ScrollY;
+                var visibleBottom = visibleTop + TransactionsScrollView.Height - 90;
+                var targetBottom = targetOffset + highlight.Height;
+                var isAlreadyVisible = targetOffset >= visibleTop && targetBottom <= visibleBottom;
+                if (!isAlreadyVisible)
+                {
+                    var centeredOffset = Math.Max(
+                        0,
+                        targetOffset - ((TransactionsScrollView.Height - highlight.Height) / 2));
+                    var scrollTask = TransactionsScrollView.ScrollToAsync(
+                        0,
+                        centeredOffset,
+                        animated: true);
+                    await Task.WhenAny(
+                        scrollTask,
+                        Task.Delay(650, cancellationToken));
+                }
+            }
+            else
+            {
+                var scrollTask = TransactionsScrollView.ScrollToAsync(
+                    highlight,
+                    ScrollToPosition.Center,
+                    animated: true);
+                await Task.WhenAny(
+                    scrollTask,
+                    Task.Delay(650, cancellationToken));
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            highlight.CancelAnimations();
+            highlight.Opacity = 0;
+            for (var pulse = 0; pulse < 3; pulse++)
+            {
+                await highlight.FadeToAsync(0.9, 250, Easing.CubicOut);
+                cancellationToken.ThrowIfCancellationRequested();
+                await Task.Delay(250, cancellationToken);
+                await highlight.FadeToAsync(0, 250, Easing.CubicIn);
+                cancellationToken.ThrowIfCancellationRequested();
+                await Task.Delay(250, cancellationToken);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        finally
+        {
+            highlight.CancelAnimations();
+            highlight.Opacity = 0;
+            if (ReferenceEquals(transactionFocusCancellation, focusCancellation))
+            {
+                transactionFocusCancellation = null;
+            }
+        }
     }
 
     private async void OnPreviousMonthTapped(object? sender, TappedEventArgs e) =>
@@ -83,6 +197,46 @@ public partial class ExpensesView : ContentView
         selectedCategoryFilter = null;
         RenderDisplayedMonth();
         await feedback;
+    }
+
+    private async void OnSearchTapped(object? sender, TappedEventArgs e)
+    {
+        var feedback = InteractionAnimations.PulseAsync(sender);
+        SearchRequested?.Invoke();
+        await feedback;
+    }
+
+    private double GetVerticalOffsetWithinScrollContent(VisualElement target)
+    {
+        var scrollContent = TransactionsScrollView.Content;
+        if (scrollContent is null)
+        {
+            return -1;
+        }
+
+        double offset = 0;
+        Element? current = target;
+        while (current is VisualElement visual && !ReferenceEquals(current, scrollContent))
+        {
+            offset += visual.Y;
+            current = visual.Parent;
+        }
+
+        return ReferenceEquals(current, scrollContent) ? offset : -1;
+    }
+
+    private void CancelTransactionFocusAnimation()
+    {
+        transactionFocusCancellation?.Cancel();
+        transactionFocusCancellation = null;
+        foreach (var highlight in ActivityGroupsLayout
+                     .GetVisualTreeDescendants()
+                     .OfType<BoxView>()
+                     .Where(view => view.ClassId == "TransactionSearchHighlight"))
+        {
+            highlight.CancelAnimations();
+            highlight.Opacity = 0;
+        }
     }
 
     private void OnEditTransactionInvoked(object? sender, EventArgs e)
@@ -304,8 +458,13 @@ public partial class ExpensesView : ContentView
         }
     }
 
-    private void RenderDisplayedMonth()
+    private void RenderDisplayedMonth(bool cancelPendingFocus = true)
     {
+        if (cancelPendingFocus)
+        {
+            CancelTransactionFocusAnimation();
+        }
+
         if (selectedCurrency is null)
         {
             return;

@@ -7,7 +7,7 @@
     xmlns:views="clr-namespace:FinancialTracker.Views">
 
     <Grid>
-    <ScrollView VerticalScrollBarVisibility="Never">
+    <ScrollView x:Name="TransactionsScrollView" VerticalScrollBarVisibility="Never">
         <VerticalStackLayout Padding="22,28,22,126" Spacing="21">
             <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto,Auto" RowSpacing="6" ColumnSpacing="9">
                 <Label
@@ -43,7 +43,10 @@
                 </HorizontalStackLayout>
 
                 <Border Grid.Column="2" WidthRequest="44" HeightRequest="44" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="2" StrokeShape="RoundRectangle 22">
-                    <Label Text="⌕" FontFamily="OpenSansSemibold" FontSize="25" HorizontalOptions="Center" VerticalOptions="Center" />
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnSearchTapped" />
+                    </Border.GestureRecognizers>
+                    <Path WidthRequest="21" HeightRequest="21" Data="M 10,3 A 7,7 0 1 0 10,17 A 7,7 0 1 0 10,3 M 15,15 L 21,21" Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" StrokeThickness="2" StrokeLineCap="Round" Fill="Transparent" Aspect="Uniform" HorizontalOptions="Center" VerticalOptions="Center" />
                 </Border>
             </Grid>
 
@@ -128,7 +131,13 @@
                                                     </SwipeItems>
                                                 </SwipeView.RightItems>
                                                 <Grid RowDefinitions="Auto,Auto" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" HandlerChanged="OnTransactionRowHandlerChanged">
-                                                    <Grid Padding="14,12" ColumnDefinitions="90,*,Auto" ColumnSpacing="12">
+                                                    <BoxView
+                                                        Grid.RowSpan="2"
+                                                        ClassId="TransactionSearchHighlight"
+                                                        BackgroundColor="{DynamicResource AccentTint}"
+                                                        Opacity="0"
+                                                        InputTransparent="True" />
+                                                    <Grid ZIndex="1" Padding="14,12" ColumnDefinitions="90,*,Auto" ColumnSpacing="12">
                                                         <Grid ColumnDefinitions="38,14,38">
                                                             <Border WidthRequest="38" HeightRequest="38" StrokeThickness="0" StrokeShape="RoundRectangle 12" VerticalOptions="Center">
                                                                 <Image Source="{Binding IconAsset}" WidthRequest="38" HeightRequest="38" Aspect="AspectFill" />
@@ -150,7 +159,7 @@
                                                             </Label.Triggers>
                                                         </Label>
                                                     </Grid>
-                                                    <BoxView Grid.Row="1" Margin="14,0" HeightRequest="1" IsVisible="{Binding ShowDivider}" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+                                                    <BoxView Grid.Row="1" ZIndex="1" Margin="14,0" HeightRequest="1" IsVisible="{Binding ShowDivider}" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
                                                 </Grid>
                                             </SwipeView>
                                         </DataTemplate>
