@@ -125,8 +125,6 @@
                                 BackgroundColor="Transparent"
                                 ClearButtonVisibility="WhileEditing"
                                 FontSize="16"
-                                Focused="OnDescriptionEntryFocused"
-                                HandlerChanged="OnDescriptionEntryHandlerChanged"
                                 Placeholder="Merchant or description"
                                 PlaceholderColor="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}"
                                 TextColor="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}"

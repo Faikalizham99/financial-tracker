@@ -53,6 +53,7 @@
                                     Text="{Binding Name, Mode=TwoWay}"
                                     Placeholder="Your name"
                                     ReturnType="Done"
+                                    Completed="OnSaveProfileClicked"
                                     BackgroundColor="Transparent"
                                     TextColor="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}"
                                     PlaceholderColor="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" />
