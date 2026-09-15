@@ -21,6 +21,7 @@ public static class TransactionCatalog
         new("Health", "Health", "category_health.png"),
         new("Investment", "Investment", "category_investment.png"),
         new("Shopping", "Shopping", "category_shopping.png"),
+        new("Subscription", "Subscription", "category_subscription.png"),
         new("Transportation", "Transportation", "category_transportation.png"),
         new("Others", "Others", "category_expense_others.png")
     ];

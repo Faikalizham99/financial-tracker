@@ -538,7 +538,7 @@
                         </Border>
 
                         <VerticalStackLayout x:Name="ExpenseCategoriesPanel" Spacing="12">
-                            <Label Text="11 EXPENSE CATEGORIES" Style="{StaticResource SectionLabel}" FontSize="10" />
+                            <Label Text="12 EXPENSE CATEGORIES" Style="{StaticResource SectionLabel}" FontSize="10" />
                             <Border Style="{StaticResource SoftCard}" Padding="12,10">
                                 <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
                                     <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
@@ -609,6 +609,14 @@
                                         <Image Source="category_shopping.png" WidthRequest="56" HeightRequest="56" Aspect="AspectFill" HorizontalOptions="Center" VerticalOptions="Center" />
                                     </Border>
                                     <Label Grid.Column="1" Text="Shopping" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
+                                </Grid>
+                            </Border>
+                            <Border Style="{StaticResource SoftCard}" Padding="12,10">
+                                <Grid ColumnDefinitions="58,*" ColumnSpacing="15">
+                                    <Border WidthRequest="56" HeightRequest="56" StrokeThickness="0" StrokeShape="RoundRectangle 17">
+                                        <Image Source="category_subscription.png" WidthRequest="56" HeightRequest="56" Aspect="AspectFill" HorizontalOptions="Center" VerticalOptions="Center" />
+                                    </Border>
+                                    <Label Grid.Column="1" Text="Subscription" Style="{StaticResource CardTitle}" FontSize="16" VerticalOptions="Center" />
                                 </Grid>
                             </Border>
                             <Border Style="{StaticResource SoftCard}" Padding="12,10">
