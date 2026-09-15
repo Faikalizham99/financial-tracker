@@ -7,6 +7,40 @@
     xmlns:views="clr-namespace:FinancialTracker.Views"
     Shell.NavBarIsVisible="False">
 
+    <ContentPage.Resources>
+        <Style x:Key="SkeletonLine" TargetType="Border">
+            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}" />
+            <Setter Property="StrokeThickness" Value="0" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 999" />
+        </Style>
+
+        <DataTemplate x:Key="CategorySummaryTemplate" x:DataType="models:CategorySummaryItem">
+            <Grid Padding="0,10" RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="42,*,Auto,Auto" ColumnSpacing="10" RowSpacing="7">
+                <Border Grid.RowSpan="2" WidthRequest="38" HeightRequest="38" StrokeThickness="0" StrokeShape="RoundRectangle 12" VerticalOptions="Center">
+                    <Image Source="{Binding IconAsset}" WidthRequest="38" HeightRequest="38" Aspect="AspectFill" />
+                </Border>
+                <Label Grid.Column="1" Text="{Binding Title}" FontFamily="OpenSansSemibold" FontSize="13" LineBreakMode="TailTruncation" MaxLines="1" VerticalTextAlignment="Center" />
+                <Label Grid.Column="2" Text="{Binding AmountText}" FontFamily="OpenSansSemibold" FontSize="12" HorizontalTextAlignment="End" VerticalTextAlignment="Center" />
+                <Label Grid.Column="3" Text="{Binding PercentageText}" Style="{StaticResource BodyMuted}" FontSize="10" MinimumWidthRequest="34" HorizontalTextAlignment="End" VerticalTextAlignment="Center" />
+                <ProgressBar
+                    Grid.Row="1"
+                    Grid.Column="1"
+                    Grid.ColumnSpan="3"
+                    HeightRequest="5"
+                    Progress="{Binding Share}"
+                    ProgressColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}">
+                    <ProgressBar.Triggers>
+                        <DataTrigger TargetType="ProgressBar" Binding="{Binding IsIncome}" Value="True">
+                            <Setter Property="ProgressColor" Value="{AppThemeBinding Light={StaticResource PositiveLight}, Dark={StaticResource PositiveDark}}" />
+                        </DataTrigger>
+                    </ProgressBar.Triggers>
+                </ProgressBar>
+                <BoxView Grid.Row="2" Grid.ColumnSpan="4" HeightRequest="1" IsVisible="{Binding ShowDivider}" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+            </Grid>
+        </DataTemplate>
+    </ContentPage.Resources>
+
     <Grid>
         <!-- Dashboard -->
         <ScrollView
@@ -16,7 +50,7 @@
             <VerticalStackLayout Padding="24,30,24,126" Spacing="27">
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
                     <VerticalStackLayout Spacing="5">
-                        <Label Text="Good morning," Style="{StaticResource DisplayTitle}" />
+                        <Label x:Name="DashboardGreetingLabel" Text="Good morning," Style="{StaticResource DisplayTitle}" />
                         <Label Text="{Binding GreetingName}" Style="{StaticResource DisplayTitle}" />
                         <Label
                             Margin="0,4,0,0"
@@ -30,9 +64,13 @@
                         VerticalOptions="Start"
                         BackgroundColor="{DynamicResource Accent}"
                         StrokeThickness="0"
-                        StrokeShape="RoundRectangle 29">
+                        StrokeShape="RoundRectangle 29"
+                        SemanticProperties.Description="Open Settings">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnProfileTapped" />
+                        </Border.GestureRecognizers>
                         <Label
-                            Text="F"
+                            Text="{Binding ProfileInitial}"
                             FontFamily="OpenSansSemibold"
                             FontSize="22"
                             TextColor="{DynamicResource AccentForeground}"
@@ -46,8 +84,96 @@
                     <views:MonthlySummaryCard x:Name="DashboardMonthlySummary" />
                 </VerticalStackLayout>
 
-                <VerticalStackLayout Spacing="13">
-                    <Label Text="RECENT ACTIVITY" Style="{StaticResource SectionLabel}" />
+                <Grid ColumnDefinitions="*,Auto">
+                    <Label Text="HOME SECTIONS" Style="{StaticResource SectionLabel}" VerticalTextAlignment="Center" />
+                    <Border Grid.Column="1" Padding="11,5" BackgroundColor="{DynamicResource AccentTint}" StrokeThickness="0" StrokeShape="RoundRectangle 999">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnArrangeHomeTapped" />
+                        </Border.GestureRecognizers>
+                        <HorizontalStackLayout Spacing="6">
+                            <Path WidthRequest="14" HeightRequest="14" Data="M 4,6 L 20,6 M 4,12 L 20,12 M 4,18 L 20,18" Stroke="{DynamicResource Accent}" StrokeThickness="2" StrokeLineCap="Round" Fill="Transparent" Aspect="Uniform" VerticalOptions="Center" />
+                            <Label Text="Arrange" FontFamily="OpenSansSemibold" FontSize="11" TextColor="{DynamicResource Accent}" VerticalTextAlignment="Center" />
+                        </HorizontalStackLayout>
+                    </Border>
+                </Grid>
+
+                <VerticalStackLayout x:Name="DashboardReorderableSections" Spacing="27">
+                <VerticalStackLayout x:Name="DashboardGlanceSection" Spacing="13">
+                    <Label Text="THIS MONTH AT A GLANCE" Style="{StaticResource SectionLabel}" />
+                    <Border Style="{StaticResource SoftCard}" Padding="16">
+                        <Grid ColumnDefinitions="*,1,*,1,*" ColumnSpacing="12">
+                            <VerticalStackLayout Spacing="4" HorizontalOptions="Center">
+                                <Label x:Name="TodaySpentValueLabel" Text="RM 0.00" FontFamily="OpenSansSemibold" FontSize="{OnIdiom Phone=14, Tablet=17, Desktop=17}" FontAutoScalingEnabled="False" LineBreakMode="TailTruncation" MaxLines="1" HorizontalTextAlignment="Center" />
+                                <Label Text="SPENT TODAY" Style="{StaticResource SectionLabel}" FontSize="9" CharacterSpacing="0.7" HorizontalTextAlignment="Center" />
+                            </VerticalStackLayout>
+                            <BoxView Grid.Column="1" WidthRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+                            <VerticalStackLayout Grid.Column="2" Spacing="4" HorizontalOptions="Center">
+                                <Label x:Name="DailyAverageValueLabel" Text="RM 0.00" FontFamily="OpenSansSemibold" FontSize="{OnIdiom Phone=14, Tablet=17, Desktop=17}" FontAutoScalingEnabled="False" LineBreakMode="TailTruncation" MaxLines="1" HorizontalTextAlignment="Center" />
+                                <Label Text="DAILY AVERAGE" Style="{StaticResource SectionLabel}" FontSize="9" CharacterSpacing="0.7" HorizontalTextAlignment="Center" />
+                            </VerticalStackLayout>
+                            <BoxView Grid.Column="3" WidthRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+                            <VerticalStackLayout Grid.Column="4" Spacing="4" HorizontalOptions="Center">
+                                <Label x:Name="DaysRemainingValueLabel" Text="0" FontFamily="OpenSansSemibold" FontSize="17" FontAutoScalingEnabled="False" HorizontalTextAlignment="Center" />
+                                <Label Text="DAYS LEFT" Style="{StaticResource SectionLabel}" FontSize="9" CharacterSpacing="0.7" HorizontalTextAlignment="Center" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout x:Name="DashboardInsightSection" Spacing="13">
+                    <Label Text="MONTHLY INSIGHT" Style="{StaticResource SectionLabel}" />
+                    <Border Style="{StaticResource SoftCard}" Padding="17">
+                        <Grid ColumnDefinitions="40,*" ColumnSpacing="13">
+                            <Border WidthRequest="40" HeightRequest="40" BackgroundColor="{DynamicResource AccentTint}" StrokeThickness="0" StrokeShape="RoundRectangle 13">
+                                <Path WidthRequest="22" HeightRequest="22" Data="M 9,18 L 15,18 M 10,21 L 14,21 M 8,14 C 6,12 5,10 5,8 A 7,7 0 0 1 19,8 C 19,10 18,12 16,14 C 15,15 15,16 15,17 L 9,17 C 9,16 9,15 8,14 Z" Stroke="{DynamicResource Accent}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" HorizontalOptions="Center" VerticalOptions="Center" />
+                            </Border>
+                            <Label x:Name="DashboardInsightLabel" Grid.Column="1" Text="Your monthly insight will appear here." FontSize="13" LineHeight="1.25" VerticalTextAlignment="Center" />
+                        </Grid>
+                    </Border>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout x:Name="DashboardExpenseCategoriesSection" Spacing="13">
+                    <Grid Margin="14,0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                        <Label Text="EXPENSE CATEGORIES" Style="{StaticResource SectionLabel}" FontSize="11" LineBreakMode="TailTruncation" MaxLines="1" VerticalTextAlignment="Center" />
+                        <BoxView Grid.Column="1" HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" VerticalOptions="Center" />
+                        <Border Grid.Column="2" Padding="10,5" BackgroundColor="{AppThemeBinding Light={StaticResource BlushLight}, Dark={StaticResource BlushDark}}" StrokeThickness="0" StrokeShape="RoundRectangle 999">
+                            <Label x:Name="ExpenseCategoryTotalLabel" Text="RM 0.00" FontFamily="OpenSansSemibold" FontSize="11" TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" HorizontalTextAlignment="End" VerticalTextAlignment="Center" />
+                        </Border>
+                    </Grid>
+                    <Border Style="{StaticResource SoftCard}" Padding="14,2">
+                        <VerticalStackLayout
+                            x:Name="DashboardExpenseCategoriesLayout"
+                            Spacing="0"
+                            BindableLayout.ItemTemplate="{StaticResource CategorySummaryTemplate}" />
+                    </Border>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout x:Name="DashboardIncomeCategoriesSection" Spacing="13">
+                    <Grid Margin="14,0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                        <Label Text="INCOME CATEGORIES" Style="{StaticResource SectionLabel}" FontSize="11" LineBreakMode="TailTruncation" MaxLines="1" VerticalTextAlignment="Center" />
+                        <BoxView Grid.Column="1" HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" VerticalOptions="Center" />
+                        <Border Grid.Column="2" Padding="10,5" BackgroundColor="{AppThemeBinding Light={StaticResource MintLight}, Dark={StaticResource MintDark}}" StrokeThickness="0" StrokeShape="RoundRectangle 999">
+                            <Label x:Name="IncomeCategoryTotalLabel" Text="RM 0.00" FontFamily="OpenSansSemibold" FontSize="11" TextColor="{AppThemeBinding Light={StaticResource PositiveLight}, Dark={StaticResource PositiveDark}}" HorizontalTextAlignment="End" VerticalTextAlignment="Center" />
+                        </Border>
+                    </Grid>
+                    <Border Style="{StaticResource SoftCard}" Padding="14,2">
+                        <VerticalStackLayout
+                            x:Name="DashboardIncomeCategoriesLayout"
+                            Spacing="0"
+                            BindableLayout.ItemTemplate="{StaticResource CategorySummaryTemplate}" />
+                    </Border>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout x:Name="DashboardRecentActivitySection" Spacing="13">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="RECENT ACTIVITY" Style="{StaticResource SectionLabel}" VerticalTextAlignment="Center" />
+                        <Border x:Name="DashboardViewAllButton" Grid.Column="1" Padding="11,5" IsVisible="False" BackgroundColor="{DynamicResource AccentTint}" StrokeThickness="0" StrokeShape="RoundRectangle 999">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnDashboardViewAllTapped" />
+                            </Border.GestureRecognizers>
+                            <Label Text="View all" FontFamily="OpenSansSemibold" FontSize="11" TextColor="{DynamicResource Accent}" />
+                        </Border>
+                    </Grid>
                     <Border x:Name="DashboardEmptyActivityState" Style="{StaticResource SoftCard}" Padding="22">
                         <Label Text="Your saved transactions will appear here." Style="{StaticResource BodyMuted}" HorizontalTextAlignment="Center" />
                     </Border>
@@ -109,6 +235,7 @@
                         </Border>
                     </Grid>
                 </VerticalStackLayout>
+                </VerticalStackLayout>
             </VerticalStackLayout>
         </ScrollView>
 
@@ -117,11 +244,93 @@
 
         <views:SettingsView x:Name="SettingsView" IsVisible="False" />
 
+        <!-- Displayed only when the app has no cached transaction data yet. -->
+        <Grid
+            x:Name="DataLoadingOverlay"
+            IsVisible="False"
+            Opacity="0"
+            ZIndex="20"
+            BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}"
+            SemanticProperties.Description="Loading financial data">
+            <Grid x:Name="DataLoadingSkeletonPulseLayer">
+                <ScrollView x:Name="HomeLoadingSkeleton" IsVisible="False" VerticalScrollBarVisibility="Never">
+                    <VerticalStackLayout Padding="24,30,24,126" Spacing="27">
+                        <Grid ColumnDefinitions="*,58" ColumnSpacing="16">
+                            <VerticalStackLayout Spacing="9">
+                                <Border Style="{StaticResource SkeletonLine}" WidthRequest="210" HeightRequest="25" HorizontalOptions="Start" />
+                                <Border Style="{StaticResource SkeletonLine}" WidthRequest="140" HeightRequest="25" HorizontalOptions="Start" />
+                                <Border Margin="0,7,0,0" Style="{StaticResource SkeletonLine}" WidthRequest="235" HeightRequest="11" HorizontalOptions="Start" />
+                            </VerticalStackLayout>
+                            <Border Grid.Column="1" WidthRequest="58" HeightRequest="58" BackgroundColor="{DynamicResource AccentTint}" StrokeThickness="0" StrokeShape="RoundRectangle 29" />
+                        </Grid>
+
+                        <VerticalStackLayout Spacing="13">
+                            <Border Style="{StaticResource SkeletonLine}" WidthRequest="105" HeightRequest="10" HorizontalOptions="Start" />
+                            <Border HeightRequest="258" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="2" StrokeShape="RoundRectangle 28">
+                                <VerticalStackLayout Padding="20" Spacing="18">
+                                    <Border Style="{StaticResource SkeletonLine}" WidthRequest="180" HeightRequest="15" HorizontalOptions="Start" />
+                                    <Border Style="{StaticResource SkeletonLine}" WidthRequest="250" HeightRequest="42" HorizontalOptions="Start" />
+                                    <Border Style="{StaticResource SkeletonLine}" WidthRequest="195" HeightRequest="14" HorizontalOptions="Start" />
+                                    <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+                                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="18">
+                                        <Border Style="{StaticResource SkeletonLine}" HeightRequest="42" />
+                                        <Border Grid.Column="1" Style="{StaticResource SkeletonLine}" HeightRequest="42" />
+                                        <Border Grid.Column="2" Style="{StaticResource SkeletonLine}" HeightRequest="42" />
+                                    </Grid>
+                                </VerticalStackLayout>
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="13">
+                            <Border Style="{StaticResource SkeletonLine}" WidthRequest="150" HeightRequest="10" HorizontalOptions="Start" />
+                            <Border HeightRequest="115" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" StrokeThickness="1" StrokeShape="RoundRectangle 22" />
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </ScrollView>
+
+                <ScrollView x:Name="TransactionLoadingSkeleton" VerticalScrollBarVisibility="Never">
+                    <VerticalStackLayout Padding="24,30,24,126" Spacing="25">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                            <Border Style="{StaticResource SkeletonLine}" WidthRequest="185" HeightRequest="31" HorizontalOptions="Start" VerticalOptions="Center" />
+                            <HorizontalStackLayout Grid.Column="1" Spacing="10">
+                                <Border Style="{StaticResource SkeletonLine}" WidthRequest="118" HeightRequest="16" VerticalOptions="Center" />
+                                <Border WidthRequest="44" HeightRequest="44" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="2" StrokeShape="RoundRectangle 22" />
+                            </HorizontalStackLayout>
+                        </Grid>
+
+                        <Border HeightRequest="268" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="2" StrokeShape="RoundRectangle 28">
+                            <VerticalStackLayout Padding="20" Spacing="18">
+                                <Border Style="{StaticResource SkeletonLine}" WidthRequest="180" HeightRequest="15" HorizontalOptions="Start" />
+                                <Border Style="{StaticResource SkeletonLine}" WidthRequest="250" HeightRequest="42" HorizontalOptions="Start" />
+                                <Border Style="{StaticResource SkeletonLine}" WidthRequest="195" HeightRequest="14" HorizontalOptions="Start" />
+                                <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+                                <Grid ColumnDefinitions="*,*" ColumnSpacing="18">
+                                    <Border Style="{StaticResource SkeletonLine}" HeightRequest="48" />
+                                    <Border Grid.Column="1" Style="{StaticResource SkeletonLine}" HeightRequest="48" />
+                                </Grid>
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <VerticalStackLayout Spacing="13">
+                            <Border Style="{StaticResource SkeletonLine}" WidthRequest="72" HeightRequest="10" HorizontalOptions="Start" />
+                            <Border HeightRequest="112" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" StrokeThickness="1" StrokeShape="RoundRectangle 22" />
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="13">
+                            <Border Style="{StaticResource SkeletonLine}" WidthRequest="135" HeightRequest="10" HorizontalOptions="Start" />
+                            <Border HeightRequest="150" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="2" StrokeShape="RoundRectangle 24" />
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </ScrollView>
+            </Grid>
+        </Grid>
+
         <!-- Bottom dock: navigation and a separate add button. -->
         <Grid
             Margin="18,0,18,18"
             ColumnDefinitions="*,70"
             ColumnSpacing="11"
+            ZIndex="30"
             VerticalOptions="End">
             <Border
                 Grid.Column="0"
@@ -219,6 +428,97 @@
         <views:TransactionSearchView
             x:Name="TransactionSearchView"
             ZIndex="110" />
+
+        <Grid
+            x:Name="ArrangeHomeOverlay"
+            IsVisible="False"
+            Opacity="0"
+            ZIndex="115">
+            <BoxView BackgroundColor="#99000000">
+                <BoxView.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnArrangeHomeBackdropTapped" />
+                </BoxView.GestureRecognizers>
+            </BoxView>
+
+            <Border
+                x:Name="ArrangeHomeCard"
+                Margin="18"
+                Padding="20"
+                MaximumWidthRequest="500"
+                HorizontalOptions="Fill"
+                VerticalOptions="Center"
+                BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource CardBackgroundDark}}"
+                Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                StrokeThickness="2"
+                StrokeShape="RoundRectangle 28">
+                <Border.Shadow>
+                    <Shadow Brush="{AppThemeBinding Light={StaticResource ShadowLight}, Dark={StaticResource ShadowDark}}" Offset="0,7" Opacity="0.8" Radius="0" />
+                </Border.Shadow>
+
+                <VerticalStackLayout Spacing="18">
+                    <Grid ColumnDefinitions="*,42">
+                        <VerticalStackLayout Spacing="3" VerticalOptions="Center">
+                            <Label Text="Arrange Home" Style="{StaticResource CardTitle}" FontSize="20" />
+                            <Label Text="Drag rows to reorder. Monthly Pulse stays at the top." Style="{StaticResource BodyMuted}" FontSize="12" />
+                        </VerticalStackLayout>
+                        <Border Grid.Column="1" WidthRequest="42" HeightRequest="42" Style="{StaticResource Pill}" Padding="0">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnArrangeHomeCloseTapped" />
+                            </Border.GestureRecognizers>
+                            <Label Text="×" FontSize="24" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                        </Border>
+                    </Grid>
+
+                    <Border Style="{StaticResource SoftCard}" Padding="12,2">
+                        <VerticalStackLayout x:Name="ArrangeHomeSectionsLayout" Spacing="0">
+                            <VerticalStackLayout.GestureRecognizers>
+                                <PointerGestureRecognizer
+                                    Buttons="Primary"
+                                    PointerPressed="OnHomeSectionPointerPressed"
+                                    PointerMoved="OnHomeSectionPointerMoved"
+                                    PointerReleased="OnHomeSectionPointerReleased"
+                                    PointerExited="OnHomeSectionPointerExited" />
+                            </VerticalStackLayout.GestureRecognizers>
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="models:HomeSectionOption">
+                                    <Grid RowDefinitions="52,Auto" ColumnDefinitions="34,*" ColumnSpacing="10">
+                                        <Grid.GestureRecognizers>
+                                            <PanGestureRecognizer PanUpdated="OnHomeSectionPanUpdated" />
+                                        </Grid.GestureRecognizers>
+                                        <Border WidthRequest="32" HeightRequest="32" BackgroundColor="{DynamicResource AccentTint}" StrokeThickness="0" StrokeShape="RoundRectangle 11" VerticalOptions="Center">
+                                            <Path WidthRequest="16" HeightRequest="16" Data="M 4,5 L 12,5 M 4,8 L 12,8 M 4,11 L 12,11" Stroke="{DynamicResource Accent}" StrokeThickness="1.8" StrokeLineCap="Round" Fill="Transparent" Aspect="Uniform" HorizontalOptions="Center" VerticalOptions="Center" />
+                                        </Border>
+                                        <Label Grid.Column="1" Text="{Binding Title}" FontFamily="OpenSansSemibold" FontSize="14" LineBreakMode="TailTruncation" MaxLines="1" VerticalTextAlignment="Center" />
+                                        <BoxView Grid.Row="1" Grid.ColumnSpan="2" HeightRequest="1" IsVisible="{Binding ShowDivider}" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Grid ColumnDefinitions="Auto,*,*" ColumnSpacing="10">
+                        <Border Padding="14,0" HeightRequest="50" Style="{StaticResource Pill}">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnArrangeHomeResetTapped" />
+                            </Border.GestureRecognizers>
+                            <Label Text="Reset" FontFamily="OpenSansSemibold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                        </Border>
+                        <Border Grid.Column="1" HeightRequest="50" Style="{StaticResource Pill}">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnArrangeHomeCloseTapped" />
+                            </Border.GestureRecognizers>
+                            <Label Text="Cancel" FontFamily="OpenSansSemibold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                        </Border>
+                        <Border Grid.Column="2" HeightRequest="50" BackgroundColor="{DynamicResource Accent}" StrokeThickness="0" StrokeShape="RoundRectangle 999">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnArrangeHomeSaveTapped" />
+                            </Border.GestureRecognizers>
+                            <Label Text="Save" FontFamily="OpenSansSemibold" TextColor="{DynamicResource AccentForeground}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                        </Border>
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
 
         <Grid
             x:Name="DeleteConfirmationOverlay"
