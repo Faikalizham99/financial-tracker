@@ -1,6 +1,7 @@
 namespace FinancialTracker;
 
 using System.ComponentModel;
+using System.Globalization;
 using FinancialTracker.ViewModels;
 using FinancialTracker.Data;
 using FinancialTracker.Services;
@@ -173,8 +174,14 @@ public partial class MainPage : ContentPage
         }
 
         pendingDeleteTransaction = transaction;
+        var transactionActivity = TransactionActivityItem.FromRecord(transaction);
+        DeleteCategoryIcon.Source = transactionActivity.IconAsset;
+        DeletePaymentMethodIcon.Source = transactionActivity.PaymentMethodIconAsset;
+        var transactionDate = transaction.TransactionDate.ToString(
+            "dddd, d MMMM yyyy",
+            CultureInfo.CurrentCulture);
         DeleteDescriptionLabel.Text =
-            $"“{transaction.Description}” will be permanently removed. This cannot be undone.";
+            $"“{transaction.Description} on {transactionDate}” will be permanently removed. This cannot be undone.";
         UpdateDeleteConfirmationCardWidth();
         DeleteConfirmLabel.Text = "Delete";
         DeleteConfirmButton.IsEnabled = true;

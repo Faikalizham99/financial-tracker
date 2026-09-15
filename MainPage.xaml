@@ -317,31 +317,40 @@
                     <Shadow Brush="{AppThemeBinding Light={StaticResource ShadowLight}, Dark={StaticResource ShadowDark}}" Offset="0,8" Opacity="0.55" Radius="0" />
                 </Border.Shadow>
                 <VerticalStackLayout Spacing="18">
-                    <Border
-                        WidthRequest="54"
-                        HeightRequest="54"
-                        HorizontalOptions="Start"
-                        BackgroundColor="{AppThemeBinding Light=#FCE8EB, Dark=#43252B}"
-                        StrokeThickness="0"
-                        StrokeShape="RoundRectangle 18">
-                        <Path
-                            WidthRequest="25"
-                            HeightRequest="25"
-                            Data="M 5,7 L 19,7 M 9,7 L 9,4 L 15,4 L 15,7 M 7,7 L 8,20 L 16,20 L 17,7 M 10,11 L 10,17 M 14,11 L 14,17"
-                            Stroke="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}"
-                            StrokeThickness="2"
-                            StrokeLineCap="Round"
-                            StrokeLineJoin="Round"
-                            Fill="Transparent"
-                            Aspect="Uniform"
-                            HorizontalOptions="Center"
-                            VerticalOptions="Center" />
-                    </Border>
+                    <Grid ColumnDefinitions="50,*" ColumnSpacing="12">
+                        <Border
+                            WidthRequest="50"
+                            HeightRequest="50"
+                            BackgroundColor="{AppThemeBinding Light=#FCE8EB, Dark=#43252B}"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 17">
+                            <Path
+                                WidthRequest="24"
+                                HeightRequest="24"
+                                Data="M 5,7 L 19,7 M 9,7 L 9,4 L 15,4 L 15,7 M 7,7 L 8,20 L 16,20 L 17,7 M 10,11 L 10,17 M 14,11 L 14,17"
+                                Stroke="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}"
+                                StrokeThickness="2"
+                                StrokeLineCap="Round"
+                                StrokeLineJoin="Round"
+                                Fill="Transparent"
+                                Aspect="Uniform"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center" />
+                        </Border>
+                        <Label Grid.Column="1" Text="Delete transaction?" Style="{StaticResource CardTitle}" FontSize="22" VerticalTextAlignment="Center" />
+                    </Grid>
 
-                    <VerticalStackLayout Spacing="6">
-                        <Label Text="Delete transaction?" Style="{StaticResource CardTitle}" FontSize="22" />
-                        <Label x:Name="DeleteDescriptionLabel" Text="This transaction will be permanently removed." Style="{StaticResource BodyMuted}" FontSize="13" LineBreakMode="WordWrap" />
-                    </VerticalStackLayout>
+                    <Grid ColumnDefinitions="48,18,48" HorizontalOptions="Start">
+                        <Border WidthRequest="48" HeightRequest="48" StrokeThickness="0" StrokeShape="RoundRectangle 15">
+                            <Image x:Name="DeleteCategoryIcon" WidthRequest="48" HeightRequest="48" Aspect="AspectFill" />
+                        </Border>
+                        <Label Grid.Column="1" Text="×" Style="{StaticResource BodyMuted}" FontSize="15" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                        <Border Grid.Column="2" WidthRequest="48" HeightRequest="48" StrokeThickness="0" StrokeShape="RoundRectangle 15">
+                            <Image x:Name="DeletePaymentMethodIcon" WidthRequest="48" HeightRequest="48" Aspect="AspectFill" />
+                        </Border>
+                    </Grid>
+
+                    <Label x:Name="DeleteDescriptionLabel" Text="This transaction will be permanently removed." Style="{StaticResource BodyMuted}" FontSize="13" LineBreakMode="WordWrap" />
 
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
                         <Border Style="{StaticResource Pill}" HeightRequest="52" Padding="16,0">
