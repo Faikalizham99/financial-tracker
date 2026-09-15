@@ -5,8 +5,11 @@ using FinancialTracker.Services;
 
 namespace FinancialTracker.Models;
 
-public sealed class TransactionActivityItem
+public sealed class TransactionActivityItem : INotifyPropertyChanged
 {
+    private bool canExpandDescription;
+    private bool isDescriptionExpanded;
+
     private TransactionActivityItem()
     {
     }
@@ -22,10 +25,19 @@ public sealed class TransactionActivityItem
     public bool IsIncome { get; private init; }
     public bool ShowDivider { get; private init; }
     public DateTime TransactionDate { get; private init; }
+    public bool CanExpandDescription => canExpandDescription;
+    public bool IsDescriptionExpanded => isDescriptionExpanded;
+    public int DescriptionMaxLines => IsDescriptionExpanded ? -1 : 1;
+    public LineBreakMode DescriptionLineBreakMode =>
+        IsDescriptionExpanded ? LineBreakMode.CharacterWrap : LineBreakMode.TailTruncation;
+    public double DescriptionIndicatorRotation => IsDescriptionExpanded ? 180 : 0;
+
+    public event PropertyChangedEventHandler? PropertyChanged;
 
     public static TransactionActivityItem FromRecord(
         TransactionRecord record,
-        bool showDivider = false)
+        bool showDivider = false,
+        bool isDescriptionExpanded = false)
     {
         var isIncome = record.Type.Equals("Income", StringComparison.OrdinalIgnoreCase);
         var category = TransactionCatalog.GetCategory(record.Category, isIncome);
@@ -54,9 +66,42 @@ public sealed class TransactionActivityItem
             PaymentMethodIconAsset = paymentMethod.IconAsset,
             IsIncome = isIncome,
             ShowDivider = showDivider,
-            TransactionDate = record.TransactionDate.Date
+            TransactionDate = record.TransactionDate.Date,
+            isDescriptionExpanded = isDescriptionExpanded
         };
     }
+
+    public void SetDescriptionExpandable(bool canExpand)
+    {
+        if (canExpandDescription == canExpand)
+        {
+            return;
+        }
+
+        canExpandDescription = canExpand;
+        OnPropertyChanged(nameof(CanExpandDescription));
+        if (!canExpand && isDescriptionExpanded)
+        {
+            SetDescriptionExpanded(false);
+        }
+    }
+
+    public void SetDescriptionExpanded(bool isExpanded)
+    {
+        if (isDescriptionExpanded == isExpanded)
+        {
+            return;
+        }
+
+        isDescriptionExpanded = isExpanded;
+        OnPropertyChanged(nameof(IsDescriptionExpanded));
+        OnPropertyChanged(nameof(DescriptionMaxLines));
+        OnPropertyChanged(nameof(DescriptionLineBreakMode));
+        OnPropertyChanged(nameof(DescriptionIndicatorRotation));
+    }
+
+    private void OnPropertyChanged(string propertyName) =>
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 }
 
 public sealed class TransactionActivityGroup : INotifyPropertyChanged

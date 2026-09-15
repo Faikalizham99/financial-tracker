@@ -263,7 +263,42 @@
                                                             </Border>
                                                         </Grid>
                                                         <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
-                                                            <Label Text="{Binding Description}" Style="{StaticResource CardTitle}" FontSize="14" LineBreakMode="TailTruncation" MaxLines="1" />
+                                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                                                                <Grid.GestureRecognizers>
+                                                                    <TapGestureRecognizer Tapped="OnTransactionDescriptionTapped" CommandParameter="{Binding .}" />
+                                                                </Grid.GestureRecognizers>
+                                                                <Label
+                                                                    Text="{Binding Description}"
+                                                                    Style="{StaticResource CardTitle}"
+                                                                    FontSize="14"
+                                                                    LineBreakMode="{Binding DescriptionLineBreakMode}"
+                                                                    MaxLines="{Binding DescriptionMaxLines}"
+                                                                    SizeChanged="OnTransactionDescriptionSizeChanged" />
+                                                                <Border
+                                                                    Grid.Column="1"
+                                                                    WidthRequest="20"
+                                                                    HeightRequest="20"
+                                                                    IsVisible="{Binding CanExpandDescription}"
+                                                                    BackgroundColor="{DynamicResource AccentTint}"
+                                                                    StrokeThickness="0"
+                                                                    StrokeShape="RoundRectangle 10"
+                                                                    VerticalOptions="Start"
+                                                                    SemanticProperties.Description="Expand or collapse description">
+                                                                    <Path
+                                                                        WidthRequest="10"
+                                                                        HeightRequest="10"
+                                                                        Data="M 4,6 L 8,10 L 12,6"
+                                                                        Rotation="{Binding DescriptionIndicatorRotation}"
+                                                                        Stroke="{DynamicResource Accent}"
+                                                                        StrokeThickness="2"
+                                                                        StrokeLineCap="Round"
+                                                                        StrokeLineJoin="Round"
+                                                                        Fill="Transparent"
+                                                                        Aspect="Uniform"
+                                                                        HorizontalOptions="Center"
+                                                                        VerticalOptions="Center" />
+                                                                </Border>
+                                                            </Grid>
                                                             <Label Text="{Binding DetailText}" Style="{StaticResource BodyMuted}" FontSize="11" LineBreakMode="TailTruncation" MaxLines="1" />
                                                         </VerticalStackLayout>
                                                         <Label Grid.Column="2" Text="{Binding AmountText}" FontFamily="OpenSansSemibold" FontSize="14" TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" HorizontalTextAlignment="End" VerticalOptions="Center">
