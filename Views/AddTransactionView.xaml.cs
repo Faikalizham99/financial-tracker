@@ -210,14 +210,14 @@ public partial class AddTransactionView : ContentView
     private async Task ToggleTransactionTypeAsync()
     {
         isTypeAnimating = true;
-        TypeArrowLabel.CancelAnimations();
+        TypeArrowIcon.CancelAnimations();
         TypeLabel.CancelAnimations();
 
         try
         {
             await Task.WhenAll(
-                TypeArrowLabel.TranslateToAsync(0, -10, 105, Easing.CubicIn),
-                TypeArrowLabel.FadeToAsync(0, 90, Easing.CubicIn),
+                TypeArrowIcon.TranslateToAsync(0, -10, 105, Easing.CubicIn),
+                TypeArrowIcon.FadeToAsync(0, 90, Easing.CubicIn),
                 TypeLabel.FadeToAsync(0.35, 90, Easing.CubicIn));
 
             selectedType = selectedType.Key == "Expense"
@@ -227,17 +227,17 @@ public partial class AddTransactionView : ContentView
                 ? TransactionCatalog.IncomeCategories[^1]
                 : TransactionCatalog.ExpenseCategories[^1];
             UpdateTypeAndCategory();
-            TypeArrowLabel.TranslationY = 10;
+            TypeArrowIcon.TranslationY = 10;
 
             await Task.WhenAll(
-                TypeArrowLabel.TranslateToAsync(0, 0, 190, Easing.SpringOut),
-                TypeArrowLabel.FadeToAsync(1, 145, Easing.CubicOut),
+                TypeArrowIcon.TranslateToAsync(0, 0, 190, Easing.SpringOut),
+                TypeArrowIcon.FadeToAsync(1, 145, Easing.CubicOut),
                 TypeLabel.FadeToAsync(1, 145, Easing.CubicOut));
         }
         finally
         {
-            TypeArrowLabel.Opacity = 1;
-            TypeArrowLabel.TranslationY = 0;
+            TypeArrowIcon.Opacity = 1;
+            TypeArrowIcon.TranslationY = 0;
             TypeLabel.Opacity = 1;
             isTypeAnimating = false;
         }
@@ -473,6 +473,36 @@ public partial class AddTransactionView : ContentView
 
     private static string FormatAmount(decimal amount) =>
         amount.ToString("0.##", CultureInfo.InvariantCulture);
+
+    private async void OnDateChipTapped(object? sender, TappedEventArgs e)
+    {
+        HideDescriptionSuggestions();
+        DescriptionEntry.Unfocus();
+        var feedback = InteractionAnimations.PulseAsync(sender);
+
+        Dispatcher.Dispatch(() =>
+        {
+            TransactionDatePicker.Focus();
+#if WINDOWS
+            if (TransactionDatePicker.Handler?.PlatformView is Microsoft.UI.Xaml.Controls.CalendarDatePicker nativeDatePicker)
+            {
+                nativeDatePicker.IsCalendarOpen = true;
+            }
+#elif ANDROID
+            if (TransactionDatePicker.Handler?.PlatformView is Android.Views.View nativeDatePicker)
+            {
+                nativeDatePicker.PerformClick();
+            }
+#elif IOS || MACCATALYST
+            if (TransactionDatePicker.Handler?.PlatformView is UIKit.UIView nativeDatePicker)
+            {
+                nativeDatePicker.BecomeFirstResponder();
+            }
+#endif
+        });
+
+        await feedback;
+    }
 
     private void OnTransactionDateSelected(object? sender, DateChangedEventArgs e) =>
         UpdateDateLabel(e.NewDate ?? DateTime.Today);
@@ -745,13 +775,9 @@ public partial class AddTransactionView : ContentView
     private void UpdateTypeAndCategory()
     {
         TypeLabel.Text = selectedType.Title;
-        TypeArrowLabel.Text = selectedType.Key == "Income" ? "↗" : "↘";
-        var resources = Application.Current!.Resources;
-        var isDark = Application.Current.RequestedTheme == AppTheme.Dark;
-        TypeArrowLabel.TextColor = (Color)resources[
-            selectedType.Key == "Income"
-                ? isDark ? "PositiveDark" : "PositiveLight"
-                : isDark ? "NegativeDark" : "NegativeLight"];
+        var isIncome = selectedType.Key == "Income";
+        IncomeArrowPath.IsVisible = isIncome;
+        ExpenseArrowPath.IsVisible = !isIncome;
         UpdateCategory();
     }
 

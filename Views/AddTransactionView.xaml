@@ -135,12 +135,15 @@
                         </Grid>
                     </Border>
 
-                    <Grid Grid.Row="2" ColumnDefinitions="1.45*,0.75*,1*" ColumnSpacing="8">
-                        <Border Style="{StaticResource TransactionChip}">
-                            <Grid ColumnDefinitions="24,*" ColumnSpacing="7">
+                    <Grid Grid.Row="2" RowDefinitions="Auto,Auto" ColumnDefinitions="*,*" RowSpacing="8" ColumnSpacing="8">
+                        <Border x:Name="DateChip" Grid.ColumnSpan="2" Style="{StaticResource TransactionChip}">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnDateChipTapped" />
+                            </Border.GestureRecognizers>
+                            <Grid ColumnDefinitions="28,*" ColumnSpacing="9">
                                 <Path
-                                    WidthRequest="24"
-                                    HeightRequest="24"
+                                    WidthRequest="26"
+                                    HeightRequest="26"
                                     Data="M 5,5 L 19,5 Q 21,5 21,7 L 21,19 Q 21,21 19,21 L 5,21 Q 3,21 3,19 L 3,7 Q 3,5 5,5 Z M 3,10 L 21,10 M 8,3 L 8,7 M 16,3 L 16,7 M 7,14 L 9,14 M 12,14 L 14,14 M 17,14 L 19,14 M 7,18 L 9,18 M 12,18 L 14,18"
                                     Stroke="{DynamicResource Accent}"
                                     StrokeThickness="1.8"
@@ -149,33 +152,56 @@
                                     Fill="Transparent"
                                     Aspect="Uniform"
                                     VerticalOptions="Center" />
-                                <Label x:Name="DateLabel" Grid.Column="1" Text="Sunday, 14 September 2026" FontFamily="OpenSansSemibold" FontSize="9.5" LineBreakMode="TailTruncation" MaxLines="1" VerticalOptions="Center" />
+                                <Label x:Name="DateLabel" Grid.Column="1" Text="Sunday, 14 September 2026" FontFamily="OpenSansSemibold" FontSize="12" LineBreakMode="TailTruncation" MaxLines="1" VerticalOptions="Center" />
                                 <DatePicker
-                                    x:Name="TransactionDatePicker"
-                                    Grid.ColumnSpan="2"
-                                    Opacity="0.01"
-                                    DateSelected="OnTransactionDateSelected"
-                                    HorizontalOptions="Fill"
-                                    VerticalOptions="Fill" />
+                                x:Name="TransactionDatePicker"
+                                Grid.ColumnSpan="2"
+                                Opacity="0.01"
+                                InputTransparent="True"
+                                DateSelected="OnTransactionDateSelected"
+                                HorizontalOptions="Fill"
+                                VerticalOptions="Fill" />
                             </Grid>
                         </Border>
 
-                        <Border x:Name="TypeChip" Grid.Column="1" Style="{StaticResource TransactionChip}">
+                        <Border x:Name="TypeChip" Grid.Row="1" Style="{StaticResource TransactionChip}">
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="OnTypeTapped" />
                             </Border.GestureRecognizers>
-                            <Grid ColumnDefinitions="24,*" ColumnSpacing="5">
-                                <Label
-                                    x:Name="TypeArrowLabel"
-                                    Text="↘"
-                                    FontFamily="OpenSansSemibold"
-                                    WidthRequest="24"
-                                    HeightRequest="24"
-                                    FontSize="24"
-                                    TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}"
-                                    HorizontalTextAlignment="Center"
-                                    VerticalTextAlignment="Center"
-                                    VerticalOptions="Center" />
+                            <Grid ColumnDefinitions="28,*" ColumnSpacing="7">
+                                <Grid
+                                    x:Name="TypeArrowIcon"
+                                    WidthRequest="28"
+                                    HeightRequest="28"
+                                    VerticalOptions="Center">
+                                    <Path
+                                        x:Name="ExpenseArrowPath"
+                                        WidthRequest="24"
+                                        HeightRequest="24"
+                                        Data="M 5,5 L 19,19 M 10,19 L 19,19 L 19,10"
+                                        Stroke="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}"
+                                        StrokeThickness="2.4"
+                                        StrokeLineCap="Round"
+                                        StrokeLineJoin="Round"
+                                        Fill="Transparent"
+                                        Aspect="Uniform"
+                                        HorizontalOptions="Center"
+                                        VerticalOptions="Center" />
+                                    <Path
+                                        x:Name="IncomeArrowPath"
+                                        IsVisible="False"
+                                        WidthRequest="24"
+                                        HeightRequest="24"
+                                        Data="M 5,19 L 19,5 M 10,5 L 19,5 L 19,14"
+                                        Stroke="{AppThemeBinding Light={StaticResource PositiveLight}, Dark={StaticResource PositiveDark}}"
+                                        StrokeThickness="2.4"
+                                        StrokeLineCap="Round"
+                                        StrokeLineJoin="Round"
+                                        Fill="Transparent"
+                                        Aspect="Uniform"
+                                        HorizontalOptions="Center"
+                                        VerticalOptions="Center" />
+                                </Grid>
                                 <Label
                                     x:Name="TypeLabel"
                                     Grid.Column="1"
@@ -187,13 +213,13 @@
                             </Grid>
                         </Border>
 
-                        <Border x:Name="PaymentChip" Grid.Column="2" Style="{StaticResource TransactionChip}">
+                        <Border x:Name="PaymentChip" Grid.Row="1" Grid.Column="1" Style="{StaticResource TransactionChip}">
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="OnPaymentTapped" />
                             </Border.GestureRecognizers>
-                            <Grid ColumnDefinitions="24,*" ColumnSpacing="7">
-                                <Border WidthRequest="24" HeightRequest="24" StrokeThickness="0" StrokeShape="RoundRectangle 8">
-                                    <Image x:Name="PaymentIcon" Source="payment_cash.png" WidthRequest="24" HeightRequest="24" Aspect="AspectFill" />
+                            <Grid ColumnDefinitions="28,*" ColumnSpacing="7">
+                                <Border WidthRequest="28" HeightRequest="28" StrokeThickness="0" StrokeShape="RoundRectangle 9">
+                                    <Image x:Name="PaymentIcon" Source="payment_cash.png" WidthRequest="28" HeightRequest="28" Aspect="AspectFill" />
                                 </Border>
                                 <Label x:Name="PaymentLabel" Grid.Column="1" Text="Cash" FontFamily="OpenSansSemibold" FontSize="12" LineBreakMode="TailTruncation" VerticalOptions="Center" />
                             </Grid>
