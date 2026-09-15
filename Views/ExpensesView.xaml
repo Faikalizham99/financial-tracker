@@ -94,18 +94,44 @@
                 <BindableLayout.ItemTemplate>
                     <DataTemplate x:DataType="models:TransactionActivityGroup">
                         <VerticalStackLayout Spacing="10">
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                                <Label Text="{Binding Title}" Style="{StaticResource SectionLabel}" VerticalTextAlignment="Center" />
-                                <Label Grid.Column="1" Text="{Binding DailyTotalText}" FontFamily="OpenSansSemibold" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" HorizontalTextAlignment="End" VerticalTextAlignment="Center">
-                                    <Label.Triggers>
-                                        <DataTrigger TargetType="Label" Binding="{Binding IsNetExpense}" Value="True">
-                                            <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" />
+                            <Grid Margin="14,0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                                <Label
+                                    Text="{Binding Title}"
+                                    Style="{StaticResource SectionLabel}"
+                                    FontSize="11"
+                                    LineBreakMode="TailTruncation"
+                                    MaxLines="1"
+                                    VerticalTextAlignment="Center" />
+                                <BoxView
+                                    Grid.Column="1"
+                                    HeightRequest="1"
+                                    BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}"
+                                    VerticalOptions="Center" />
+                                <Border
+                                    Grid.Column="2"
+                                    Padding="10,5"
+                                    BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}"
+                                    StrokeThickness="0"
+                                    StrokeShape="RoundRectangle 999">
+                                    <Border.Triggers>
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsNetExpense}" Value="True">
+                                            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource BlushLight}, Dark={StaticResource BlushDark}}" />
                                         </DataTrigger>
-                                        <DataTrigger TargetType="Label" Binding="{Binding IsNetIncome}" Value="True">
-                                            <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource PositiveLight}, Dark={StaticResource PositiveDark}}" />
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsNetIncome}" Value="True">
+                                            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource MintLight}, Dark={StaticResource MintDark}}" />
                                         </DataTrigger>
-                                    </Label.Triggers>
-                                </Label>
+                                    </Border.Triggers>
+                                    <Label Text="{Binding DailyTotalText}" FontFamily="OpenSansSemibold" FontSize="11" TextColor="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" HorizontalTextAlignment="End" VerticalTextAlignment="Center">
+                                        <Label.Triggers>
+                                            <DataTrigger TargetType="Label" Binding="{Binding IsNetExpense}" Value="True">
+                                                <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" />
+                                            </DataTrigger>
+                                            <DataTrigger TargetType="Label" Binding="{Binding IsNetIncome}" Value="True">
+                                                <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource PositiveLight}, Dark={StaticResource PositiveDark}}" />
+                                            </DataTrigger>
+                                        </Label.Triggers>
+                                    </Label>
+                                </Border>
                             </Grid>
                             <Grid Margin="0,0,0,6">
                                 <Border Style="{StaticResource CardShadowLayer}" />

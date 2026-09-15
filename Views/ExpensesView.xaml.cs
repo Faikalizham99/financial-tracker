@@ -586,11 +586,16 @@ public partial class ExpensesView : ContentView
             CultureInfo.CurrentCulture);
     }
 
-    private static string GetDateGroupTitle(DateTime date) =>
-        date.Date switch
+    private static string GetDateGroupTitle(DateTime date)
+    {
+        var dayLabel = date.Date switch
         {
             var value when value == DateTime.Today => "TODAY",
             var value when value == DateTime.Today.AddDays(-1) => "YESTERDAY",
-            var value => value.ToString("dddd, d MMMM yyyy", CultureInfo.CurrentCulture).ToUpperInvariant()
+            _ => date.ToString("dddd", CultureInfo.CurrentCulture).ToUpperInvariant()
         };
+
+        var dateLabel = date.ToString("d MMM yyyy", CultureInfo.CurrentCulture).ToUpperInvariant();
+        return $"{dayLabel} · {dateLabel}";
+    }
 }
