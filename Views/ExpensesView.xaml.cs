@@ -43,10 +43,14 @@ public partial class ExpensesView : ContentView
     private CurrencyOption? selectedCurrency;
     private TransactionOption? selectedPaymentFilter;
     private TransactionOption? selectedCategoryFilter;
+    private DateTime? selectedStartDate;
+    private DateTime? selectedEndDate;
     private IReadOnlyList<SelectableTransactionOption> filterSelectorOptions = [];
     private FilterSelectorKind filterSelectorKind;
     private bool isFilterSelectorOpen;
     private bool isFilterSelectorAnimating;
+    private bool isDateRangeFilterOpen;
+    private bool isDateRangeFilterAnimating;
     private CancellationTokenSource? transactionFocusCancellation;
 
     public ExpensesView()
@@ -85,6 +89,8 @@ public partial class ExpensesView : ContentView
             1);
         selectedPaymentFilter = null;
         selectedCategoryFilter = null;
+        selectedStartDate = null;
+        selectedEndDate = null;
         RenderDisplayedMonth(cancelPendingFocus: false);
 
         BoxView? highlight = null;
@@ -191,6 +197,8 @@ public partial class ExpensesView : ContentView
     {
         var feedback = InteractionAnimations.PulseAsync(sender);
         displayedMonth = displayedMonth.AddMonths(monthOffset);
+        selectedStartDate = null;
+        selectedEndDate = null;
         RenderDisplayedMonth();
         await feedback;
     }
@@ -200,6 +208,8 @@ public partial class ExpensesView : ContentView
         var feedback = InteractionAnimations.PulseAsync(sender);
         selectedPaymentFilter = null;
         selectedCategoryFilter = null;
+        selectedStartDate = null;
+        selectedEndDate = null;
         RenderDisplayedMonth();
         await feedback;
     }
@@ -209,6 +219,188 @@ public partial class ExpensesView : ContentView
         var feedback = InteractionAnimations.PulseAsync(sender);
         SearchRequested?.Invoke();
         await feedback;
+    }
+
+    private async void OnCalendarFilterTapped(object? sender, TappedEventArgs e)
+    {
+        var feedback = InteractionAnimations.PulseAsync(sender);
+        await OpenDateRangeFilterAsync();
+        await feedback;
+    }
+
+    private async Task OpenDateRangeFilterAsync()
+    {
+        if (isDateRangeFilterOpen || isDateRangeFilterAnimating || isFilterSelectorOpen)
+        {
+            return;
+        }
+
+        var monthStart = displayedMonth.Date;
+        var monthEnd = displayedMonth.AddMonths(1).AddDays(-1).Date;
+        ConfigureDatePicker(
+            StartDatePicker,
+            selectedStartDate ?? monthStart,
+            monthStart,
+            monthEnd);
+        ConfigureDatePicker(
+            EndDatePicker,
+            selectedEndDate ?? monthEnd,
+            monthStart,
+            monthEnd);
+        DateRangeMonthLabel.Text = $"Choose dates in {displayedMonth.ToString("MMMM yyyy", CultureInfo.CurrentCulture)}";
+        UpdateDateRangeLabels();
+
+        isDateRangeFilterOpen = true;
+        isDateRangeFilterAnimating = true;
+        DateRangeFilterOverlay.IsVisible = true;
+        DateRangeFilterOverlay.Opacity = 0;
+        DateRangeFilterCard.Opacity = 0;
+        DateRangeFilterCard.TranslationY = 24;
+
+        try
+        {
+            await Task.WhenAll(
+                DateRangeFilterOverlay.FadeToAsync(1, 150, Easing.CubicOut),
+                DateRangeFilterCard.FadeToAsync(1, 180, Easing.CubicOut),
+                DateRangeFilterCard.TranslateToAsync(0, 0, 210, Easing.CubicOut));
+        }
+        finally
+        {
+            isDateRangeFilterAnimating = false;
+        }
+    }
+
+    private static void ConfigureDatePicker(
+        DatePicker picker,
+        DateTime date,
+        DateTime minimumDate,
+        DateTime maximumDate)
+    {
+        picker.MinimumDate = new DateTime(2000, 1, 1);
+        picker.MaximumDate = DateTime.Today.AddYears(10);
+        picker.Date = date;
+        picker.MinimumDate = minimumDate;
+        picker.MaximumDate = maximumDate;
+    }
+
+    private async void OnStartDateTapped(object? sender, TappedEventArgs e) =>
+        await OpenNativeDatePickerAsync(StartDatePicker, sender);
+
+    private async void OnEndDateTapped(object? sender, TappedEventArgs e) =>
+        await OpenNativeDatePickerAsync(EndDatePicker, sender);
+
+    private static async Task OpenNativeDatePickerAsync(DatePicker picker, object? sender)
+    {
+        var feedback = InteractionAnimations.PulseAsync(sender);
+        picker.Focus();
+
+#if WINDOWS
+        if (picker.Handler?.PlatformView is Microsoft.UI.Xaml.Controls.CalendarDatePicker nativeDatePicker)
+        {
+            nativeDatePicker.IsCalendarOpen = true;
+        }
+#elif ANDROID
+        if (picker.Handler?.PlatformView is Android.Views.View nativeDatePicker)
+        {
+            nativeDatePicker.PerformClick();
+        }
+#elif IOS || MACCATALYST
+        if (picker.Handler?.PlatformView is UIKit.UIView nativeDatePicker)
+        {
+            nativeDatePicker.BecomeFirstResponder();
+        }
+#endif
+
+        await feedback;
+    }
+
+    private void OnStartDateSelected(object? sender, DateChangedEventArgs e)
+    {
+        var selectedDate = (e.NewDate ?? displayedMonth).Date;
+        if ((EndDatePicker.Date ?? selectedDate).Date < selectedDate)
+        {
+            EndDatePicker.Date = selectedDate;
+        }
+
+        UpdateDateRangeLabels();
+    }
+
+    private void OnEndDateSelected(object? sender, DateChangedEventArgs e)
+    {
+        var selectedDate = (e.NewDate ?? displayedMonth).Date;
+        if ((StartDatePicker.Date ?? selectedDate).Date > selectedDate)
+        {
+            StartDatePicker.Date = selectedDate;
+        }
+
+        UpdateDateRangeLabels();
+    }
+
+    private void UpdateDateRangeLabels()
+    {
+        StartDateLabel.Text = (StartDatePicker.Date ?? displayedMonth).ToString(
+            "dddd, d MMMM yyyy",
+            CultureInfo.CurrentCulture);
+        EndDateLabel.Text = (EndDatePicker.Date ?? displayedMonth).ToString(
+            "dddd, d MMMM yyyy",
+            CultureInfo.CurrentCulture);
+    }
+
+    private async void OnDateRangeApplyTapped(object? sender, TappedEventArgs e)
+    {
+        var feedback = InteractionAnimations.PulseAsync(sender);
+        selectedStartDate = (StartDatePicker.Date ?? displayedMonth).Date;
+        selectedEndDate = (EndDatePicker.Date ?? selectedStartDate.Value).Date;
+        RenderDisplayedMonth();
+        await CloseDateRangeFilterAsync();
+        await feedback;
+    }
+
+    private async void OnDateRangeClearTapped(object? sender, TappedEventArgs e)
+    {
+        var feedback = InteractionAnimations.PulseAsync(sender);
+        selectedStartDate = null;
+        selectedEndDate = null;
+        RenderDisplayedMonth();
+        await CloseDateRangeFilterAsync();
+        await feedback;
+    }
+
+    private async void OnDateRangeBackdropTapped(object? sender, TappedEventArgs e) =>
+        await CloseDateRangeFilterAsync();
+
+    private async void OnDateRangeCloseTapped(object? sender, TappedEventArgs e)
+    {
+        var feedback = InteractionAnimations.PulseAsync(sender);
+        await CloseDateRangeFilterAsync();
+        await feedback;
+    }
+
+    private async Task CloseDateRangeFilterAsync()
+    {
+        if (!isDateRangeFilterOpen || isDateRangeFilterAnimating)
+        {
+            return;
+        }
+
+        isDateRangeFilterAnimating = true;
+        StartDatePicker.Unfocus();
+        EndDatePicker.Unfocus();
+        try
+        {
+            await Task.WhenAll(
+                DateRangeFilterOverlay.FadeToAsync(0, 130, Easing.CubicIn),
+                DateRangeFilterCard.TranslateToAsync(0, 20, 150, Easing.CubicIn));
+        }
+        finally
+        {
+            DateRangeFilterOverlay.IsVisible = false;
+            DateRangeFilterOverlay.Opacity = 0;
+            DateRangeFilterCard.Opacity = 1;
+            DateRangeFilterCard.TranslationY = 0;
+            isDateRangeFilterOpen = false;
+            isDateRangeFilterAnimating = false;
+        }
     }
 
     private double GetVerticalOffsetWithinScrollContent(VisualElement target)
@@ -491,6 +683,12 @@ public partial class ExpensesView : ContentView
                 record.Category.Equals(
                     selectedCategoryFilter.Key,
                     StringComparison.OrdinalIgnoreCase))
+            .Where(record =>
+                selectedStartDate is null ||
+                record.TransactionDate.Date >= selectedStartDate.Value)
+            .Where(record =>
+                selectedEndDate is null ||
+                record.TransactionDate.Date <= selectedEndDate.Value)
             .ToList();
         var groups = filteredRecords
             .GroupBy(record => record.TransactionDate.Date)
@@ -518,7 +716,9 @@ public partial class ExpensesView : ContentView
         BindableLayout.SetItemsSource(ActivityGroupsLayout, groups);
         ActivityGroupsLayout.IsVisible = groups.Count > 0;
         EmptyActivityState.IsVisible = groups.Count == 0;
-        EmptyActivityTitle.Text = selectedPaymentFilter is not null || selectedCategoryFilter is not null
+        EmptyActivityTitle.Text = selectedPaymentFilter is not null ||
+            selectedCategoryFilter is not null ||
+            selectedStartDate is not null
             ? "No transactions match these filters"
             : $"No transactions in {displayedMonth.ToString("MMMM yyyy", CultureInfo.CurrentCulture)}";
         TransactionsMonthlySummary.Refresh(
@@ -533,15 +733,30 @@ public partial class ExpensesView : ContentView
     {
         var hasPaymentFilter = selectedPaymentFilter is not null;
         var hasCategoryFilter = selectedCategoryFilter is not null;
+        var hasDateFilter = selectedStartDate is not null && selectedEndDate is not null;
 
         PaymentFilterValueLabel.Text = selectedPaymentFilter?.Title ?? "Any payment method";
         PaymentFilterIcon.Source = selectedPaymentFilter?.IconAsset ?? "settings_payment_methods.png";
         CategoryFilterValueLabel.Text = selectedCategoryFilter?.Title ?? "Any category";
         CategoryFilterIcon.Source = selectedCategoryFilter?.IconAsset ?? "settings_categories.png";
-        ClearAllFiltersButton.IsVisible = hasPaymentFilter || hasCategoryFilter;
+        ClearAllFiltersButton.IsVisible = hasPaymentFilter || hasCategoryFilter || hasDateFilter;
 
         ApplyFilterRowStyle(PaymentFilterRow, PaymentFilterValueLabel, hasPaymentFilter);
         ApplyFilterRowStyle(CategoryFilterRow, CategoryFilterValueLabel, hasCategoryFilter);
+        ApplyCalendarFilterStyle(hasDateFilter);
+    }
+
+    private void ApplyCalendarFilterStyle(bool isActive)
+    {
+        var resources = Application.Current!.Resources;
+        var isDark = Application.Current.RequestedTheme == AppTheme.Dark;
+        CalendarFilterButton.BackgroundColor = (Color)resources[
+            isActive ? "AccentTint" : isDark ? "CardBackgroundDark" : "CardBackgroundLight"];
+        CalendarFilterButton.Stroke = new SolidColorBrush((Color)resources[
+            isActive ? "Accent" : isDark ? "BorderDark" : "BorderLight"]);
+        CalendarFilterIcon.Stroke = new SolidColorBrush((Color)resources[
+            isActive ? "Accent" : isDark ? "PrimaryTextDark" : "PrimaryTextLight"]);
+        CalendarFilterActiveDot.IsVisible = isActive;
     }
 
     private static void ApplyFilterRowStyle(
