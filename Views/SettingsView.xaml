@@ -108,12 +108,19 @@
                                 <Label Text="{Binding SelectedCurrencySummary}" Style="{StaticResource CardTitle}" FontSize="14" />
                                 <Label Text="{Binding SelectedCurrencySymbol}" Style="{StaticResource BodyMuted}" FontSize="12" />
                             </VerticalStackLayout>
-                            <Label
+                            <Path
                                 x:Name="CurrencyChevron"
                                 Grid.Column="2"
-                                Text="⌄"
-                                FontFamily="OpenSansSemibold"
-                                FontSize="23"
+                                WidthRequest="18"
+                                HeightRequest="18"
+                                Data="M 4,7 L 12,15 L 20,7"
+                                Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}"
+                                StrokeThickness="2.2"
+                                StrokeLineCap="Round"
+                                StrokeLineJoin="Round"
+                                Fill="Transparent"
+                                Aspect="Uniform"
+                                HorizontalOptions="Center"
                                 VerticalOptions="Center" />
                         </Grid>
 
@@ -209,7 +216,7 @@
                                 <Label Text="Categories" Style="{StaticResource CardTitle}" FontSize="15" />
                                 <Label Text="Expense and income categories" Style="{StaticResource BodyMuted}" FontSize="12" />
                             </VerticalStackLayout>
-                            <Label Grid.Column="2" Text="›" FontSize="27" VerticalOptions="Center" />
+                            <Path Grid.Column="2" WidthRequest="18" HeightRequest="18" Data="M 7,4 L 15,12 L 7,20" Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" StrokeThickness="2.2" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" HorizontalOptions="Center" VerticalOptions="Center" />
                         </Grid>
 
                         <BoxView Margin="76,0,18,0" HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
@@ -235,7 +242,7 @@
                                 <Label Text="Payment methods" Style="{StaticResource CardTitle}" FontSize="15" />
                                 <Label Text="Cash, cards and bank accounts" Style="{StaticResource BodyMuted}" FontSize="12" />
                             </VerticalStackLayout>
-                            <Label Grid.Column="2" Text="›" FontSize="27" VerticalOptions="Center" />
+                            <Path Grid.Column="2" WidthRequest="18" HeightRequest="18" Data="M 7,4 L 15,12 L 7,20" Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" StrokeThickness="2.2" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" HorizontalOptions="Center" VerticalOptions="Center" />
                         </Grid>
                     </VerticalStackLayout>
                 </Border>
@@ -484,12 +491,18 @@
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="OnDataDrawerCloseTapped" />
                             </Border.GestureRecognizers>
-                            <Label
-                                Text="&#x2190;"
-                                FontSize="22"
-                                TextColor="{DynamicResource Accent}"
-                                HorizontalTextAlignment="Center"
-                                VerticalTextAlignment="Center" />
+                            <Path
+                                WidthRequest="21"
+                                HeightRequest="21"
+                                Data="M 19,12 L 5,12 M 11,6 L 5,12 L 11,18"
+                                Stroke="{DynamicResource Accent}"
+                                StrokeThickness="2.2"
+                                StrokeLineCap="Round"
+                                StrokeLineJoin="Round"
+                                Fill="Transparent"
+                                Aspect="Uniform"
+                                HorizontalOptions="Center"
+                                VerticalOptions="Center" />
                         </Border>
                     </Grid>
 

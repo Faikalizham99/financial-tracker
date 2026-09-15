@@ -27,17 +27,19 @@
                     Spacing="2"
                     HorizontalOptions="End"
                     VerticalOptions="Center">
-                    <Label Text="‹" FontFamily="OpenSansSemibold" FontSize="28" WidthRequest="24" HorizontalTextAlignment="Center" VerticalTextAlignment="Center">
-                        <Label.GestureRecognizers>
+                    <Border WidthRequest="30" HeightRequest="30" Padding="6" BackgroundColor="Transparent" StrokeThickness="0" VerticalOptions="Center">
+                        <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnPreviousMonthTapped" />
-                        </Label.GestureRecognizers>
-                    </Label>
+                        </Border.GestureRecognizers>
+                        <Path Data="M 15,4 L 7,12 L 15,20" Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" StrokeThickness="2.4" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Border>
                     <Label x:Name="MonthSwitcherLabel" Text="September 2026" FontFamily="OpenSansSemibold" FontSize="13" MinimumWidthRequest="110" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
-                    <Label Text="›" FontFamily="OpenSansSemibold" FontSize="28" WidthRequest="24" HorizontalTextAlignment="Center" VerticalTextAlignment="Center">
-                        <Label.GestureRecognizers>
+                    <Border WidthRequest="30" HeightRequest="30" Padding="6" BackgroundColor="Transparent" StrokeThickness="0" VerticalOptions="Center">
+                        <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnNextMonthTapped" />
-                        </Label.GestureRecognizers>
-                    </Label>
+                        </Border.GestureRecognizers>
+                        <Path Data="M 7,4 L 15,12 L 7,20" Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" StrokeThickness="2.4" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Border>
                 </HorizontalStackLayout>
 
                 <Border Grid.Column="2" WidthRequest="44" HeightRequest="44" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="2" StrokeShape="RoundRectangle 22">

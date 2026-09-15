@@ -139,7 +139,7 @@
                             <Label Text="Faikal" Style="{StaticResource CardTitle}" />
                             <Label Text="MYR · Malaysian Ringgit" Style="{StaticResource BodyMuted}" FontSize="12" />
                         </VerticalStackLayout>
-                        <Label Grid.Column="2" Text="›" FontSize="28" VerticalOptions="Center" />
+                        <Path Grid.Column="2" WidthRequest="18" HeightRequest="18" Data="M 7,4 L 15,12 L 7,20" Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" StrokeThickness="2.2" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" HorizontalOptions="Center" VerticalOptions="Center" />
                     </Grid>
                 </Border>
                 <VerticalStackLayout Spacing="13">
@@ -183,7 +183,7 @@
                                 <Label Text="Currency" Style="{StaticResource CardTitle}" FontSize="15" />
                                 <Label Text="Malaysian Ringgit" Style="{StaticResource BodyMuted}" FontSize="12" />
                             </VerticalStackLayout>
-                            <Label Grid.Column="2" Text="›" FontSize="27" VerticalOptions="Center" />
+                            <Path Grid.Column="2" WidthRequest="18" HeightRequest="18" Data="M 7,4 L 15,12 L 7,20" Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" StrokeThickness="2.2" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" HorizontalOptions="Center" VerticalOptions="Center" />
                         </Grid>
                     </Border>
                 </VerticalStackLayout>
