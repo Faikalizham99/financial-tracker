@@ -13,6 +13,7 @@ public sealed class TransactionActivityItem
     public string Description { get; private init; } = string.Empty;
     public string DetailText { get; private init; } = string.Empty;
     public string DashboardDetailText { get; private init; } = string.Empty;
+    public string DashboardDateText { get; private init; } = string.Empty;
     public string AmountText { get; private init; } = string.Empty;
     public string IconAsset { get; private init; } = string.Empty;
     public string PaymentMethodIconAsset { get; private init; } = string.Empty;
@@ -45,7 +46,7 @@ public sealed class TransactionActivityItem
         {
             var date when date == DateTime.Today => "Today",
             var date when date == DateTime.Today.AddDays(-1) => "Yesterday",
-            var date => date.ToString("d MMM", CultureInfo.CurrentCulture)
+            var date => date.ToString("d MMM yyyy", CultureInfo.CurrentCulture)
         };
 
         return new TransactionActivityItem
@@ -53,7 +54,8 @@ public sealed class TransactionActivityItem
             Id = record.Id,
             Description = record.Description,
             DetailText = $"{record.Category} · {record.PaymentMethod}",
-            DashboardDetailText = $"{record.Category} · {record.PaymentMethod} · {dateText}",
+            DashboardDetailText = $"{record.Category} · {record.PaymentMethod}",
+            DashboardDateText = dateText,
             AmountText = $"{(isIncome ? "+" : "−")} {symbol} {(record.AmountMinor / 100m).ToString("N2", CultureInfo.InvariantCulture)}",
             IconAsset = category.IconAsset,
             PaymentMethodIconAsset = paymentMethod.IconAsset,
