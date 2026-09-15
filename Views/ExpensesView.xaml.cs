@@ -75,6 +75,7 @@ public partial class ExpensesView : ContentView
         if (transaction is null)
         {
             transactionFocusCancellation = null;
+            focusCancellation.Dispose();
             return;
         }
 
@@ -110,6 +111,8 @@ public partial class ExpensesView : ContentView
             {
                 transactionFocusCancellation = null;
             }
+
+            focusCancellation.Dispose();
 
             return;
         }
@@ -173,6 +176,8 @@ public partial class ExpensesView : ContentView
             {
                 transactionFocusCancellation = null;
             }
+
+            focusCancellation.Dispose();
         }
     }
 
@@ -227,8 +232,9 @@ public partial class ExpensesView : ContentView
 
     private void CancelTransactionFocusAnimation()
     {
-        transactionFocusCancellation?.Cancel();
+        var cancellation = transactionFocusCancellation;
         transactionFocusCancellation = null;
+        cancellation?.Cancel();
         foreach (var highlight in ActivityGroupsLayout
                      .GetVisualTreeDescendants()
                      .OfType<BoxView>()
@@ -348,7 +354,6 @@ public partial class ExpensesView : ContentView
             selectedCategoryFilter = string.IsNullOrEmpty(option.Key) ? null : option;
         }
 
-        FilterSelectorCollection.SelectedItem = null;
         RenderDisplayedMonth();
         await CloseFilterSelectorAsync();
     }

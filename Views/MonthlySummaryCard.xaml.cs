@@ -37,28 +37,40 @@ public partial class MonthlySummaryCard : ContentView
         DateTime? displayedMonth = null)
     {
         var month = displayedMonth ?? DateTime.Today;
-        var currentMonthRecords = records
-            .Where(record =>
-                record.CurrencyCode.Equals(selectedCurrency.Code, StringComparison.OrdinalIgnoreCase) &&
-                record.TransactionDate.Year == month.Year &&
-                record.TransactionDate.Month == month.Month)
-            .ToList();
-        var incomeMinor = currentMonthRecords
-            .Where(record => record.Type.Equals("Income", StringComparison.OrdinalIgnoreCase))
-            .Sum(record => record.AmountMinor);
-        var expenseMinor = currentMonthRecords
-            .Where(record => record.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase))
-            .Sum(record => record.AmountMinor);
+        long incomeMinor = 0;
+        long expenseMinor = 0;
+        var transactionCount = 0;
+
+        foreach (var record in records)
+        {
+            if (!record.CurrencyCode.Equals(selectedCurrency.Code, StringComparison.OrdinalIgnoreCase) ||
+                record.TransactionDate.Year != month.Year ||
+                record.TransactionDate.Month != month.Month)
+            {
+                continue;
+            }
+
+            transactionCount++;
+            if (record.Type.Equals("Income", StringComparison.OrdinalIgnoreCase))
+            {
+                incomeMinor += record.AmountMinor;
+            }
+            else
+            {
+                expenseMinor += record.AmountMinor;
+            }
+        }
 
         SummaryMonthLabel.Text = month.ToString("MMMM yyyy", CultureInfo.CurrentCulture);
         SummaryAvailableCaptionLabel.Text =
             $"Available for {month.ToString("MMMM", CultureInfo.CurrentCulture)}";
-        availableAmountText = FormatMoney(
-            selectedCurrency,
-            incomeMinor - expenseMinor);
-        incomeAmountText = FormatMoney(selectedCurrency, incomeMinor);
-        expenseAmountText = FormatMoney(selectedCurrency, expenseMinor);
-        SummaryTransactionCountLabel.Text = currentMonthRecords.Count.ToString(
+        availableAmountText = MoneyFormatter.FormatMinor(
+            incomeMinor - expenseMinor,
+            selectedCurrency.Symbol,
+            separateSign: true);
+        incomeAmountText = MoneyFormatter.FormatMinor(incomeMinor, selectedCurrency.Symbol);
+        expenseAmountText = MoneyFormatter.FormatMinor(expenseMinor, selectedCurrency.Symbol);
+        SummaryTransactionCountLabel.Text = transactionCount.ToString(
             CultureInfo.InvariantCulture);
         UpdateAmountVisibility();
     }
@@ -106,10 +118,4 @@ public partial class MonthlySummaryCard : ContentView
         };
     }
 
-    private static string FormatMoney(CurrencyOption currency, long amountMinor)
-    {
-        var sign = amountMinor < 0 ? "− " : string.Empty;
-        var amount = Math.Abs(amountMinor) / 100m;
-        return $"{sign}{currency.Symbol} {amount.ToString("N2", CultureInfo.InvariantCulture)}";
-    }
 }

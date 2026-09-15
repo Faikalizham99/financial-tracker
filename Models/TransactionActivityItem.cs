@@ -1,4 +1,5 @@
 using System.Globalization;
+using FinancialTracker.Helpers;
 using FinancialTracker.Services;
 
 namespace FinancialTracker.Models;
@@ -26,22 +27,9 @@ public sealed class TransactionActivityItem
         bool showDivider = false)
     {
         var isIncome = record.Type.Equals("Income", StringComparison.OrdinalIgnoreCase);
-        var categories = isIncome
-            ? TransactionCatalog.IncomeCategories
-            : TransactionCatalog.ExpenseCategories;
-        var category = categories.FirstOrDefault(item =>
-                item.Key.Equals(record.Category, StringComparison.OrdinalIgnoreCase))
-            ?? categories[^1];
-        var paymentMethod = TransactionCatalog.PaymentMethods.FirstOrDefault(item =>
-                item.Key.Equals(record.PaymentMethod, StringComparison.OrdinalIgnoreCase))
-            ?? TransactionCatalog.PaymentMethods[^1];
-        var symbol = record.CurrencyCode.ToUpperInvariant() switch
-        {
-            "USD" => "$",
-            "SGD" => "S$",
-            "KRW" => "₩",
-            _ => "RM"
-        };
+        var category = TransactionCatalog.GetCategory(record.Category, isIncome);
+        var paymentMethod = TransactionCatalog.GetPaymentMethod(record.PaymentMethod);
+        var symbol = MoneyFormatter.GetCurrencySymbol(record.CurrencyCode);
         var dateText = record.TransactionDate.Date switch
         {
             var date when date == DateTime.Today => "Today",
@@ -56,7 +44,11 @@ public sealed class TransactionActivityItem
             DetailText = $"{record.Category} · {record.PaymentMethod}",
             DashboardDetailText = $"{record.Category} · {record.PaymentMethod}",
             DashboardDateText = dateText,
-            AmountText = $"{(isIncome ? "+" : "−")} {symbol} {(record.AmountMinor / 100m).ToString("N2", CultureInfo.InvariantCulture)}",
+            AmountText = MoneyFormatter.FormatMinor(
+                isIncome ? record.AmountMinor : -record.AmountMinor,
+                symbol,
+                showPositiveSign: true,
+                separateSign: true),
             IconAsset = category.IconAsset,
             PaymentMethodIconAsset = paymentMethod.IconAsset,
             IsIncome = isIncome,
@@ -74,16 +66,13 @@ public sealed class TransactionActivityGroup
         long netAmountMinor,
         string currencySymbol)
     {
-        var sign = netAmountMinor switch
-        {
-            > 0 => "+ ",
-            < 0 => "− ",
-            _ => string.Empty
-        };
-
         Title = title;
         Items = items;
-        DailyTotalText = $"{sign}{currencySymbol} {(Math.Abs(netAmountMinor) / 100m).ToString("N2", CultureInfo.InvariantCulture)}";
+        DailyTotalText = MoneyFormatter.FormatMinor(
+            netAmountMinor,
+            currencySymbol,
+            showPositiveSign: true,
+            separateSign: true);
         IsNetIncome = netAmountMinor > 0;
         IsNetExpense = netAmountMinor < 0;
     }

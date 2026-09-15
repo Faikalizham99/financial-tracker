@@ -51,4 +51,21 @@ public static class TransactionCatalog
         new("VISA Maybank", "VISA Maybank", "payment_visa_maybank.png"),
         new("Others", "Others", "payment_others.png")
     ];
+
+    private static readonly IReadOnlyDictionary<string, TransactionOption> ExpenseCategoriesByKey =
+        ExpenseCategories.ToDictionary(option => option.Key, StringComparer.OrdinalIgnoreCase);
+    private static readonly IReadOnlyDictionary<string, TransactionOption> IncomeCategoriesByKey =
+        IncomeCategories.ToDictionary(option => option.Key, StringComparer.OrdinalIgnoreCase);
+    private static readonly IReadOnlyDictionary<string, TransactionOption> PaymentMethodsByKey =
+        PaymentMethods.ToDictionary(option => option.Key, StringComparer.OrdinalIgnoreCase);
+
+    public static TransactionOption GetCategory(string key, bool isIncome)
+    {
+        var categories = isIncome ? IncomeCategories : ExpenseCategories;
+        var categoriesByKey = isIncome ? IncomeCategoriesByKey : ExpenseCategoriesByKey;
+        return categoriesByKey.GetValueOrDefault(key) ?? categories[^1];
+    }
+
+    public static TransactionOption GetPaymentMethod(string key) =>
+        PaymentMethodsByKey.GetValueOrDefault(key) ?? PaymentMethods[^1];
 }

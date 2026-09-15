@@ -2,7 +2,6 @@ namespace FinancialTracker;
 
 using System.ComponentModel;
 using System.Globalization;
-using System.Text.Json;
 using FinancialTracker.ViewModels;
 using FinancialTracker.Data;
 using FinancialTracker.Services;
@@ -14,15 +13,11 @@ public partial class MainPage : ContentPage
     private readonly SettingsViewModel settingsViewModel;
     private readonly LocalDatabase localDatabase;
     private readonly SemaphoreSlim transactionRefreshLock = new(1, 1);
-    private const string RecentSearchesPreferenceKey = "transaction_recent_searches";
-    private readonly List<string> recentTransactionSearches = [];
-    private IReadOnlyList<TransactionRecord> transactionRecords = [];
     private int selectedSectionIndex = 1;
     private int navigationTransitionVersion;
     private TransactionRecord? pendingDeleteTransaction;
     private bool isDeleteConfirmationAnimating;
     private bool isDeletingTransaction;
-    private bool isTransactionSearchAnimating;
 
     public MainPage()
         : this(new LocalDatabase())
@@ -53,6 +48,7 @@ public partial class MainPage : ContentPage
         ExpensesView.EditTransactionRequested += OnTransactionEditRequested;
         ExpensesView.DeleteTransactionRequested += OnTransactionDeleteRequested;
         ExpensesView.SearchRequested += OnTransactionSearchRequested;
+        TransactionSearchView.TransactionSelected += OnTransactionSearchResultSelected;
         settingsViewModel.PropertyChanged += OnSettingsPropertyChanged;
         Loaded += OnLoaded;
     }
@@ -95,221 +91,16 @@ public partial class MainPage : ContentPage
     }
 
     private async void OnTransactionSearchRequested() =>
-        await OpenTransactionSearchAsync();
+        await TransactionSearchView.OpenAsync();
 
-    private async Task OpenTransactionSearchAsync()
+    private async void OnTransactionSearchResultSelected(int transactionId)
     {
-        if (TransactionSearchOverlay.IsVisible || isTransactionSearchAnimating)
-        {
-            return;
-        }
-
-        LoadRecentTransactionSearches();
-        TransactionSearchEntry.Text = string.Empty;
-        UpdateTransactionSearchResults();
-        TransactionSearchOverlay.IsVisible = true;
-        TransactionSearchOverlay.Opacity = 0;
-        isTransactionSearchAnimating = true;
-
-        try
-        {
-            await TransactionSearchOverlay.FadeToAsync(1, 180, Easing.CubicOut);
-        }
-        finally
-        {
-            isTransactionSearchAnimating = false;
-        }
-
-        await Task.Delay(80);
-        TransactionSearchEntry.Focus();
-    }
-
-    private async Task CloseTransactionSearchAsync()
-    {
-        if (!TransactionSearchOverlay.IsVisible || isTransactionSearchAnimating)
-        {
-            return;
-        }
-
-        isTransactionSearchAnimating = true;
-        TransactionSearchEntry.Unfocus();
-        try
-        {
-            await TransactionSearchOverlay.FadeToAsync(0, 140, Easing.CubicIn);
-        }
-        finally
-        {
-            TransactionSearchOverlay.IsVisible = false;
-            TransactionSearchOverlay.Opacity = 0;
-            isTransactionSearchAnimating = false;
-        }
-    }
-
-    private async void OnTransactionSearchCancelTapped(object? sender, TappedEventArgs e)
-    {
-        var feedback = InteractionAnimations.PulseAsync(sender);
-        await CloseTransactionSearchAsync();
-        await feedback;
-    }
-
-    private void OnTransactionSearchTextChanged(object? sender, TextChangedEventArgs e) =>
-        UpdateTransactionSearchResults();
-
-    private void OnTransactionSearchCompleted(object? sender, EventArgs e)
-    {
-        var query = TransactionSearchEntry.Text?.Trim();
-        if (!string.IsNullOrWhiteSpace(query))
-        {
-            AddRecentTransactionSearch(query);
-        }
-    }
-
-    private void OnTransactionSearchClearTapped(object? sender, TappedEventArgs e)
-    {
-        TransactionSearchEntry.Text = string.Empty;
-        TransactionSearchEntry.Focus();
-    }
-
-    private void OnRecentSearchTapped(object? sender, TappedEventArgs e)
-    {
-        if (e.Parameter is not string query)
-        {
-            return;
-        }
-
-        TransactionSearchEntry.Text = query;
-        TransactionSearchEntry.CursorPosition = query.Length;
-        TransactionSearchEntry.Focus();
-        AddRecentTransactionSearch(query);
-    }
-
-    private void OnClearRecentSearchesTapped(object? sender, TappedEventArgs e)
-    {
-        recentTransactionSearches.Clear();
-        SaveRecentTransactionSearches();
-        UpdateRecentSearchesView();
-    }
-
-    private async void OnTransactionSearchResultTapped(object? sender, TappedEventArgs e)
-    {
-        if (e.Parameter is not TransactionActivityItem transaction)
-        {
-            return;
-        }
-
-        var query = TransactionSearchEntry.Text?.Trim();
-        if (!string.IsNullOrWhiteSpace(query))
-        {
-            AddRecentTransactionSearch(query);
-        }
-
-        await CloseTransactionSearchAsync();
         if (selectedSectionIndex != 1)
         {
             await NavigateToSectionAsync(1);
         }
 
-        await ExpensesView.FocusTransactionAsync(transaction.Id);
-    }
-
-    private void UpdateTransactionSearchResults()
-    {
-        var query = TransactionSearchEntry.Text?.Trim() ?? string.Empty;
-        TransactionSearchClearButton.IsVisible = query.Length > 0;
-        RecentSearchesPanel.IsVisible = query.Length == 0;
-        SearchResultsPanel.IsVisible = query.Length > 0;
-
-        if (query.Length == 0)
-        {
-            BindableLayout.SetItemsSource(SearchResultsLayout, null);
-            SearchResultsCard.IsVisible = false;
-            SearchNoResultsLabel.IsVisible = false;
-            UpdateRecentSearchesView();
-            return;
-        }
-
-        var matchingRecords = transactionRecords
-            .Where(record => TransactionMatchesSearch(record, query))
-            .ToList();
-        var results = matchingRecords
-            .Select((record, index) => TransactionActivityItem.FromRecord(
-                record,
-                index < matchingRecords.Count - 1))
-            .ToList();
-
-        BindableLayout.SetItemsSource(SearchResultsLayout, results);
-        SearchResultsCountLabel.Text = $"TRANSACTIONS · {results.Count.ToString(CultureInfo.InvariantCulture)}";
-        SearchResultsCard.IsVisible = results.Count > 0;
-        SearchNoResultsLabel.IsVisible = results.Count == 0;
-    }
-
-    private static bool TransactionMatchesSearch(TransactionRecord record, string query)
-    {
-        var searchableText = string.Join(
-            ' ',
-            record.Description,
-            record.Category,
-            record.PaymentMethod,
-            record.Type,
-            record.TransactionDate.ToString("dddd d MMMM yyyy", CultureInfo.CurrentCulture),
-            record.TransactionDate.ToString("d MMM yyyy", CultureInfo.CurrentCulture),
-            (record.AmountMinor / 100m).ToString("N2", CultureInfo.InvariantCulture));
-        return searchableText.Contains(query, StringComparison.CurrentCultureIgnoreCase);
-    }
-
-    private void LoadRecentTransactionSearches()
-    {
-        recentTransactionSearches.Clear();
-        try
-        {
-            var serializedSearches = Preferences.Default.Get(
-                RecentSearchesPreferenceKey,
-                string.Empty);
-            var savedSearches = JsonSerializer.Deserialize<List<string>>(serializedSearches);
-            if (savedSearches is not null)
-            {
-                recentTransactionSearches.AddRange(savedSearches
-                    .Where(search => !string.IsNullOrWhiteSpace(search))
-                    .Distinct(StringComparer.CurrentCultureIgnoreCase)
-                    .Take(8));
-            }
-        }
-        catch
-        {
-            recentTransactionSearches.Clear();
-        }
-
-        UpdateRecentSearchesView();
-    }
-
-    private void AddRecentTransactionSearch(string query)
-    {
-        recentTransactionSearches.RemoveAll(search =>
-            search.Equals(query, StringComparison.CurrentCultureIgnoreCase));
-        recentTransactionSearches.Insert(0, query);
-        if (recentTransactionSearches.Count > 8)
-        {
-            recentTransactionSearches.RemoveRange(
-                8,
-                recentTransactionSearches.Count - 8);
-        }
-
-        SaveRecentTransactionSearches();
-        UpdateRecentSearchesView();
-    }
-
-    private void SaveRecentTransactionSearches() =>
-        Preferences.Default.Set(
-            RecentSearchesPreferenceKey,
-            JsonSerializer.Serialize(recentTransactionSearches));
-
-    private void UpdateRecentSearchesView()
-    {
-        BindableLayout.SetItemsSource(
-            RecentSearchesLayout,
-            recentTransactionSearches.ToList());
-        RecentSearchesCard.IsVisible = recentTransactionSearches.Count > 0;
-        NoRecentSearchesLabel.IsVisible = recentTransactionSearches.Count == 0;
+        await ExpensesView.FocusTransactionAsync(transactionId);
     }
 
     private async void OnTransactionEditRequested(int transactionId) =>
@@ -601,9 +392,8 @@ public partial class MainPage : ContentPage
         {
             var records = await localDatabase.GetTransactionsAsync();
             var currency = settingsViewModel.SelectedCurrency;
-            transactionRecords = records;
-
             ExpensesView.Refresh(records, currency);
+            TransactionSearchView.SetTransactions(records);
             RefreshDashboard(records, currency);
         }
         finally

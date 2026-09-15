@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Globalization;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using FinancialTracker.Models;
@@ -168,18 +167,6 @@ public sealed class SettingsViewModel(SettingsService settingsService) : INotify
         }
     }
 
-    public string AvailableAmountText => FormatMoney(3240.50m);
-    public string IncomeAmountText => FormatMoney(6800m);
-    public string SpentAmountText => FormatMoney(3559.50m);
-    public string TotalSpendingText => FormatMoney(1687.50m);
-    public string MedicalAmountText => FormatMoney(-172m);
-    public string GroceryAmountText => FormatMoney(-38.90m);
-    public string FamilyAmountText => FormatMoney(22m, showPositiveSign: true);
-    public string FuelAmountText => FormatMoney(-8m);
-    public string MarketAmountText => FormatMoney(-50m);
-    public string PharmacyAmountText => FormatMoney(-19.80m);
-    public string BreakfastAmountText => FormatMoney(-18.50m);
-
     public async Task InitializeAsync()
     {
         if (isInitialized)
@@ -285,12 +272,6 @@ public sealed class SettingsViewModel(SettingsService settingsService) : INotify
         TryNormalizeAccentColor(CustomAccentColorHex, out var normalized)
             ? SelectAccentColorAsync(normalized)
             : Task.CompletedTask;
-
-    private string FormatMoney(decimal amount, bool showPositiveSign = false)
-    {
-        var sign = amount < 0 ? "−" : showPositiveSign ? "+" : string.Empty;
-        return $"{sign}{SelectedCurrency.Symbol} {Math.Abs(amount).ToString("N2", CultureInfo.InvariantCulture)}";
-    }
 
     private async Task SaveAsync()
     {
@@ -405,17 +386,6 @@ public sealed class SettingsViewModel(SettingsService settingsService) : INotify
     {
         OnPropertyChanged(nameof(SelectedCurrencySummary));
         OnPropertyChanged(nameof(SelectedCurrencySymbol));
-        OnPropertyChanged(nameof(AvailableAmountText));
-        OnPropertyChanged(nameof(IncomeAmountText));
-        OnPropertyChanged(nameof(SpentAmountText));
-        OnPropertyChanged(nameof(TotalSpendingText));
-        OnPropertyChanged(nameof(MedicalAmountText));
-        OnPropertyChanged(nameof(GroceryAmountText));
-        OnPropertyChanged(nameof(FamilyAmountText));
-        OnPropertyChanged(nameof(FuelAmountText));
-        OnPropertyChanged(nameof(MarketAmountText));
-        OnPropertyChanged(nameof(PharmacyAmountText));
-        OnPropertyChanged(nameof(BreakfastAmountText));
     }
 
     private bool SetProperty<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
