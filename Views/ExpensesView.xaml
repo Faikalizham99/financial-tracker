@@ -52,36 +52,67 @@
 
             <views:MonthlySummaryCard x:Name="TransactionsMonthlySummary" ShowTransactionCount="True" />
 
-            <Grid ColumnDefinitions="Auto,*,*" ColumnSpacing="9">
-                <Border x:Name="AllFilterChip" Padding="17,8" BackgroundColor="{DynamicResource Accent}" StrokeThickness="0" StrokeShape="RoundRectangle 20">
-                    <Border.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="OnAllFilterTapped" />
-                    </Border.GestureRecognizers>
-                    <Label x:Name="AllFilterLabel" Text="All" FontFamily="OpenSansSemibold" TextColor="{DynamicResource AccentForeground}" />
-                </Border>
-                <Border x:Name="PaymentFilterChip" Grid.Column="1" Padding="10,7" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="1.5" StrokeShape="RoundRectangle 20">
-                    <Border.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="OnPaymentFilterTapped" />
-                    </Border.GestureRecognizers>
-                    <Grid ColumnDefinitions="28,*" ColumnSpacing="7">
-                        <Border WidthRequest="28" HeightRequest="28" Padding="0" StrokeThickness="0" StrokeShape="RoundRectangle 9">
-                            <Image x:Name="PaymentFilterIcon" Source="settings_payment_methods.png" WidthRequest="28" HeightRequest="28" Aspect="AspectFill" />
-                        </Border>
-                        <Label x:Name="PaymentFilterLabel" Grid.Column="1" Text="Payment method" Style="{StaticResource BodyMuted}" FontSize="12" LineBreakMode="TailTruncation" MaxLines="1" VerticalTextAlignment="Center" />
+            <VerticalStackLayout Spacing="9">
+                <Grid Margin="2,0" ColumnDefinitions="*,Auto">
+                    <Label Text="FILTERS" Style="{StaticResource SectionLabel}" VerticalTextAlignment="Center" />
+                    <Border
+                        x:Name="ClearAllFiltersButton"
+                        Grid.Column="1"
+                        Padding="10,5"
+                        IsVisible="False"
+                        BackgroundColor="{DynamicResource AccentTint}"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 999">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnAllFilterTapped" />
+                        </Border.GestureRecognizers>
+                        <Label Text="Clear all" FontFamily="OpenSansSemibold" FontSize="11" TextColor="{DynamicResource Accent}" />
+                    </Border>
+                </Grid>
+
+                <Border Style="{StaticResource SoftCard}" Padding="0">
+                    <Grid RowDefinitions="Auto,1,Auto">
+                        <Grid
+                            x:Name="PaymentFilterRow"
+                            Padding="14,11"
+                            ColumnDefinitions="40,*,18"
+                            ColumnSpacing="11">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnPaymentFilterTapped" />
+                            </Grid.GestureRecognizers>
+                            <Border WidthRequest="40" HeightRequest="40" StrokeThickness="0" StrokeShape="RoundRectangle 12" VerticalOptions="Center">
+                                <Image x:Name="PaymentFilterIcon" Source="settings_payment_methods.png" WidthRequest="40" HeightRequest="40" Aspect="AspectFill" />
+                            </Border>
+                            <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
+                                <Label Text="PAYMENT METHOD" Style="{StaticResource SectionLabel}" FontSize="9" CharacterSpacing="0.8" />
+                                <Label x:Name="PaymentFilterValueLabel" Text="Any payment method" FontFamily="OpenSansSemibold" FontSize="14" LineBreakMode="TailTruncation" MaxLines="1" />
+                            </VerticalStackLayout>
+                            <Path Grid.Column="2" WidthRequest="16" HeightRequest="16" Data="M 7,4 L 15,12 L 7,20" Stroke="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" StrokeThickness="2" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" VerticalOptions="Center" />
+                        </Grid>
+
+                        <BoxView Grid.Row="1" Margin="14,0" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+
+                        <Grid
+                            x:Name="CategoryFilterRow"
+                            Grid.Row="2"
+                            Padding="14,11"
+                            ColumnDefinitions="40,*,18"
+                            ColumnSpacing="11">
+                            <Grid.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnCategoryFilterTapped" />
+                            </Grid.GestureRecognizers>
+                            <Border WidthRequest="40" HeightRequest="40" StrokeThickness="0" StrokeShape="RoundRectangle 12" VerticalOptions="Center">
+                                <Image x:Name="CategoryFilterIcon" Source="settings_categories.png" WidthRequest="40" HeightRequest="40" Aspect="AspectFill" />
+                            </Border>
+                            <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
+                                <Label Text="CATEGORY" Style="{StaticResource SectionLabel}" FontSize="9" CharacterSpacing="0.8" />
+                                <Label x:Name="CategoryFilterValueLabel" Text="Any category" FontFamily="OpenSansSemibold" FontSize="14" LineBreakMode="TailTruncation" MaxLines="1" />
+                            </VerticalStackLayout>
+                            <Path Grid.Column="2" WidthRequest="16" HeightRequest="16" Data="M 7,4 L 15,12 L 7,20" Stroke="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" StrokeThickness="2" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" VerticalOptions="Center" />
+                        </Grid>
                     </Grid>
                 </Border>
-                <Border x:Name="CategoryFilterChip" Grid.Column="2" Padding="10,7" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="1.5" StrokeShape="RoundRectangle 20">
-                    <Border.GestureRecognizers>
-                        <TapGestureRecognizer Tapped="OnCategoryFilterTapped" />
-                    </Border.GestureRecognizers>
-                    <Grid ColumnDefinitions="28,*" ColumnSpacing="7">
-                        <Border WidthRequest="28" HeightRequest="28" Padding="0" StrokeThickness="0" StrokeShape="RoundRectangle 9">
-                            <Image x:Name="CategoryFilterIcon" Source="settings_categories.png" WidthRequest="28" HeightRequest="28" Aspect="AspectFill" />
-                        </Border>
-                        <Label x:Name="CategoryFilterLabel" Grid.Column="1" Text="Category" Style="{StaticResource BodyMuted}" FontSize="12" LineBreakMode="TailTruncation" MaxLines="1" VerticalTextAlignment="Center" />
-                    </Grid>
-                </Border>
-            </Grid>
+            </VerticalStackLayout>
 
             <Border x:Name="EmptyActivityState" Style="{StaticResource SoftCard}" Padding="24" IsVisible="True">
                 <VerticalStackLayout Spacing="5" HorizontalOptions="Center">

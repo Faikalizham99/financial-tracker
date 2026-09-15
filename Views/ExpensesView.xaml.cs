@@ -531,52 +531,32 @@ public partial class ExpensesView : ContentView
 
     private void UpdateFilterChips()
     {
-        var filtersAreClear = selectedPaymentFilter is null && selectedCategoryFilter is null;
+        var hasPaymentFilter = selectedPaymentFilter is not null;
+        var hasCategoryFilter = selectedCategoryFilter is not null;
 
-        PaymentFilterLabel.Text = selectedPaymentFilter?.Title ?? "Payment method";
+        PaymentFilterValueLabel.Text = selectedPaymentFilter?.Title ?? "Any payment method";
         PaymentFilterIcon.Source = selectedPaymentFilter?.IconAsset ?? "settings_payment_methods.png";
-        CategoryFilterLabel.Text = selectedCategoryFilter?.Title ?? "Category";
+        CategoryFilterValueLabel.Text = selectedCategoryFilter?.Title ?? "Any category";
         CategoryFilterIcon.Source = selectedCategoryFilter?.IconAsset ?? "settings_categories.png";
+        ClearAllFiltersButton.IsVisible = hasPaymentFilter || hasCategoryFilter;
 
-        ApplyFilterChipStyle(AllFilterChip, AllFilterLabel, filtersAreClear, true);
-        ApplyFilterChipStyle(
-            PaymentFilterChip,
-            PaymentFilterLabel,
-            selectedPaymentFilter is not null,
-            false);
-        ApplyFilterChipStyle(
-            CategoryFilterChip,
-            CategoryFilterLabel,
-            selectedCategoryFilter is not null,
-            false);
+        ApplyFilterRowStyle(PaymentFilterRow, PaymentFilterValueLabel, hasPaymentFilter);
+        ApplyFilterRowStyle(CategoryFilterRow, CategoryFilterValueLabel, hasCategoryFilter);
     }
 
-    private static void ApplyFilterChipStyle(
-        Border chip,
+    private static void ApplyFilterRowStyle(
+        Grid row,
         Label label,
-        bool isActive,
-        bool useSolidAccent)
+        bool isActive)
     {
         var resources = Application.Current!.Resources;
         var isDark = Application.Current.RequestedTheme == AppTheme.Dark;
 
-        if (isActive && useSolidAccent)
-        {
-            chip.BackgroundColor = (Color)resources["Accent"];
-            chip.Stroke = Brush.Transparent;
-            chip.StrokeThickness = 0;
-            label.TextColor = (Color)resources["AccentForeground"];
-            return;
-        }
-
-        chip.BackgroundColor = isActive
+        row.BackgroundColor = isActive
             ? (Color)resources["AccentTint"]
-            : (Color)resources[isDark ? "CardBackgroundDark" : "CardBackgroundLight"];
-        chip.Stroke = new SolidColorBrush((Color)resources[
-            isActive ? "Accent" : isDark ? "BorderDark" : "BorderLight"]);
-        chip.StrokeThickness = 1.5;
+            : Colors.Transparent;
         label.TextColor = (Color)resources[
-            isActive ? "Accent" : isDark ? "SecondaryTextDark" : "SecondaryTextLight"];
+            isActive ? "Accent" : isDark ? "PrimaryTextDark" : "PrimaryTextLight"];
     }
 
     private void UpdateMonthSwitcherLabel()
