@@ -66,10 +66,31 @@ public sealed class TransactionActivityItem
     }
 }
 
-public sealed class TransactionActivityGroup(
-    string title,
-    IReadOnlyList<TransactionActivityItem> items)
+public sealed class TransactionActivityGroup
 {
-    public string Title { get; } = title;
-    public IReadOnlyList<TransactionActivityItem> Items { get; } = items;
+    public TransactionActivityGroup(
+        string title,
+        IReadOnlyList<TransactionActivityItem> items,
+        long netAmountMinor,
+        string currencySymbol)
+    {
+        var sign = netAmountMinor switch
+        {
+            > 0 => "+ ",
+            < 0 => "− ",
+            _ => string.Empty
+        };
+
+        Title = title;
+        Items = items;
+        DailyTotalText = $"{sign}{currencySymbol} {(Math.Abs(netAmountMinor) / 100m).ToString("N2", CultureInfo.InvariantCulture)}";
+        IsNetIncome = netAmountMinor > 0;
+        IsNetExpense = netAmountMinor < 0;
+    }
+
+    public string Title { get; }
+    public IReadOnlyList<TransactionActivityItem> Items { get; }
+    public string DailyTotalText { get; }
+    public bool IsNetIncome { get; }
+    public bool IsNetExpense { get; }
 }

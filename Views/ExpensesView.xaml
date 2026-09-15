@@ -91,7 +91,19 @@
                 <BindableLayout.ItemTemplate>
                     <DataTemplate x:DataType="models:TransactionActivityGroup">
                         <VerticalStackLayout Spacing="10">
-                            <Label Text="{Binding Title}" Style="{StaticResource SectionLabel}" />
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                <Label Text="{Binding Title}" Style="{StaticResource SectionLabel}" VerticalTextAlignment="Center" />
+                                <Label Grid.Column="1" Text="{Binding DailyTotalText}" FontFamily="OpenSansSemibold" FontSize="12" TextColor="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" HorizontalTextAlignment="End" VerticalTextAlignment="Center">
+                                    <Label.Triggers>
+                                        <DataTrigger TargetType="Label" Binding="{Binding IsNetExpense}" Value="True">
+                                            <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" />
+                                        </DataTrigger>
+                                        <DataTrigger TargetType="Label" Binding="{Binding IsNetIncome}" Value="True">
+                                            <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource PositiveLight}, Dark={StaticResource PositiveDark}}" />
+                                        </DataTrigger>
+                                    </Label.Triggers>
+                                </Label>
+                            </Grid>
                             <Grid Margin="0,0,0,6">
                                 <Border Style="{StaticResource CardShadowLayer}" />
                                 <Border Style="{StaticResource CardSurface}" Padding="0">

@@ -338,10 +338,16 @@ public partial class ExpensesView : ContentView
                         record,
                         index < groupRecords.Count - 1))
                     .ToList();
+                var netAmountMinor = groupRecords.Sum(record =>
+                    record.Type.Equals("Income", StringComparison.OrdinalIgnoreCase)
+                        ? record.AmountMinor
+                        : -record.AmountMinor);
 
                 return new TransactionActivityGroup(
                     GetDateGroupTitle(group.Key),
-                    items);
+                    items,
+                    netAmountMinor,
+                    selectedCurrency.Symbol);
             })
             .ToList();
 
