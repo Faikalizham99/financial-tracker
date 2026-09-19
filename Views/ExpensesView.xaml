@@ -422,8 +422,6 @@
                 <CollectionView
                     x:Name="FilterSelectorCollection"
                     Grid.Row="1"
-                    SelectionMode="Single"
-                    SelectionChanged="OnFilterSelectorSelectionChanged"
                     VerticalScrollBarVisibility="Never">
                     <CollectionView.ItemsLayout>
                         <LinearItemsLayout Orientation="Vertical" ItemSpacing="9" />
@@ -431,6 +429,11 @@
                     <CollectionView.ItemTemplate>
                         <DataTemplate x:DataType="models:SelectableTransactionOption">
                             <Border Style="{StaticResource SoftCard}" Padding="10,8">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer
+                                        CommandParameter="{Binding .}"
+                                        Tapped="OnFilterSelectorOptionTapped" />
+                                </Border.GestureRecognizers>
                                 <Border.Triggers>
                                     <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
                                         <Setter Property="BackgroundColor" Value="{DynamicResource AccentTint}" />

@@ -185,19 +185,13 @@ public partial class AddTransactionView : ContentView
         await feedback;
     }
 
-    private async void OnSelectorSelectionChanged(
-        object? sender,
-        SelectionChangedEventArgs e)
+    private async void OnSelectorOptionTapped(object? sender, TappedEventArgs e)
     {
         if (isSelectorAnimating ||
-            e.CurrentSelection.FirstOrDefault() is not SelectableTransactionOption selectedOption)
+            e.Parameter is not SelectableTransactionOption selectedOption)
         {
             return;
         }
-
-        // Keep selection handling reliable on every platform while preventing the
-        // native iOS selected-cell rectangle from replacing our rounded highlight.
-        SelectorCollection.SelectedItem = null;
 
         foreach (var option in selectorOptions)
         {
@@ -277,7 +271,6 @@ public partial class AddTransactionView : ContentView
                 option.Key.Equals(selectedKey, StringComparison.OrdinalIgnoreCase)))
             .ToList();
         SelectorCollection.ItemsSource = selectorOptions;
-        SelectorCollection.SelectedItem = null;
         isSelectorOpen = true;
         isSelectorAnimating = true;
         SelectorOverlay.IsVisible = true;
@@ -537,11 +530,9 @@ public partial class AddTransactionView : ContentView
         }
     }
 
-    private void OnDescriptionSuggestionSelected(
-        object? sender,
-        SelectionChangedEventArgs e)
+    private void OnDescriptionSuggestionTapped(object? sender, TappedEventArgs e)
     {
-        if (e.CurrentSelection.FirstOrDefault() is not string description)
+        if (e.Parameter is not string description)
         {
             return;
         }
@@ -550,7 +541,6 @@ public partial class AddTransactionView : ContentView
         DescriptionEntry.Text = description;
         DescriptionEntry.CursorPosition = description.Length;
         isApplyingDescriptionSuggestion = false;
-        DescriptionSuggestionsView.SelectedItem = null;
         HideDescriptionSuggestions();
         DescriptionEntry.Focus();
     }
@@ -602,7 +592,6 @@ public partial class AddTransactionView : ContentView
     {
         DescriptionSuggestionsPanel.IsVisible = false;
         DescriptionSuggestionsPanel.HeightRequest = 0;
-        DescriptionSuggestionsView.SelectedItem = null;
     }
 
     private async void OnSaveTapped(object? sender, TappedEventArgs e)

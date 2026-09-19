@@ -801,18 +801,12 @@ public partial class ExpensesView : ContentView
         await feedback;
     }
 
-    private async void OnFilterSelectorSelectionChanged(
-        object? sender,
-        SelectionChangedEventArgs e)
+    private async void OnFilterSelectorOptionTapped(object? sender, TappedEventArgs e)
     {
-        if (e.CurrentSelection.FirstOrDefault() is not SelectableTransactionOption selectedOption)
+        if (e.Parameter is not SelectableTransactionOption selectedOption)
         {
             return;
         }
-
-        // Clear the platform selection immediately so iOS does not draw its
-        // rectangular selected-cell overlay over the custom rounded state.
-        FilterSelectorCollection.SelectedItem = null;
 
         foreach (var selectorOption in filterSelectorOptions)
         {
@@ -855,7 +849,6 @@ public partial class ExpensesView : ContentView
                 option.Key.Equals(selectedKey, StringComparison.OrdinalIgnoreCase)))
             .ToList();
         FilterSelectorCollection.ItemsSource = filterSelectorOptions;
-        FilterSelectorCollection.SelectedItem = null;
         UpdateFilterSelectorCardBounds();
         isFilterSelectorOpen = true;
         isFilterSelectorAnimating = true;

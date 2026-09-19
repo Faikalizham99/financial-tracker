@@ -264,12 +264,15 @@
                     </Border.Shadow>
                     <CollectionView
                         x:Name="DescriptionSuggestionsView"
-                        SelectionMode="Single"
-                        SelectionChanged="OnDescriptionSuggestionSelected"
                         VerticalScrollBarVisibility="Never">
                         <CollectionView.ItemTemplate>
                             <DataTemplate>
                                 <Grid Padding="12,8" ColumnDefinitions="24,*" ColumnSpacing="9" HeightRequest="46">
+                                    <Grid.GestureRecognizers>
+                                        <TapGestureRecognizer
+                                            CommandParameter="{Binding .}"
+                                            Tapped="OnDescriptionSuggestionTapped" />
+                                    </Grid.GestureRecognizers>
                                     <Path
                                         WidthRequest="19"
                                         HeightRequest="19"
@@ -369,8 +372,6 @@
                     <CollectionView
                         x:Name="SelectorCollection"
                         Grid.Row="1"
-                        SelectionMode="Single"
-                        SelectionChanged="OnSelectorSelectionChanged"
                         VerticalScrollBarVisibility="Never">
                         <CollectionView.ItemsLayout>
                             <LinearItemsLayout Orientation="Vertical" ItemSpacing="9" />
@@ -378,6 +379,11 @@
                         <CollectionView.ItemTemplate>
                             <DataTemplate x:DataType="models:SelectableTransactionOption">
                                 <Border Style="{StaticResource SoftCard}" Padding="10,8">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer
+                                            CommandParameter="{Binding .}"
+                                            Tapped="OnSelectorOptionTapped" />
+                                    </Border.GestureRecognizers>
                                     <Border.Triggers>
                                         <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
                                             <Setter Property="BackgroundColor" Value="{DynamicResource AccentTint}" />

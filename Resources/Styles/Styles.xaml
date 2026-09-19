@@ -20,6 +20,15 @@
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" />
     </Style>
 
+    <!--
+        Collection rows provide their own rounded tap and selected visuals.
+        Keeping native item selection disabled prevents platform list cells from
+        drawing a rectangular pressed/selected background behind those visuals.
+    -->
+    <Style TargetType="CollectionView">
+        <Setter Property="SelectionMode" Value="None" />
+    </Style>
+
     <Style x:Key="DisplayTitle" TargetType="Label">
         <Setter Property="FontFamily" Value="OpenSansSemibold" />
         <Setter Property="FontSize" Value="40" />
