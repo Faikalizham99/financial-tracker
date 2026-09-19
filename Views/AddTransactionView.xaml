@@ -258,8 +258,8 @@
                         x:Name="DescriptionSuggestionsView"
                         VerticalScrollBarVisibility="Never">
                         <CollectionView.ItemTemplate>
-                            <DataTemplate>
-                                <Grid Padding="12,8" ColumnDefinitions="24,*" ColumnSpacing="9" HeightRequest="46">
+                            <DataTemplate x:DataType="models:TransactionHistorySuggestion">
+                                <Grid Padding="12,7" ColumnDefinitions="24,*" ColumnSpacing="9" HeightRequest="54">
                                     <Grid.GestureRecognizers>
                                         <TapGestureRecognizer
                                             CommandParameter="{Binding .}"
@@ -276,14 +276,20 @@
                                         Fill="Transparent"
                                         Aspect="Uniform"
                                         VerticalOptions="Center" />
-                                    <Label
-                                        Grid.Column="1"
-                                        Text="{Binding .}"
-                                        FontFamily="OpenSansSemibold"
-                                        FontSize="14"
-                                        LineBreakMode="TailTruncation"
-                                        MaxLines="1"
-                                        VerticalTextAlignment="Center" />
+                                    <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
+                                        <Label
+                                            Text="{Binding Description}"
+                                            FontFamily="OpenSansSemibold"
+                                            FontSize="14"
+                                            LineBreakMode="TailTruncation"
+                                            MaxLines="1" />
+                                        <Label
+                                            Text="{Binding DetailText}"
+                                            Style="{StaticResource BodyMuted}"
+                                            FontSize="10"
+                                            LineBreakMode="TailTruncation"
+                                            MaxLines="1" />
+                                    </VerticalStackLayout>
                                 </Grid>
                             </DataTemplate>
                         </CollectionView.ItemTemplate>

@@ -36,7 +36,7 @@ public partial class AddTransactionView : ContentView
     private bool isTypeAnimating;
     private bool isSaving;
     private bool isApplyingDescriptionSuggestion;
-    private IReadOnlyList<string> descriptionHistory = [];
+    private IReadOnlyList<TransactionHistorySuggestion> descriptionHistory = [];
     private TransactionRecord? editingTransaction;
     private IReadOnlyList<SelectableTransactionOption> selectorOptions = [];
 
@@ -529,14 +529,19 @@ public partial class AddTransactionView : ContentView
 
     private void OnDescriptionSuggestionTapped(object? sender, TappedEventArgs e)
     {
-        if (e.Parameter is not string description)
+        if (e.Parameter is not TransactionHistorySuggestion suggestion)
         {
             return;
         }
 
         isApplyingDescriptionSuggestion = true;
-        DescriptionEntry.Text = description;
-        DescriptionEntry.CursorPosition = description.Length;
+        DescriptionEntry.Text = suggestion.Description;
+        DescriptionEntry.CursorPosition = suggestion.Description.Length;
+        selectedType = suggestion.TransactionType;
+        selectedCategory = suggestion.Category;
+        selectedPayment = suggestion.PaymentMethod;
+        UpdateTypeAndCategory();
+        UpdatePaymentMethod();
         isApplyingDescriptionSuggestion = false;
         HideDescriptionSuggestions();
         DescriptionEntry.Focus();
@@ -548,9 +553,14 @@ public partial class AddTransactionView : ContentView
         {
             var records = await localDatabase.GetTransactionsAsync();
             descriptionHistory = records
-                .Select(record => record.Description.Trim())
-                .Where(description => !string.IsNullOrWhiteSpace(description))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Where(record => !string.IsNullOrWhiteSpace(record.Description))
+                .OrderByDescending(record => record.TransactionDate)
+                .ThenByDescending(record => record.CreatedAtUtc)
+                .ThenByDescending(record => record.Id)
+                .GroupBy(
+                    record => record.Description.Trim(),
+                    StringComparer.OrdinalIgnoreCase)
+                .Select(group => CreateHistorySuggestion(group.First()))
                 .ToList();
         }
         catch
@@ -569,17 +579,17 @@ public partial class AddTransactionView : ContentView
         }
 
         var matches = descriptionHistory
-            .Where(description => description.Contains(
+            .Where(suggestion => suggestion.Description.Contains(
                 query,
                 StringComparison.OrdinalIgnoreCase))
-            .OrderByDescending(description => description.StartsWith(
+            .OrderByDescending(suggestion => suggestion.Description.StartsWith(
                 query,
                 StringComparison.OrdinalIgnoreCase))
             .Take(4)
             .ToList();
 
         DescriptionSuggestionsView.ItemsSource = matches;
-        DescriptionSuggestionsPanel.HeightRequest = matches.Count * 46 + 8;
+        DescriptionSuggestionsPanel.HeightRequest = matches.Count * 54 + 8;
         DescriptionSuggestionsPanel.TranslationY =
             DescriptionFieldContainer.Y + DescriptionFieldContainer.Height + 8;
         DescriptionSuggestionsPanel.IsVisible = matches.Count > 0;
@@ -589,6 +599,20 @@ public partial class AddTransactionView : ContentView
     {
         DescriptionSuggestionsPanel.IsVisible = false;
         DescriptionSuggestionsPanel.HeightRequest = 0;
+    }
+
+    private static TransactionHistorySuggestion CreateHistorySuggestion(
+        TransactionRecord record)
+    {
+        var transactionType = TransactionCatalog.TransactionTypes.FirstOrDefault(option =>
+                option.Key.Equals(record.Type, StringComparison.OrdinalIgnoreCase))
+            ?? TransactionCatalog.TransactionTypes[0];
+        var isIncome = transactionType.Key.Equals("Income", StringComparison.OrdinalIgnoreCase);
+        return new TransactionHistorySuggestion(
+            record.Description.Trim(),
+            transactionType,
+            TransactionCatalog.GetCategory(record.Category, isIncome),
+            TransactionCatalog.GetPaymentMethod(record.PaymentMethod));
     }
 
     private async void OnSaveTapped(object? sender, TappedEventArgs e)
