@@ -31,6 +31,7 @@ public sealed class TransactionActivityItem : INotifyPropertyChanged
     public LineBreakMode DescriptionLineBreakMode =>
         IsDescriptionExpanded ? LineBreakMode.WordWrap : LineBreakMode.TailTruncation;
     public double DescriptionHeaderHeightRequest => IsDescriptionExpanded ? -1 : 20;
+    public double DescriptionRowHeightRequest => IsDescriptionExpanded ? -1 : 63;
     public double DescriptionIndicatorRotation => IsDescriptionExpanded ? 180 : 0;
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -99,6 +100,7 @@ public sealed class TransactionActivityItem : INotifyPropertyChanged
         OnPropertyChanged(nameof(DescriptionMaxLines));
         OnPropertyChanged(nameof(DescriptionLineBreakMode));
         OnPropertyChanged(nameof(DescriptionHeaderHeightRequest));
+        OnPropertyChanged(nameof(DescriptionRowHeightRequest));
         OnPropertyChanged(nameof(DescriptionIndicatorRotation));
     }
 
