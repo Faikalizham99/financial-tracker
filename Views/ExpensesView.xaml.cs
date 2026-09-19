@@ -8,9 +8,12 @@ using Microsoft.Maui;
 
 public partial class ExpensesView : ContentView
 {
+    private static readonly DateTime MinimumSupportedDate = new(2000, 1, 1);
+
     public event Action<int>? EditTransactionRequested;
     public event Action<int>? DeleteTransactionRequested;
     public event Action? SearchRequested;
+    public Func<DateTime, DateTime, DateTime, Task<DateTime?>>? DatePickerRequested { get; set; }
 
     private enum FilterSelectorKind
     {
@@ -45,6 +48,8 @@ public partial class ExpensesView : ContentView
     private TransactionOption? selectedCategoryFilter;
     private DateTime? selectedStartDate;
     private DateTime? selectedEndDate;
+    private DateTime dateRangeStartDraft;
+    private DateTime dateRangeEndDraft;
     private IReadOnlyList<SelectableTransactionOption> filterSelectorOptions = [];
     private readonly HashSet<DateTime> collapsedActivityGroupDates = [];
     private readonly HashSet<DateTime> animatingActivityGroupDates = [];
@@ -538,17 +543,9 @@ public partial class ExpensesView : ContentView
 
         var monthStart = displayedMonth.Date;
         var monthEnd = displayedMonth.AddMonths(1).AddDays(-1).Date;
-        ConfigureDatePicker(
-            StartDatePicker,
-            selectedStartDate ?? monthStart,
-            monthStart,
-            monthEnd);
-        ConfigureDatePicker(
-            EndDatePicker,
-            selectedEndDate ?? monthEnd,
-            monthStart,
-            monthEnd);
-        DateRangeMonthLabel.Text = $"Choose dates in {displayedMonth.ToString("MMMM yyyy", CultureInfo.CurrentCulture)}";
+        dateRangeStartDraft = selectedStartDate ?? monthStart;
+        dateRangeEndDraft = selectedEndDate ?? monthEnd;
+        DateRangeMonthLabel.Text = "Choose any start and end date";
         UpdateDateRangeLabels();
 
         isDateRangeFilterOpen = true;
@@ -571,61 +568,58 @@ public partial class ExpensesView : ContentView
         }
     }
 
-    private static void ConfigureDatePicker(
-        DatePicker picker,
-        DateTime date,
-        DateTime minimumDate,
-        DateTime maximumDate)
-    {
-        picker.MinimumDate = new DateTime(2000, 1, 1);
-        picker.MaximumDate = DateTime.Today.AddYears(10);
-        picker.Date = date;
-        picker.MinimumDate = minimumDate;
-        picker.MaximumDate = maximumDate;
-    }
-
-    private async void OnStartDateTapped(object? sender, TappedEventArgs e) =>
-        await OpenNativeDatePickerAsync(StartDatePicker, sender);
-
-    private async void OnEndDateTapped(object? sender, TappedEventArgs e) =>
-        await OpenNativeDatePickerAsync(EndDatePicker, sender);
-
-    private static async Task OpenNativeDatePickerAsync(DatePicker picker, object? sender)
+    private async void OnStartDateTapped(object? sender, TappedEventArgs e)
     {
         var feedback = InteractionAnimations.PulseAsync(sender);
-        picker.IsOpen = true;
+        var selectedDate = DatePickerRequested is null
+            ? null
+            : await DatePickerRequested(
+                dateRangeStartDraft,
+                MinimumSupportedDate,
+                DateTime.Today.AddYears(10));
+        if (selectedDate is not null)
+        {
+            dateRangeStartDraft = selectedDate.Value.Date;
+            if (dateRangeEndDraft < dateRangeStartDraft)
+            {
+                dateRangeEndDraft = dateRangeStartDraft;
+            }
+
+            UpdateDateRangeLabels();
+        }
 
         await feedback;
     }
 
-    private void OnStartDateSelected(object? sender, DateChangedEventArgs e)
+    private async void OnEndDateTapped(object? sender, TappedEventArgs e)
     {
-        var selectedDate = (e.NewDate ?? displayedMonth).Date;
-        if ((EndDatePicker.Date ?? selectedDate).Date < selectedDate)
+        var feedback = InteractionAnimations.PulseAsync(sender);
+        var selectedDate = DatePickerRequested is null
+            ? null
+            : await DatePickerRequested(
+                dateRangeEndDraft,
+                MinimumSupportedDate,
+                DateTime.Today.AddYears(10));
+        if (selectedDate is not null)
         {
-            EndDatePicker.Date = selectedDate;
+            dateRangeEndDraft = selectedDate.Value.Date;
+            if (dateRangeStartDraft > dateRangeEndDraft)
+            {
+                dateRangeStartDraft = dateRangeEndDraft;
+            }
+
+            UpdateDateRangeLabels();
         }
 
-        UpdateDateRangeLabels();
-    }
-
-    private void OnEndDateSelected(object? sender, DateChangedEventArgs e)
-    {
-        var selectedDate = (e.NewDate ?? displayedMonth).Date;
-        if ((StartDatePicker.Date ?? selectedDate).Date > selectedDate)
-        {
-            StartDatePicker.Date = selectedDate;
-        }
-
-        UpdateDateRangeLabels();
+        await feedback;
     }
 
     private void UpdateDateRangeLabels()
     {
-        StartDateLabel.Text = (StartDatePicker.Date ?? displayedMonth).ToString(
+        StartDateLabel.Text = dateRangeStartDraft.ToString(
             "dddd, d MMMM yyyy",
             CultureInfo.CurrentCulture);
-        EndDateLabel.Text = (EndDatePicker.Date ?? displayedMonth).ToString(
+        EndDateLabel.Text = dateRangeEndDraft.ToString(
             "dddd, d MMMM yyyy",
             CultureInfo.CurrentCulture);
     }
@@ -633,8 +627,8 @@ public partial class ExpensesView : ContentView
     private async void OnDateRangeApplyTapped(object? sender, TappedEventArgs e)
     {
         var feedback = InteractionAnimations.PulseAsync(sender);
-        selectedStartDate = (StartDatePicker.Date ?? displayedMonth).Date;
-        selectedEndDate = (EndDatePicker.Date ?? selectedStartDate.Value).Date;
+        selectedStartDate = dateRangeStartDraft;
+        selectedEndDate = dateRangeEndDraft;
         RenderDisplayedMonth();
         await CloseDateRangeFilterAsync();
         await feedback;
@@ -668,8 +662,6 @@ public partial class ExpensesView : ContentView
         }
 
         isDateRangeFilterAnimating = true;
-        StartDatePicker.Unfocus();
-        EndDatePicker.Unfocus();
         try
         {
             await Task.WhenAll(
@@ -944,12 +936,13 @@ public partial class ExpensesView : ContentView
             return;
         }
 
-        var monthRecords = transactionRecords
-            .Where(record =>
+        var hasDateRange = selectedStartDate is not null && selectedEndDate is not null;
+        var recordsInPeriod = hasDateRange
+            ? transactionRecords
+            : transactionRecords.Where(record =>
                 record.TransactionDate.Year == displayedMonth.Year &&
-                record.TransactionDate.Month == displayedMonth.Month)
-            .ToList();
-        var filteredRecords = monthRecords
+                record.TransactionDate.Month == displayedMonth.Month);
+        var filteredRecords = recordsInPeriod
             .Where(record =>
                 selectedPaymentFilter is null ||
                 record.PaymentMethod.Equals(
@@ -966,9 +959,12 @@ public partial class ExpensesView : ContentView
             .Where(record =>
                 selectedEndDate is null ||
                 record.TransactionDate.Date <= selectedEndDate.Value)
+            .OrderByDescending(record => record.TransactionDate)
+            .ThenByDescending(record => record.Id)
             .ToList();
         var groups = filteredRecords
             .GroupBy(record => record.TransactionDate.Date)
+            .OrderByDescending(group => group.Key)
             .Select(group =>
             {
                 var groupRecords = group.ToList();
@@ -1002,10 +998,21 @@ public partial class ExpensesView : ContentView
             selectedStartDate is not null
             ? "No transactions match these filters"
             : $"No transactions in {displayedMonth.ToString("MMMM yyyy", CultureInfo.CurrentCulture)}";
-        TransactionsMonthlySummary.Refresh(
-            transactionRecords,
-            selectedCurrency,
-            displayedMonth);
+        if (hasDateRange)
+        {
+            TransactionsMonthlySummary.RefreshRange(
+                transactionRecords,
+                selectedCurrency,
+                selectedStartDate!.Value,
+                selectedEndDate!.Value);
+        }
+        else
+        {
+            TransactionsMonthlySummary.Refresh(
+                transactionRecords,
+                selectedCurrency,
+                displayedMonth);
+        }
         UpdateMonthSwitcherLabel();
         UpdateFilterChips();
         ScheduleDescriptionMeasurements();
@@ -1099,9 +1106,29 @@ public partial class ExpensesView : ContentView
 
     private void UpdateMonthSwitcherLabel()
     {
-        MonthSwitcherLabel.Text = displayedMonth.ToString(
-            "MMMM yyyy",
-            CultureInfo.CurrentCulture);
+        MonthSwitcherLabel.Text = selectedStartDate is not null && selectedEndDate is not null
+            ? FormatDateRange(selectedStartDate.Value, selectedEndDate.Value)
+            : displayedMonth.ToString("MMMM yyyy", CultureInfo.CurrentCulture);
+    }
+
+    private static string FormatDateRange(DateTime startDate, DateTime endDate)
+    {
+        if (startDate == endDate)
+        {
+            return startDate.ToString("d MMM yyyy", CultureInfo.CurrentCulture);
+        }
+
+        if (startDate.Year == endDate.Year && startDate.Month == endDate.Month)
+        {
+            return $"{startDate.Day}–{endDate.ToString("d MMM yyyy", CultureInfo.CurrentCulture)}";
+        }
+
+        if (startDate.Year == endDate.Year)
+        {
+            return $"{startDate.ToString("d MMM", CultureInfo.CurrentCulture)} – {endDate.ToString("d MMM yyyy", CultureInfo.CurrentCulture)}";
+        }
+
+        return $"{startDate.ToString("d MMM yyyy", CultureInfo.CurrentCulture)} – {endDate.ToString("d MMM yyyy", CultureInfo.CurrentCulture)}";
     }
 
     private static string GetDateGroupTitle(DateTime date)

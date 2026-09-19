@@ -10,6 +10,7 @@ namespace FinancialTracker.Views;
 public partial class AddTransactionView : ContentView
 {
     public event EventHandler? TransactionSaved;
+    public Func<DateTime, DateTime, DateTime, Task<DateTime?>>? DatePickerRequested { get; set; }
 
     private enum SelectorKind
     {
@@ -25,6 +26,7 @@ public partial class AddTransactionView : ContentView
     private SelectorKind selectorKind;
     private string currentInput = "0";
     private decimal accumulator;
+    private DateTime transactionDate = DateTime.Today;
     private string? pendingOperator;
     private bool startNewInput = true;
     private bool isOpen;
@@ -41,8 +43,6 @@ public partial class AddTransactionView : ContentView
     public AddTransactionView()
     {
         InitializeComponent();
-        TransactionDatePicker.MaximumDate = DateTime.Today.AddYears(10);
-        TransactionDatePicker.MinimumDate = new DateTime(2000, 1, 1);
     }
 
     public async Task OpenAsync(
@@ -503,22 +503,19 @@ public partial class AddTransactionView : ContentView
         HideDescriptionSuggestions();
         DescriptionEntry.Unfocus();
         var feedback = InteractionAnimations.PulseAsync(sender);
-
-        Dispatcher.Dispatch(() =>
+        var selectedDate = DatePickerRequested is null
+            ? null
+            : await DatePickerRequested(
+                transactionDate,
+                new DateTime(2000, 1, 1),
+                DateTime.Today.AddYears(10));
+        if (selectedDate is not null)
         {
-            TransactionDatePicker.IsOpen = true;
-        });
+            transactionDate = selectedDate.Value.Date;
+            UpdateDateLabel(transactionDate);
+        }
 
         await feedback;
-    }
-
-    private void OnTransactionDateSelected(object? sender, DateChangedEventArgs e) =>
-        UpdateDateLabel(e.NewDate ?? DateTime.Today);
-
-    private void OnTransactionDatePickerFocused(object? sender, FocusEventArgs e)
-    {
-        HideDescriptionSuggestions();
-        DescriptionEntry.Unfocus();
     }
 
     private void OnDescriptionTextChanged(object? sender, TextChangedEventArgs e)
@@ -636,7 +633,7 @@ public partial class AddTransactionView : ContentView
                 Description = DescriptionEntry.Text?.Trim() ?? string.Empty,
                 AmountMinor = decimal.ToInt64(decimal.Round(amount * 100, 0, MidpointRounding.AwayFromZero)),
                 CurrencyCode = currency.Code,
-                TransactionDate = (TransactionDatePicker.Date ?? DateTime.Today).Date,
+                TransactionDate = transactionDate,
                 CreatedAtUtc = editingTransaction?.CreatedAtUtc ?? DateTime.UtcNow
             };
 
@@ -700,8 +697,7 @@ public partial class AddTransactionView : ContentView
         isApplyingDescriptionSuggestion = true;
         DescriptionEntry.Text = transaction?.Description ?? string.Empty;
         isApplyingDescriptionSuggestion = false;
-        var transactionDate = transaction?.TransactionDate.Date ?? DateTime.Today;
-        TransactionDatePicker.Date = transactionDate;
+        transactionDate = transaction?.TransactionDate.Date ?? DateTime.Today;
         CurrencySymbolLabel.Text = currency.Symbol;
         UpdateDateLabel(transactionDate);
         UpdateTypeAndCategory();

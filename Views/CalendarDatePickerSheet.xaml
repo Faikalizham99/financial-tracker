@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+    x:Class="FinancialTracker.Views.CalendarDatePickerSheet"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    IsVisible="False"
+    SizeChanged="OnOverlaySizeChanged">
+
+    <Grid x:Name="OverlayRoot" Opacity="0">
+        <BoxView BackgroundColor="#99000000">
+            <BoxView.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnDismissTapped" />
+            </BoxView.GestureRecognizers>
+        </BoxView>
+
+        <Border
+            x:Name="PickerSheet"
+            Margin="18"
+            Padding="18,16,18,20"
+            WidthRequest="500"
+            HeightRequest="520"
+            HorizontalOptions="Center"
+            VerticalOptions="Center"
+            BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource SurfaceMutedDark}}"
+            Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+            StrokeThickness="2"
+            StrokeShape="RoundRectangle 30">
+            <Border.Shadow>
+                <Shadow Brush="#000000" Offset="0,9" Opacity="0.34" Radius="20" />
+            </Border.Shadow>
+
+            <Grid RowDefinitions="44,52,*" RowSpacing="12">
+                <Grid ColumnDefinitions="82,*,82" ColumnSpacing="10">
+                    <Border
+                        WidthRequest="44"
+                        HeightRequest="44"
+                        Padding="12"
+                        HorizontalOptions="Start"
+                        Style="{StaticResource Pill}"
+                        SemanticProperties.Description="Close date picker">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnDismissTapped" />
+                        </Border.GestureRecognizers>
+                        <Path
+                            Data="M 5,5 L 19,19 M 19,5 L 5,19"
+                            Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}"
+                            StrokeThickness="2.2"
+                            StrokeLineCap="Round"
+                            Fill="Transparent"
+                            Aspect="Uniform" />
+                    </Border>
+
+                    <Label
+                        x:Name="SelectedDateTitleLabel"
+                        Grid.Column="1"
+                        Text="Today"
+                        FontFamily="OpenSansSemibold"
+                        FontSize="15"
+                        HorizontalTextAlignment="Center"
+                        VerticalTextAlignment="Center" />
+
+                    <Border
+                        x:Name="TodayButton"
+                        Grid.Column="2"
+                        HeightRequest="44"
+                        Padding="12,0"
+                        Style="{StaticResource Pill}"
+                        SemanticProperties.Description="Select today">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnTodayTapped" />
+                        </Border.GestureRecognizers>
+                        <Label
+                            Text="Today"
+                            FontFamily="OpenSansSemibold"
+                            FontSize="13"
+                            HorizontalTextAlignment="Center"
+                            VerticalTextAlignment="Center" />
+                    </Border>
+                </Grid>
+
+                <Grid Grid.Row="1" ColumnDefinitions="*,44,44" ColumnSpacing="4">
+                    <Border
+                        x:Name="MonthYearButton"
+                        Padding="9,0"
+                        BackgroundColor="Transparent"
+                        StrokeThickness="0"
+                        SemanticProperties.Description="Choose month and year">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnMonthYearTapped" />
+                        </Border.GestureRecognizers>
+                        <HorizontalStackLayout Spacing="7" VerticalOptions="Center">
+                            <Label
+                                x:Name="MonthYearLabel"
+                                Text="September 2026"
+                                FontFamily="OpenSansSemibold"
+                                FontSize="17"
+                                VerticalTextAlignment="Center" />
+                            <Path
+                                x:Name="MonthYearChevron"
+                                WidthRequest="13"
+                                HeightRequest="13"
+                                Data="M 4,7 L 8,11 L 12,7"
+                                Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}"
+                                StrokeThickness="2"
+                                StrokeLineCap="Round"
+                                StrokeLineJoin="Round"
+                                Fill="Transparent"
+                                Aspect="Uniform"
+                                VerticalOptions="Center" />
+                        </HorizontalStackLayout>
+                    </Border>
+
+                    <Border
+                        x:Name="PreviousMonthButton"
+                        Grid.Column="1"
+                        WidthRequest="44"
+                        HeightRequest="44"
+                        Padding="13"
+                        BackgroundColor="Transparent"
+                        StrokeThickness="0"
+                        SemanticProperties.Description="Previous month">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnPreviousMonthTapped" />
+                        </Border.GestureRecognizers>
+                        <Path Data="M 15,4 L 7,12 L 15,20" Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" StrokeThickness="2.3" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" />
+                    </Border>
+
+                    <Border
+                        x:Name="NextMonthButton"
+                        Grid.Column="2"
+                        WidthRequest="44"
+                        HeightRequest="44"
+                        Padding="13"
+                        BackgroundColor="Transparent"
+                        StrokeThickness="0"
+                        SemanticProperties.Description="Next month">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnNextMonthTapped" />
+                        </Border.GestureRecognizers>
+                        <Path Data="M 7,4 L 15,12 L 7,20" Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" StrokeThickness="2.3" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" />
+                    </Border>
+                </Grid>
+
+                <Grid x:Name="CalendarPanel" Grid.Row="2" RowDefinitions="34,*" RowSpacing="6">
+                    <Grid ColumnDefinitions="*,*,*,*,*,*,*">
+                        <Label Grid.Column="0" Text="MON" Style="{StaticResource SectionLabel}" FontSize="10" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                        <Label Grid.Column="1" Text="TUE" Style="{StaticResource SectionLabel}" FontSize="10" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                        <Label Grid.Column="2" Text="WED" Style="{StaticResource SectionLabel}" FontSize="10" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                        <Label Grid.Column="3" Text="THU" Style="{StaticResource SectionLabel}" FontSize="10" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                        <Label Grid.Column="4" Text="FRI" Style="{StaticResource SectionLabel}" FontSize="10" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                        <Label Grid.Column="5" Text="SAT" Style="{StaticResource SectionLabel}" FontSize="10" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                        <Label Grid.Column="6" Text="SUN" Style="{StaticResource SectionLabel}" FontSize="10" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                    </Grid>
+
+                    <Grid
+                        x:Name="DaysGrid"
+                        Grid.Row="1"
+                        ColumnDefinitions="*,*,*,*,*,*,*"
+                        RowDefinitions="52,52,52,52,52,52" />
+                </Grid>
+
+                <Grid
+                    x:Name="MonthYearPanel"
+                    Grid.Row="2"
+                    IsVisible="False"
+                    ColumnDefinitions="*,1,*"
+                    ColumnSpacing="12">
+                    <Grid RowDefinitions="32,*" RowSpacing="6">
+                        <Label Text="MONTH" Style="{StaticResource SectionLabel}" FontSize="10" HorizontalTextAlignment="Center" />
+                        <ScrollView x:Name="MonthOptionsScroll" Grid.Row="1" VerticalScrollBarVisibility="Never">
+                            <VerticalStackLayout x:Name="MonthOptionsLayout" Spacing="5" />
+                        </ScrollView>
+                    </Grid>
+
+                    <BoxView Grid.Column="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+
+                    <Grid Grid.Column="2" RowDefinitions="32,*" RowSpacing="6">
+                        <Label Text="YEAR" Style="{StaticResource SectionLabel}" FontSize="10" HorizontalTextAlignment="Center" />
+                        <ScrollView x:Name="YearOptionsScroll" Grid.Row="1" VerticalScrollBarVisibility="Never">
+                            <VerticalStackLayout x:Name="YearOptionsLayout" Spacing="5" />
+                        </ScrollView>
+                    </Grid>
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+</ContentView>

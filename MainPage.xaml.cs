@@ -91,6 +91,8 @@ public partial class MainPage : ContentPage
         ApplyHomeSectionOrder();
         BindingContext = settingsViewModel;
         AddTransactionOverlay.TransactionSaved += OnTransactionSaved;
+        AddTransactionOverlay.DatePickerRequested = CalendarPicker.PickAsync;
+        ExpensesView.DatePickerRequested = CalendarPicker.PickAsync;
         ExpensesView.EditTransactionRequested += OnTransactionEditRequested;
         ExpensesView.DeleteTransactionRequested += OnTransactionDeleteRequested;
         ExpensesView.SearchRequested += OnTransactionSearchRequested;

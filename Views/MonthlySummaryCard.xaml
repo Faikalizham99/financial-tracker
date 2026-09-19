@@ -8,7 +8,7 @@
         <Border Style="{StaticResource CardShadowLayer}" />
         <Border Style="{StaticResource CardSurface}" Padding="20,18">
             <VerticalStackLayout Spacing="17">
-                <HorizontalStackLayout Spacing="10">
+                <Grid ColumnDefinitions="23,*,18" ColumnSpacing="10">
                     <Path
                         WidthRequest="23"
                         HeightRequest="23"
@@ -22,12 +22,16 @@
                         VerticalOptions="Center" />
                     <Label
                         x:Name="SummaryMonthLabel"
+                        Grid.Column="1"
                         Text="September 2026"
                         FontFamily="OpenSansSemibold"
                         FontSize="21"
                         TextColor="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}"
+                        LineBreakMode="TailTruncation"
+                        MaxLines="1"
                         VerticalTextAlignment="Center" />
                     <Path
+                        Grid.Column="2"
                         WidthRequest="18"
                         HeightRequest="20"
                         Data="M 6,10 L 6,7 A 6,6 0 0 1 18,7 L 18,10 M 5,10 L 19,10 L 19,21 L 5,21 Z M 12,14 L 12,17"
@@ -38,7 +42,7 @@
                         Fill="Transparent"
                         Aspect="Uniform"
                         VerticalOptions="Center" />
-                </HorizontalStackLayout>
+                </Grid>
 
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="18">
                     <Label

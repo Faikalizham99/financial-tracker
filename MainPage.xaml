@@ -430,6 +430,10 @@
             x:Name="TransactionSearchView"
             ZIndex="110" />
 
+        <views:CalendarDatePickerSheet
+            x:Name="CalendarPicker"
+            ZIndex="130" />
+
         <Grid
             x:Name="ArrangeHomeOverlay"
             IsVisible="False"

@@ -37,6 +37,45 @@ public partial class MonthlySummaryCard : ContentView
         DateTime? displayedMonth = null)
     {
         var month = displayedMonth ?? DateTime.Today;
+        RefreshCore(
+            records,
+            selectedCurrency,
+            new DateTime(month.Year, month.Month, 1),
+            new DateTime(month.Year, month.Month, 1).AddMonths(1).AddDays(-1),
+            month.ToString("MMMM yyyy", CultureInfo.CurrentCulture),
+            $"Available for {month.ToString("MMMM", CultureInfo.CurrentCulture)}");
+    }
+
+    public void RefreshRange(
+        IReadOnlyList<TransactionRecord> records,
+        CurrencyOption selectedCurrency,
+        DateTime startDate,
+        DateTime endDate)
+    {
+        var normalizedStart = startDate.Date;
+        var normalizedEnd = endDate.Date;
+        if (normalizedStart > normalizedEnd)
+        {
+            (normalizedStart, normalizedEnd) = (normalizedEnd, normalizedStart);
+        }
+
+        RefreshCore(
+            records,
+            selectedCurrency,
+            normalizedStart,
+            normalizedEnd,
+            FormatRangeTitle(normalizedStart, normalizedEnd),
+            "Available for selected range");
+    }
+
+    private void RefreshCore(
+        IReadOnlyList<TransactionRecord> records,
+        CurrencyOption selectedCurrency,
+        DateTime startDate,
+        DateTime endDate,
+        string title,
+        string availableCaption)
+    {
         long incomeMinor = 0;
         long expenseMinor = 0;
         var transactionCount = 0;
@@ -44,8 +83,8 @@ public partial class MonthlySummaryCard : ContentView
         foreach (var record in records)
         {
             if (!record.CurrencyCode.Equals(selectedCurrency.Code, StringComparison.OrdinalIgnoreCase) ||
-                record.TransactionDate.Year != month.Year ||
-                record.TransactionDate.Month != month.Month)
+                record.TransactionDate.Date < startDate ||
+                record.TransactionDate.Date > endDate)
             {
                 continue;
             }
@@ -61,9 +100,8 @@ public partial class MonthlySummaryCard : ContentView
             }
         }
 
-        SummaryMonthLabel.Text = month.ToString("MMMM yyyy", CultureInfo.CurrentCulture);
-        SummaryAvailableCaptionLabel.Text =
-            $"Available for {month.ToString("MMMM", CultureInfo.CurrentCulture)}";
+        SummaryMonthLabel.Text = title;
+        SummaryAvailableCaptionLabel.Text = availableCaption;
         availableAmountText = MoneyFormatter.FormatMinor(
             incomeMinor - expenseMinor,
             selectedCurrency.Symbol,
@@ -73,6 +111,18 @@ public partial class MonthlySummaryCard : ContentView
         SummaryTransactionCountLabel.Text = transactionCount.ToString(
             CultureInfo.InvariantCulture);
         UpdateAmountVisibility();
+    }
+
+    private static string FormatRangeTitle(DateTime startDate, DateTime endDate)
+    {
+        if (startDate == endDate)
+        {
+            return startDate.ToString("d MMM yyyy", CultureInfo.CurrentCulture);
+        }
+
+        return startDate.Year == endDate.Year
+            ? $"{startDate.ToString("d MMM", CultureInfo.CurrentCulture)} – {endDate.ToString("d MMM yyyy", CultureInfo.CurrentCulture)}"
+            : $"{startDate.ToString("d MMM yyyy", CultureInfo.CurrentCulture)} – {endDate.ToString("d MMM yyyy", CultureInfo.CurrentCulture)}";
     }
 
     private async void OnAmountVisibilityTapped(object? sender, TappedEventArgs e)

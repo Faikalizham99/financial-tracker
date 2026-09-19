@@ -151,14 +151,6 @@
                                     Aspect="Uniform"
                                     VerticalOptions="Center" />
                                 <Label x:Name="DateLabel" Grid.Column="1" Text="Sunday, 14 September 2026" FontFamily="OpenSansSemibold" FontSize="12" LineBreakMode="TailTruncation" MaxLines="1" VerticalOptions="Center" />
-                                <DatePicker
-                                    x:Name="TransactionDatePicker"
-                                    Grid.ColumnSpan="2"
-                                    Opacity="0.02"
-                                    DateSelected="OnTransactionDateSelected"
-                                    Focused="OnTransactionDatePickerFocused"
-                                    HorizontalOptions="Fill"
-                                    VerticalOptions="Fill" />
                             </Grid>
                         </Border>
 
