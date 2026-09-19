@@ -56,6 +56,7 @@ public partial class ExpensesView : ContentView
     private bool isDateRangeFilterOpen;
     private bool isDateRangeFilterAnimating;
     private CancellationTokenSource? transactionFocusCancellation;
+    private CancellationTokenSource? descriptionMeasurementCancellation;
 
     public ExpensesView()
     {
@@ -264,11 +265,16 @@ public partial class ExpensesView : ContentView
 
     private void OnTransactionDescriptionSizeChanged(object? sender, EventArgs e)
     {
-        if (sender is not Label
-            {
-                BindingContext: TransactionActivityItem item,
-                Width: > 0
-            } label)
+        if (sender is Label label)
+        {
+            UpdateDescriptionExpandability(label);
+        }
+    }
+
+    private void UpdateDescriptionExpandability(Label label)
+    {
+        if (label.BindingContext is not TransactionActivityItem item ||
+            label.Width <= 0)
         {
             return;
         }
@@ -286,6 +292,70 @@ public partial class ExpensesView : ContentView
         {
             expandedTransactionDescriptionIds.Remove(item.Id);
         }
+    }
+
+    private void ScheduleDescriptionMeasurements()
+    {
+        CancelDescriptionMeasurements();
+        var cancellation = new CancellationTokenSource();
+        descriptionMeasurementCancellation = cancellation;
+        _ = MeasureVisibleDescriptionsAfterLayoutAsync(cancellation);
+    }
+
+    private async Task MeasureVisibleDescriptionsAfterLayoutAsync(
+        CancellationTokenSource cancellation)
+    {
+        try
+        {
+            // iOS can assign final BindableLayout child widths over multiple layout passes.
+            foreach (var delay in new[] { 0, 50, 150 })
+            {
+                if (delay > 0)
+                {
+                    await Task.Delay(delay, cancellation.Token);
+                }
+
+                cancellation.Token.ThrowIfCancellationRequested();
+                Dispatcher.Dispatch(RecalculateVisibleDescriptionExpandability);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // A newer transaction refresh owns the current visual tree.
+        }
+        finally
+        {
+            if (ReferenceEquals(descriptionMeasurementCancellation, cancellation))
+            {
+                descriptionMeasurementCancellation = null;
+            }
+
+            cancellation.Dispose();
+        }
+    }
+
+    private void RecalculateVisibleDescriptionExpandability()
+    {
+        foreach (var label in ActivityGroupsLayout
+            .GetVisualTreeDescendants()
+            .OfType<Label>()
+            .Where(candidate =>
+                candidate.ClassId == "ExpandableTransactionDescription"))
+        {
+            UpdateDescriptionExpandability(label);
+        }
+    }
+
+    private void CancelDescriptionMeasurements()
+    {
+        var pendingCancellation = descriptionMeasurementCancellation;
+        descriptionMeasurementCancellation = null;
+        if (pendingCancellation is null)
+        {
+            return;
+        }
+
+        pendingCancellation.Cancel();
     }
 
     private static double EstimateSingleLineTextWidth(
@@ -353,8 +423,11 @@ public partial class ExpensesView : ContentView
         }
     }
 
-    private void OnActivityGroupsLayoutSizeChanged(object? sender, EventArgs e) =>
+    private void OnActivityGroupsLayoutSizeChanged(object? sender, EventArgs e)
+    {
         UpdateStickyActivityHeader();
+        ScheduleDescriptionMeasurements();
+    }
 
     private void UpdateStickyActivityHeader() =>
         UpdateStickyActivityHeader(TransactionsScrollView.ScrollY);
@@ -942,6 +1015,7 @@ public partial class ExpensesView : ContentView
             displayedMonth);
         UpdateMonthSwitcherLabel();
         UpdateFilterChips();
+        ScheduleDescriptionMeasurements();
         Dispatcher.Dispatch(UpdateStickyActivityHeader);
     }
 

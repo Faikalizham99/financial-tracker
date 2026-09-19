@@ -268,6 +268,7 @@
                                                                     <TapGestureRecognizer Tapped="OnTransactionDescriptionTapped" CommandParameter="{Binding .}" />
                                                                 </Grid.GestureRecognizers>
                                                                 <Label
+                                                                    ClassId="ExpandableTransactionDescription"
                                                                     Text="{Binding Description}"
                                                                     Style="{StaticResource CardTitle}"
                                                                     FontSize="14"
