@@ -324,6 +324,49 @@
                     </VerticalStackLayout>
                 </ScrollView>
             </Grid>
+
+            <Grid
+                x:Name="InitialLoadingFocusOverlay"
+                IsVisible="True"
+                Opacity="1"
+                ZIndex="2"
+                InputTransparent="True"
+                BackgroundColor="{AppThemeBinding Light=#30000000, Dark=#66000000}"
+                SemanticProperties.Description="Loading financial data">
+                <Grid
+                    x:Name="InitialLoadingFocusContent"
+                    WidthRequest="150"
+                    HeightRequest="150"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Center">
+                    <Ellipse
+                        WidthRequest="138"
+                        HeightRequest="138"
+                        Stroke="{DynamicResource Accent}"
+                        StrokeThickness="3"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center" />
+                    <Border
+                        WidthRequest="112"
+                        HeightRequest="112"
+                        Padding="0"
+                        BackgroundColor="#09090B"
+                        Stroke="#FFFFFF"
+                        StrokeThickness="2"
+                        StrokeShape="RoundRectangle 56"
+                        HorizontalOptions="Center"
+                        VerticalOptions="Center">
+                        <Border.Shadow>
+                            <Shadow Brush="#000000" Offset="0,5" Opacity="0.42" Radius="13" />
+                        </Border.Shadow>
+                        <Image
+                            x:Name="InitialLoadingAnimation"
+                            Source="loading_sukuna_gojo.gif"
+                            Aspect="AspectFill"
+                            IsAnimationPlaying="True" />
+                    </Border>
+                </Grid>
+            </Grid>
         </Grid>
 
         <!-- Bottom dock: navigation and a separate add button. -->

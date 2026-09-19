@@ -1,3 +1,5 @@
+using FinancialTracker.Services;
+
 namespace FinancialTracker;
 
 public partial class App : Application
@@ -7,7 +9,7 @@ public partial class App : Application
     public App()
     {
         InitializeComponent();
-        UserAppTheme = AppTheme.Light;
+        AppearanceService.ApplyStartupAppearance(this);
         mainPage = new MainPage();
     }
 

@@ -10,9 +10,12 @@ public sealed class LocalDatabase
     private SQLiteAsyncConnection? connection;
     private bool isInitialized;
 
+    internal static string DatabasePath =>
+        Path.Combine(FileSystem.AppDataDirectory, "financial-tracker.db3");
+
     private SQLiteAsyncConnection Connection =>
         connection ??= new SQLiteAsyncConnection(
-            Path.Combine(FileSystem.AppDataDirectory, "financial-tracker.db3"),
+            DatabasePath,
             SQLiteOpenFlags.ReadWrite |
             SQLiteOpenFlags.Create |
             SQLiteOpenFlags.SharedCache);

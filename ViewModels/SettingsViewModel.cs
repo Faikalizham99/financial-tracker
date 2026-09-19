@@ -191,8 +191,9 @@ public sealed class SettingsViewModel(SettingsService settingsService) : INotify
             selectedTheme = NormalizeTheme(settings.Theme);
             selectedAccentColorHex = NormalizeAccentColor(settings.AccentColorHex);
             customAccentColorHex = selectedAccentColorHex;
-            ApplyTheme(selectedTheme);
-            ApplyAccentColor(selectedAccentColorHex, selectedTheme);
+            AppearanceService.ApplyAndCache(
+                selectedTheme,
+                selectedAccentColorHex);
             isInitialized = true;
             OnPropertyChanged(string.Empty);
         }
@@ -246,8 +247,9 @@ public sealed class SettingsViewModel(SettingsService settingsService) : INotify
 
         SelectedTheme = normalizedTheme;
         settings.Theme = normalizedTheme;
-        ApplyTheme(normalizedTheme);
-        ApplyAccentColor(SelectedAccentColorHex, normalizedTheme);
+        AppearanceService.ApplyAndCache(
+            normalizedTheme,
+            SelectedAccentColorHex);
         await SaveAsync();
     }
 
@@ -264,7 +266,7 @@ public sealed class SettingsViewModel(SettingsService settingsService) : INotify
         SelectedAccentColorHex = normalized;
         CustomAccentColorHex = normalized;
         settings.AccentColorHex = normalized;
-        ApplyAccentColor(normalized, SelectedTheme);
+        AppearanceService.ApplyAndCache(SelectedTheme, normalized);
         await SaveAsync();
     }
 
@@ -296,21 +298,6 @@ public sealed class SettingsViewModel(SettingsService settingsService) : INotify
             _ => "Light"
         };
 
-    private static void ApplyTheme(string theme)
-    {
-        if (Application.Current is null)
-        {
-            return;
-        }
-
-        Application.Current.UserAppTheme = theme switch
-        {
-            "System" => AppTheme.Unspecified,
-            "Dark" => AppTheme.Dark,
-            _ => AppTheme.Light
-        };
-    }
-
     private static string NormalizeAccentColor(string? value) =>
         TryNormalizeAccentColor(value, out var normalized) ? normalized : "#5044E4";
 
@@ -330,56 +317,6 @@ public sealed class SettingsViewModel(SettingsService settingsService) : INotify
 
         normalized = string.Empty;
         return false;
-    }
-
-    private static void ApplyAccentColor(string accentColorHex, string theme)
-    {
-        if (Application.Current is null)
-        {
-            return;
-        }
-
-        var useDarkTint = theme == "Dark" ||
-            (theme == "System" && Application.Current.RequestedTheme == AppTheme.Dark);
-        var tintHex = MixColors(
-            accentColorHex,
-            useDarkTint ? "#000000" : "#FFFFFF",
-            useDarkTint ? 0.68 : 0.86);
-        var foregroundHex = GetContrastColor(accentColorHex);
-        var resources = Application.Current.Resources;
-
-        resources["Accent"] = Color.FromArgb(accentColorHex);
-        resources["AccentDark"] = Color.FromArgb(accentColorHex);
-        resources["AccentTint"] = Color.FromArgb(tintHex);
-        resources["AccentTintLight"] = Color.FromArgb(tintHex);
-        resources["AccentTintDark"] = Color.FromArgb(tintHex);
-        resources["AccentForeground"] = Color.FromArgb(foregroundHex);
-        resources["Primary"] = Color.FromArgb(accentColorHex);
-        resources["PrimaryDark"] = Color.FromArgb(accentColorHex);
-        resources["Secondary"] = Color.FromArgb(tintHex);
-    }
-
-    private static string MixColors(string foreground, string background, double backgroundWeight)
-    {
-        var foregroundValue = Convert.ToInt32(foreground.TrimStart('#'), 16);
-        var backgroundValue = Convert.ToInt32(background.TrimStart('#'), 16);
-        var red = MixChannel((foregroundValue >> 16) & 0xFF, (backgroundValue >> 16) & 0xFF, backgroundWeight);
-        var green = MixChannel((foregroundValue >> 8) & 0xFF, (backgroundValue >> 8) & 0xFF, backgroundWeight);
-        var blue = MixChannel(foregroundValue & 0xFF, backgroundValue & 0xFF, backgroundWeight);
-        return $"#{red:X2}{green:X2}{blue:X2}";
-    }
-
-    private static int MixChannel(int foreground, int background, double backgroundWeight) =>
-        (int)Math.Round((foreground * (1 - backgroundWeight)) + (background * backgroundWeight));
-
-    private static string GetContrastColor(string colorHex)
-    {
-        var value = Convert.ToInt32(colorHex.TrimStart('#'), 16);
-        var red = (value >> 16) & 0xFF;
-        var green = (value >> 8) & 0xFF;
-        var blue = value & 0xFF;
-        var luminance = ((0.299 * red) + (0.587 * green) + (0.114 * blue)) / 255;
-        return luminance > 0.62 ? "#17142D" : "#FFFFFF";
     }
 
     private void NotifyCurrencyFormattingChanged()

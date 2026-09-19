@@ -12,6 +12,7 @@ using FinancialTracker.Models;
 public partial class MainPage : ContentPage
 {
     private const string HomeSectionOrderPreferenceKey = "home_section_order";
+    private const int MinimumInitialLoadingDurationMilliseconds = 1700;
     private static readonly IReadOnlyList<string> DefaultHomeSectionOrder =
     [
         "glance",
@@ -111,6 +112,12 @@ public partial class MainPage : ContentPage
         hasStartedInitialDataLoad = true;
         isInitialDataLoading = true;
         UpdateLoadingSkeletonForSelectedSection();
+        var minimumLoadingDuration = Task.Delay(
+            MinimumInitialLoadingDurationMilliseconds);
+
+        // Give the first-frame loader a chance to render before database work
+        // begins, including on platforms where initialization resumes inline.
+        await Task.Yield();
 
         try
         {
@@ -120,6 +127,7 @@ public partial class MainPage : ContentPage
         finally
         {
             isInitialDataLoading = false;
+            await minimumLoadingDuration;
             await HideLoadingSkeletonAsync();
         }
     }
@@ -914,9 +922,28 @@ public partial class MainPage : ContentPage
         DataLoadingSkeletonPulseLayer.Opacity = 1;
     }
 
+    private async Task HideInitialLoadingFocusAsync()
+    {
+        InitialLoadingFocusOverlay.CancelAnimations();
+        InitialLoadingFocusContent.CancelAnimations();
+
+        if (InitialLoadingFocusOverlay.IsVisible)
+        {
+            await Task.WhenAll(
+                InitialLoadingFocusOverlay.FadeToAsync(0, 110, Easing.CubicIn),
+                InitialLoadingFocusContent.ScaleToAsync(0.96, 110, Easing.CubicIn));
+        }
+
+        InitialLoadingFocusOverlay.IsVisible = false;
+        InitialLoadingFocusOverlay.Opacity = 0;
+        InitialLoadingFocusContent.Scale = 1;
+        InitialLoadingAnimation.IsAnimationPlaying = false;
+    }
+
     private async Task HideLoadingSkeletonAsync()
     {
         isDataLoadingSkeletonShown = false;
+        await HideInitialLoadingFocusAsync();
         StopLoadingSkeletonPulse();
         DataLoadingOverlay.CancelAnimations();
 
