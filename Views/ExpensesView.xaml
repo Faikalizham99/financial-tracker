@@ -263,7 +263,11 @@
                                                             </Border>
                                                         </Grid>
                                                         <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
-                                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+                                                            <Grid
+                                                                HeightRequest="{Binding DescriptionHeaderHeightRequest}"
+                                                                MinimumHeightRequest="20"
+                                                                ColumnDefinitions="*,Auto"
+                                                                ColumnSpacing="6">
                                                                 <Grid.GestureRecognizers>
                                                                     <TapGestureRecognizer Tapped="OnTransactionDescriptionTapped" CommandParameter="{Binding .}" />
                                                                 </Grid.GestureRecognizers>
