@@ -1031,14 +1031,35 @@ public partial class ExpensesView : ContentView
 
     private void ApplyCalendarFilterStyle(bool isActive)
     {
-        var resources = Application.Current!.Resources;
-        var isDark = Application.Current.RequestedTheme == AppTheme.Dark;
-        CalendarFilterButton.BackgroundColor = (Color)resources[
-            isActive ? "AccentTint" : isDark ? "CardBackgroundDark" : "CardBackgroundLight"];
-        CalendarFilterButton.Stroke = new SolidColorBrush((Color)resources[
-            isActive ? "Accent" : isDark ? "BorderDark" : "BorderLight"]);
-        CalendarFilterIcon.Stroke = new SolidColorBrush((Color)resources[
-            isActive ? "Accent" : isDark ? "PrimaryTextDark" : "PrimaryTextLight"]);
+        if (isActive)
+        {
+            CalendarFilterButton.SetDynamicResource(
+                Border.BackgroundColorProperty,
+                "AccentTint");
+            CalendarFilterButton.SetDynamicResource(Border.StrokeProperty, "Accent");
+            CalendarFilterIcon.SetDynamicResource(
+                Microsoft.Maui.Controls.Shapes.Shape.StrokeProperty,
+                "Accent");
+        }
+        else
+        {
+            ThemeResourceBindings.SetColor(
+                CalendarFilterButton,
+                Border.BackgroundColorProperty,
+                "CardBackgroundLight",
+                "CardBackgroundDark");
+            ThemeResourceBindings.SetBrush(
+                CalendarFilterButton,
+                Border.StrokeProperty,
+                "BorderLight",
+                "BorderDark");
+            ThemeResourceBindings.SetBrush(
+                CalendarFilterIcon,
+                Microsoft.Maui.Controls.Shapes.Shape.StrokeProperty,
+                "PrimaryTextLight",
+                "PrimaryTextDark");
+        }
+
         CalendarFilterActiveDot.IsVisible = isActive;
     }
 
@@ -1047,14 +1068,19 @@ public partial class ExpensesView : ContentView
         Label label,
         bool isActive)
     {
-        var resources = Application.Current!.Resources;
-        var isDark = Application.Current.RequestedTheme == AppTheme.Dark;
+        if (isActive)
+        {
+            row.SetDynamicResource(BackgroundColorProperty, "AccentTint");
+            label.SetDynamicResource(Label.TextColorProperty, "Accent");
+            return;
+        }
 
-        row.BackgroundColor = isActive
-            ? (Color)resources["AccentTint"]
-            : Colors.Transparent;
-        label.TextColor = (Color)resources[
-            isActive ? "Accent" : isDark ? "PrimaryTextDark" : "PrimaryTextLight"];
+        row.BackgroundColor = Colors.Transparent;
+        ThemeResourceBindings.SetColor(
+            label,
+            Label.TextColorProperty,
+            "PrimaryTextLight",
+            "PrimaryTextDark");
     }
 
     private void UpdateMonthSwitcherLabel()

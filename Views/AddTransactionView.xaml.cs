@@ -780,23 +780,35 @@ public partial class AddTransactionView : ContentView
         var canCalculate = isEqualsAction && !startNewInput;
         var isActionEnabled = !isSaving &&
             (isEqualsAction ? canCalculate : canSave);
-        var resources = Application.Current!.Resources;
-        var isDark = Application.Current.RequestedTheme == AppTheme.Dark;
-
         SaveButton.IsEnabled = isActionEnabled;
-        SaveButton.BackgroundColor = isActionEnabled
-            ? (Color)resources["Accent"]
-            : (Color)resources[isDark ? "SurfaceMutedDark" : "SurfaceMutedLight"];
-        SaveButton.Stroke = isActionEnabled
-            ? Brush.Transparent
-            : new SolidColorBrush((Color)resources[isDark ? "DividerDark" : "DividerLight"]);
+        if (isActionEnabled)
+        {
+            SaveButton.SetDynamicResource(Border.BackgroundColorProperty, "Accent");
+            SaveButton.Stroke = Brush.Transparent;
+            SaveLabel.SetDynamicResource(Label.TextColorProperty, "AccentForeground");
+        }
+        else
+        {
+            ThemeResourceBindings.SetColor(
+                SaveButton,
+                Border.BackgroundColorProperty,
+                "SurfaceMutedLight",
+                "SurfaceMutedDark");
+            ThemeResourceBindings.SetBrush(
+                SaveButton,
+                Border.StrokeProperty,
+                "DividerLight",
+                "DividerDark");
+            ThemeResourceBindings.SetColor(
+                SaveLabel,
+                Label.TextColorProperty,
+                "SecondaryTextLight",
+                "SecondaryTextDark");
+        }
         SaveLabel.Text = isSaving
             ? "Saving…"
             : isEqualsAction ? "=" : editingTransaction is null ? "Save" : "Update";
         SaveLabel.FontSize = isEqualsAction ? 23 : 14;
-        SaveLabel.TextColor = isActionEnabled
-            ? (Color)resources["AccentForeground"]
-            : (Color)resources[isDark ? "SecondaryTextDark" : "SecondaryTextLight"];
         SaveButton.Opacity = isSaving ? 0.7 : 1;
     }
 
