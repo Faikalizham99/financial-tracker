@@ -29,7 +29,7 @@ public sealed class TransactionActivityItem : INotifyPropertyChanged
     public bool IsDescriptionExpanded => isDescriptionExpanded;
     public int DescriptionMaxLines => IsDescriptionExpanded ? -1 : 1;
     public LineBreakMode DescriptionLineBreakMode =>
-        IsDescriptionExpanded ? LineBreakMode.CharacterWrap : LineBreakMode.TailTruncation;
+        IsDescriptionExpanded ? LineBreakMode.WordWrap : LineBreakMode.TailTruncation;
     public double DescriptionHeaderHeightRequest => IsDescriptionExpanded ? -1 : 20;
     public double DescriptionIndicatorRotation => IsDescriptionExpanded ? 180 : 0;
 
