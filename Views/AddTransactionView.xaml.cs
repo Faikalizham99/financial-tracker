@@ -513,23 +513,7 @@ public partial class AddTransactionView : ContentView
 
         Dispatcher.Dispatch(() =>
         {
-            TransactionDatePicker.Focus();
-#if WINDOWS
-            if (TransactionDatePicker.Handler?.PlatformView is Microsoft.UI.Xaml.Controls.CalendarDatePicker nativeDatePicker)
-            {
-                nativeDatePicker.IsCalendarOpen = true;
-            }
-#elif ANDROID
-            if (TransactionDatePicker.Handler?.PlatformView is Android.Views.View nativeDatePicker)
-            {
-                nativeDatePicker.PerformClick();
-            }
-#elif IOS || MACCATALYST
-            if (TransactionDatePicker.Handler?.PlatformView is UIKit.UIView nativeDatePicker)
-            {
-                nativeDatePicker.BecomeFirstResponder();
-            }
-#endif
+            TransactionDatePicker.IsOpen = true;
         });
 
         await feedback;
@@ -537,6 +521,12 @@ public partial class AddTransactionView : ContentView
 
     private void OnTransactionDateSelected(object? sender, DateChangedEventArgs e) =>
         UpdateDateLabel(e.NewDate ?? DateTime.Today);
+
+    private void OnTransactionDatePickerFocused(object? sender, FocusEventArgs e)
+    {
+        HideDescriptionSuggestions();
+        DescriptionEntry.Unfocus();
+    }
 
     private void OnDescriptionTextChanged(object? sender, TextChangedEventArgs e)
     {

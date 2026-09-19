@@ -497,7 +497,7 @@
                                 <Label Text="START DATE" Style="{StaticResource SectionLabel}" FontSize="9" />
                                 <Label x:Name="StartDateLabel" Text="1 September 2026" FontFamily="OpenSansSemibold" FontSize="14" LineBreakMode="TailTruncation" MaxLines="1" />
                             </VerticalStackLayout>
-                            <DatePicker x:Name="StartDatePicker" Grid.ColumnSpan="2" Opacity="0.01" InputTransparent="True" DateSelected="OnStartDateSelected" HorizontalOptions="Fill" VerticalOptions="Fill" />
+                            <DatePicker x:Name="StartDatePicker" Grid.ColumnSpan="2" Opacity="0.02" DateSelected="OnStartDateSelected" HorizontalOptions="Fill" VerticalOptions="Fill" />
                         </Grid>
                     </Border>
 
@@ -511,7 +511,7 @@
                                 <Label Text="END DATE" Style="{StaticResource SectionLabel}" FontSize="9" />
                                 <Label x:Name="EndDateLabel" Text="30 September 2026" FontFamily="OpenSansSemibold" FontSize="14" LineBreakMode="TailTruncation" MaxLines="1" />
                             </VerticalStackLayout>
-                            <DatePicker x:Name="EndDatePicker" Grid.ColumnSpan="2" Opacity="0.01" InputTransparent="True" DateSelected="OnEndDateSelected" HorizontalOptions="Fill" VerticalOptions="Fill" />
+                            <DatePicker x:Name="EndDatePicker" Grid.ColumnSpan="2" Opacity="0.02" DateSelected="OnEndDateSelected" HorizontalOptions="Fill" VerticalOptions="Fill" />
                         </Grid>
                     </Border>
                 </VerticalStackLayout>

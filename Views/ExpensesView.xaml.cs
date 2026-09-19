@@ -520,24 +520,7 @@ public partial class ExpensesView : ContentView
     private static async Task OpenNativeDatePickerAsync(DatePicker picker, object? sender)
     {
         var feedback = InteractionAnimations.PulseAsync(sender);
-        picker.Focus();
-
-#if WINDOWS
-        if (picker.Handler?.PlatformView is Microsoft.UI.Xaml.Controls.CalendarDatePicker nativeDatePicker)
-        {
-            nativeDatePicker.IsCalendarOpen = true;
-        }
-#elif ANDROID
-        if (picker.Handler?.PlatformView is Android.Views.View nativeDatePicker)
-        {
-            nativeDatePicker.PerformClick();
-        }
-#elif IOS || MACCATALYST
-        if (picker.Handler?.PlatformView is UIKit.UIView nativeDatePicker)
-        {
-            nativeDatePicker.BecomeFirstResponder();
-        }
-#endif
+        picker.IsOpen = true;
 
         await feedback;
     }
