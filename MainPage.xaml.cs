@@ -3,6 +3,7 @@ namespace FinancialTracker;
 using System.ComponentModel;
 using System.Globalization;
 using FinancialTracker.ViewModels;
+using FinancialTracker.Controls;
 using FinancialTracker.Data;
 using FinancialTracker.Services;
 using FinancialTracker.Helpers;
@@ -75,6 +76,14 @@ public partial class MainPage : ContentPage
         LocalDatabase localDatabase)
     {
         InitializeComponent();
+#if WINDOWS
+        var arrangeHomePointerGesture = new PointerGestureRecognizer();
+        arrangeHomePointerGesture.PointerPressed += OnHomeSectionPointerPressed;
+        arrangeHomePointerGesture.PointerMoved += OnHomeSectionPointerMoved;
+        arrangeHomePointerGesture.PointerReleased += OnHomeSectionPointerReleased;
+        arrangeHomePointerGesture.PointerExited += OnHomeSectionPointerExited;
+        ArrangeHomeSectionsLayout.GestureRecognizers.Add(arrangeHomePointerGesture);
+#endif
         UpdateDashboardGreeting();
         this.settingsViewModel = settingsViewModel;
         this.localDatabase = localDatabase;
@@ -191,33 +200,29 @@ public partial class MainPage : ContentPage
         }
     }
 
-    private async void OnHomeSectionPanUpdated(object? sender, PanUpdatedEventArgs e)
+    private async void OnHomeSectionDragUpdated(
+        object? sender,
+        VerticalDragUpdatedEventArgs e)
     {
-        if (DeviceInfo.Current.Platform == DevicePlatform.WinUI)
-        {
-            return;
-        }
-
-        if (sender is not PanGestureRecognizer gesture ||
-            gesture.Parent is not Grid row ||
+        if (sender is not Grid row ||
             row.BindingContext is not HomeSectionOption section)
         {
             return;
         }
 
-        switch (e.StatusType)
+        switch (e.Status)
         {
-            case GestureStatus.Started:
+            case VerticalDragStatus.Started:
                 StartHomeSectionDrag(section.Key, row);
                 break;
-            case GestureStatus.Running:
+            case VerticalDragStatus.Running:
                 UpdateHomeSectionDrag(row, e.TotalY);
                 break;
-            case GestureStatus.Completed:
+            case VerticalDragStatus.Completed:
                 UpdateHomeSectionDrag(row, e.TotalY);
                 await CompleteHomeSectionDragAsync(row, shouldReorder: true);
                 break;
-            case GestureStatus.Canceled:
+            case VerticalDragStatus.Canceled:
                 await CompleteHomeSectionDragAsync(row, shouldReorder: false);
                 break;
         }

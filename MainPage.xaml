@@ -3,6 +3,7 @@
     x:Class="FinancialTracker.MainPage"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:FinancialTracker.Controls"
     xmlns:models="clr-namespace:FinancialTracker.Models"
     xmlns:views="clr-namespace:FinancialTracker.Views"
     Shell.NavBarIsVisible="False">
@@ -471,26 +472,19 @@
 
                     <Border Style="{StaticResource SoftCard}" Padding="12,2">
                         <VerticalStackLayout x:Name="ArrangeHomeSectionsLayout" Spacing="0">
-                            <VerticalStackLayout.GestureRecognizers>
-                                <PointerGestureRecognizer
-                                    Buttons="Primary"
-                                    PointerPressed="OnHomeSectionPointerPressed"
-                                    PointerMoved="OnHomeSectionPointerMoved"
-                                    PointerReleased="OnHomeSectionPointerReleased"
-                                    PointerExited="OnHomeSectionPointerExited" />
-                            </VerticalStackLayout.GestureRecognizers>
                             <BindableLayout.ItemTemplate>
                                 <DataTemplate x:DataType="models:HomeSectionOption">
-                                    <Grid RowDefinitions="52,Auto" ColumnDefinitions="34,*" ColumnSpacing="10">
-                                        <Grid.GestureRecognizers>
-                                            <PanGestureRecognizer PanUpdated="OnHomeSectionPanUpdated" />
-                                        </Grid.GestureRecognizers>
+                                    <controls:ReorderableSectionRow
+                                        RowDefinitions="52,Auto"
+                                        ColumnDefinitions="34,*"
+                                        ColumnSpacing="10"
+                                        VerticalDragUpdated="OnHomeSectionDragUpdated">
                                         <Border WidthRequest="32" HeightRequest="32" BackgroundColor="{DynamicResource AccentTint}" StrokeThickness="0" StrokeShape="RoundRectangle 11" VerticalOptions="Center">
                                             <Path WidthRequest="16" HeightRequest="16" Data="M 4,5 L 12,5 M 4,8 L 12,8 M 4,11 L 12,11" Stroke="{DynamicResource Accent}" StrokeThickness="1.8" StrokeLineCap="Round" Fill="Transparent" Aspect="Uniform" HorizontalOptions="Center" VerticalOptions="Center" />
                                         </Border>
                                         <Label Grid.Column="1" Text="{Binding Title}" FontFamily="OpenSansSemibold" FontSize="14" LineBreakMode="TailTruncation" MaxLines="1" VerticalTextAlignment="Center" />
                                         <BoxView Grid.Row="1" Grid.ColumnSpan="2" HeightRequest="1" IsVisible="{Binding ShowDivider}" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
-                                    </Grid>
+                                    </controls:ReorderableSectionRow>
                                 </DataTemplate>
                             </BindableLayout.ItemTemplate>
                         </VerticalStackLayout>
