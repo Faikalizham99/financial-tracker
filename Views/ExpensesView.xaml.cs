@@ -1033,11 +1033,16 @@ public partial class ExpensesView : ContentView
     {
         if (isActive)
         {
-            CalendarFilterButton.SetDynamicResource(
+            ThemeResourceBindings.SetDynamic(
+                CalendarFilterButton,
                 Border.BackgroundColorProperty,
                 "AccentTint");
-            CalendarFilterButton.SetDynamicResource(Border.StrokeProperty, "Accent");
-            CalendarFilterIcon.SetDynamicResource(
+            ThemeResourceBindings.SetDynamic(
+                CalendarFilterButton,
+                Border.StrokeProperty,
+                "Accent");
+            ThemeResourceBindings.SetDynamic(
+                CalendarFilterIcon,
                 Microsoft.Maui.Controls.Shapes.Shape.StrokeProperty,
                 "Accent");
         }
@@ -1070,12 +1075,21 @@ public partial class ExpensesView : ContentView
     {
         if (isActive)
         {
-            row.SetDynamicResource(BackgroundColorProperty, "AccentTint");
-            label.SetDynamicResource(Label.TextColorProperty, "Accent");
+            ThemeResourceBindings.SetDynamic(
+                row,
+                BackgroundColorProperty,
+                "AccentTint");
+            ThemeResourceBindings.SetDynamic(
+                label,
+                Label.TextColorProperty,
+                "Accent");
             return;
         }
 
-        row.BackgroundColor = Colors.Transparent;
+        ThemeResourceBindings.SetStatic(
+            row,
+            BackgroundColorProperty,
+            Colors.Transparent);
         ThemeResourceBindings.SetColor(
             label,
             Label.TextColorProperty,

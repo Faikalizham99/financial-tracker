@@ -783,9 +783,18 @@ public partial class AddTransactionView : ContentView
         SaveButton.IsEnabled = isActionEnabled;
         if (isActionEnabled)
         {
-            SaveButton.SetDynamicResource(Border.BackgroundColorProperty, "Accent");
-            SaveButton.Stroke = Brush.Transparent;
-            SaveLabel.SetDynamicResource(Label.TextColorProperty, "AccentForeground");
+            ThemeResourceBindings.SetDynamic(
+                SaveButton,
+                Border.BackgroundColorProperty,
+                "Accent");
+            ThemeResourceBindings.SetStatic(
+                SaveButton,
+                Border.StrokeProperty,
+                Brush.Transparent);
+            ThemeResourceBindings.SetDynamic(
+                SaveLabel,
+                Label.TextColorProperty,
+                "AccentForeground");
         }
         else
         {
