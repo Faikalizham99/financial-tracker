@@ -12,7 +12,6 @@ using FinancialTracker.Models;
 public partial class MainPage : ContentPage
 {
     private const string HomeSectionOrderPreferenceKey = "home_section_order";
-    private const int LoadingSkeletonDelayMilliseconds = 150;
     private static readonly IReadOnlyList<string> DefaultHomeSectionOrder =
     [
         "glance",
@@ -51,8 +50,9 @@ public partial class MainPage : ContentPage
     private double draggedHomeSectionOffset;
     private Point? homeSectionPointerStart;
     private CancellationTokenSource? loadingSkeletonPulseCancellation;
+    private bool hasStartedInitialDataLoad;
     private bool isInitialDataLoading;
-    private bool isDataLoadingSkeletonShown;
+    private bool isDataLoadingSkeletonShown = true;
 
     public MainPage()
         : this(new LocalDatabase())
@@ -103,10 +103,14 @@ public partial class MainPage : ContentPage
 
     private async void OnLoaded(object? sender, EventArgs e)
     {
+        if (hasStartedInitialDataLoad)
+        {
+            return;
+        }
+
+        hasStartedInitialDataLoad = true;
         isInitialDataLoading = true;
-        using var skeletonDelayCancellation = new CancellationTokenSource();
-        var skeletonTask = ShowLoadingSkeletonAfterDelayAsync(
-            skeletonDelayCancellation.Token);
+        UpdateLoadingSkeletonForSelectedSection();
 
         try
         {
@@ -116,8 +120,6 @@ public partial class MainPage : ContentPage
         finally
         {
             isInitialDataLoading = false;
-            await skeletonDelayCancellation.CancelAsync();
-            await skeletonTask;
             await HideLoadingSkeletonAsync();
         }
     }
@@ -845,31 +847,6 @@ public partial class MainPage : ContentPage
             >= 12 and < 17 => "Good afternoon,",
             _ => "Good evening,"
         };
-    }
-
-    private async Task ShowLoadingSkeletonAfterDelayAsync(
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            await Task.Delay(
-                LoadingSkeletonDelayMilliseconds,
-                cancellationToken);
-        }
-        catch (OperationCanceledException)
-        {
-            return;
-        }
-
-        isDataLoadingSkeletonShown = true;
-        UpdateLoadingSkeletonForSelectedSection();
-        if (!DataLoadingOverlay.IsVisible)
-        {
-            return;
-        }
-
-        DataLoadingOverlay.Opacity = 0;
-        await DataLoadingOverlay.FadeToAsync(1, 120, Easing.CubicOut);
     }
 
     private void UpdateLoadingSkeletonForSelectedSection()

@@ -248,8 +248,8 @@
         <!-- Displayed only when the app has no cached transaction data yet. -->
         <Grid
             x:Name="DataLoadingOverlay"
-            IsVisible="False"
-            Opacity="0"
+            IsVisible="True"
+            Opacity="1"
             ZIndex="20"
             BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}"
             SemanticProperties.Description="Loading financial data">
