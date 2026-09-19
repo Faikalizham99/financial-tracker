@@ -48,8 +48,10 @@
             </Border>
         </Grid>
 
-        <ScrollView Grid.Row="1" VerticalScrollBarVisibility="Never">
-            <VerticalStackLayout Spacing="22">
+        <Grid Grid.Row="1">
+            <ScrollView
+                x:Name="RecentSearchesScrollView"
+                VerticalScrollBarVisibility="Never">
                 <VerticalStackLayout x:Name="RecentSearchesPanel" Spacing="12">
                     <Grid ColumnDefinitions="*,Auto">
                         <Label Text="RECENT SEARCHES" Style="{StaticResource SectionLabel}" VerticalTextAlignment="Center" />
@@ -77,15 +79,33 @@
                         </VerticalStackLayout>
                     </Border>
                 </VerticalStackLayout>
+            </ScrollView>
 
-                <VerticalStackLayout x:Name="SearchResultsPanel" IsVisible="False" Spacing="12">
-                    <Label x:Name="SearchResultsCountLabel" Text="TRANSACTIONS" Style="{StaticResource SectionLabel}" />
-                    <Label x:Name="SearchNoResultsLabel" Text="No matching transactions." Style="{StaticResource BodyMuted}" FontSize="13" IsVisible="False" />
-                    <Grid x:Name="SearchResultsCard" Margin="0,0,0,8" IsVisible="False">
-                        <Border Style="{StaticResource CardShadowLayer}" />
-                        <Border Style="{StaticResource CardSurface}" Padding="0">
-                            <VerticalStackLayout x:Name="SearchResultsLayout" Spacing="0">
-                                <BindableLayout.ItemTemplate>
+            <Grid
+                x:Name="SearchResultsPanel"
+                IsVisible="False"
+                RowDefinitions="Auto,*"
+                RowSpacing="12">
+                <Label x:Name="SearchResultsCountLabel" Text="TRANSACTIONS" Style="{StaticResource SectionLabel}" />
+                <Label
+                    x:Name="SearchNoResultsLabel"
+                    Grid.Row="1"
+                    Text="No matching transactions."
+                    Style="{StaticResource BodyMuted}"
+                    FontSize="13"
+                    IsVisible="False" />
+                <Grid x:Name="SearchResultsCard" Grid.Row="1" Margin="0,0,0,8" IsVisible="False">
+                    <Border Style="{StaticResource CardShadowLayer}" />
+                    <Border Style="{StaticResource CardSurface}" Padding="0">
+                        <CollectionView
+                            x:Name="SearchResultsCollection"
+                            SelectionMode="None"
+                            ItemSizingStrategy="MeasureFirstItem"
+                            VerticalScrollBarVisibility="Never">
+                            <CollectionView.ItemsLayout>
+                                <LinearItemsLayout Orientation="Vertical" ItemSpacing="0" />
+                            </CollectionView.ItemsLayout>
+                            <CollectionView.ItemTemplate>
                                     <DataTemplate x:DataType="models:TransactionActivityItem">
                                         <Grid RowDefinitions="Auto,Auto" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}">
                                             <Grid.GestureRecognizers>
@@ -119,12 +139,11 @@
                                             <BoxView Grid.Row="1" Margin="14,0" HeightRequest="1" IsVisible="{Binding ShowDivider}" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
                                         </Grid>
                                     </DataTemplate>
-                                </BindableLayout.ItemTemplate>
-                            </VerticalStackLayout>
-                        </Border>
-                    </Grid>
-                </VerticalStackLayout>
-            </VerticalStackLayout>
-        </ScrollView>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </Border>
+                </Grid>
+            </Grid>
+        </Grid>
     </Grid>
 </ContentView>

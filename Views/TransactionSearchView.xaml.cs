@@ -34,7 +34,7 @@ public partial class TransactionSearchView : ContentView
 
         if (IsVisible && !string.IsNullOrWhiteSpace(SearchEntry.Text))
         {
-            UpdateResults();
+            QueueSearch(SearchEntry.Text, useDebounce: false);
         }
     }
 
@@ -47,7 +47,7 @@ public partial class TransactionSearchView : ContentView
 
         LoadRecentSearches();
         SearchEntry.Text = string.Empty;
-        UpdateResults();
+        ShowEmptySearchState();
         IsVisible = true;
         Opacity = 0;
         isAnimating = true;
@@ -94,16 +94,60 @@ public partial class TransactionSearchView : ContentView
         await feedback;
     }
 
-    private async void OnSearchTextChanged(object? sender, TextChangedEventArgs e)
+    private void OnSearchTextChanged(object? sender, TextChangedEventArgs e) =>
+        QueueSearch(e.NewTextValue, useDebounce: true);
+
+    private void QueueSearch(string? searchText, bool useDebounce)
     {
         CancelPendingSearch();
+        var query = searchText?.Trim() ?? string.Empty;
+        UpdateSearchPresentation(query);
+
+        if (query.Length == 0)
+        {
+            ShowEmptySearchState();
+            return;
+        }
+
         var cancellation = new CancellationTokenSource();
         searchCancellation = cancellation;
+        _ = SearchAsync(query, useDebounce, cancellation);
+    }
 
+    private async Task SearchAsync(
+        string query,
+        bool useDebounce,
+        CancellationTokenSource cancellation)
+    {
         try
         {
-            await Task.Delay(SearchDebounceDelay, cancellation.Token);
-            UpdateResults();
+            if (useDebounce)
+            {
+                await Task.Delay(SearchDebounceDelay, cancellation.Token)
+                    .ConfigureAwait(false);
+            }
+
+            var documents = searchDocuments;
+            var results = await Task.Run(
+                    () => BuildSearchResults(documents, query, cancellation.Token),
+                    cancellation.Token)
+                .ConfigureAwait(false);
+
+            cancellation.Token.ThrowIfCancellationRequested();
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                if (!ReferenceEquals(searchCancellation, cancellation) ||
+                    !IsVisible ||
+                    !string.Equals(
+                        SearchEntry.Text?.Trim(),
+                        query,
+                        StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                ApplySearchResults(results);
+            });
         }
         catch (OperationCanceledException)
         {
@@ -131,7 +175,7 @@ public partial class TransactionSearchView : ContentView
     private void OnClearTapped(object? sender, TappedEventArgs e)
     {
         SearchEntry.Text = string.Empty;
-        UpdateResults();
+        ShowEmptySearchState();
         SearchEntry.Focus();
     }
 
@@ -144,7 +188,7 @@ public partial class TransactionSearchView : ContentView
 
         SearchEntry.Text = query;
         SearchEntry.CursorPosition = query.Length;
-        UpdateResults();
+        QueueSearch(query, useDebounce: false);
         SearchEntry.Focus();
         AddRecentSearch(query);
     }
@@ -173,37 +217,67 @@ public partial class TransactionSearchView : ContentView
         TransactionSelected?.Invoke(transaction.Id);
     }
 
-    private void UpdateResults()
+    private void UpdateSearchPresentation(string query)
     {
-        var query = SearchEntry.Text?.Trim() ?? string.Empty;
         ClearButton.IsVisible = query.Length > 0;
-        RecentSearchesPanel.IsVisible = query.Length == 0;
+        RecentSearchesScrollView.IsVisible = query.Length == 0;
         SearchResultsPanel.IsVisible = query.Length > 0;
 
-        if (query.Length == 0)
+        if (query.Length > 0)
         {
-            BindableLayout.SetItemsSource(SearchResultsLayout, null);
-            SearchResultsCard.IsVisible = false;
             SearchNoResultsLabel.IsVisible = false;
-            UpdateRecentSearchesView();
-            return;
+            SearchResultsCountLabel.Text = "SEARCHING...";
+            SearchResultsCard.InputTransparent = true;
+        }
+    }
+
+    private void ShowEmptySearchState()
+    {
+        CancelPendingSearch();
+        ClearButton.IsVisible = false;
+        RecentSearchesScrollView.IsVisible = true;
+        SearchResultsPanel.IsVisible = false;
+        SearchResultsCollection.ItemsSource = null;
+        SearchResultsCard.IsVisible = false;
+        SearchResultsCard.InputTransparent = false;
+        SearchNoResultsLabel.IsVisible = false;
+        UpdateRecentSearchesView();
+    }
+
+    private static IReadOnlyList<TransactionActivityItem> BuildSearchResults(
+        IReadOnlyList<SearchDocument> documents,
+        string query,
+        CancellationToken cancellationToken)
+    {
+        var matchingRecords = new List<TransactionRecord>();
+        foreach (var document in documents)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (document.SearchText.Contains(
+                    query,
+                    StringComparison.CurrentCultureIgnoreCase))
+            {
+                matchingRecords.Add(document.Transaction);
+            }
         }
 
-        var matchingRecords = searchDocuments
-            .Where(document => document.SearchText.Contains(
-                query,
-                StringComparison.CurrentCultureIgnoreCase))
-            .Select(document => document.Transaction)
-            .ToList();
+        cancellationToken.ThrowIfCancellationRequested();
         var results = matchingRecords
             .Select((record, index) => TransactionActivityItem.FromRecord(
                 record,
                 index < matchingRecords.Count - 1))
             .ToList();
+        cancellationToken.ThrowIfCancellationRequested();
+        return results;
+    }
 
-        BindableLayout.SetItemsSource(SearchResultsLayout, results);
-        SearchResultsCountLabel.Text = $"TRANSACTIONS · {results.Count.ToString(CultureInfo.InvariantCulture)}";
+    private void ApplySearchResults(IReadOnlyList<TransactionActivityItem> results)
+    {
+        SearchResultsCollection.ItemsSource = results;
+        SearchResultsCountLabel.Text =
+            $"TRANSACTIONS \u00B7 {results.Count.ToString(CultureInfo.InvariantCulture)}";
         SearchResultsCard.IsVisible = results.Count > 0;
+        SearchResultsCard.InputTransparent = false;
         SearchNoResultsLabel.IsVisible = results.Count == 0;
     }
 
