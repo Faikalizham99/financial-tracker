@@ -247,9 +247,8 @@
                                                         </SwipeItemView>
                                                     </SwipeItems>
                                                 </SwipeView.RightItems>
-                                                <Grid RowDefinitions="Auto,Auto" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" HandlerChanged="OnTransactionRowHandlerChanged">
+                                                <Grid BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" HandlerChanged="OnTransactionRowHandlerChanged">
                                                     <BoxView
-                                                        Grid.RowSpan="2"
                                                         ClassId="TransactionSearchHighlight"
                                                         BackgroundColor="{DynamicResource AccentTint}"
                                                         Opacity="0"
@@ -316,7 +315,13 @@
                                                             </Label.Triggers>
                                                         </Label>
                                                     </Grid>
-                                                    <BoxView Grid.Row="1" ZIndex="1" Margin="14,0" HeightRequest="1" IsVisible="{Binding ShowDivider}" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+                                                    <BoxView
+                                                        ZIndex="2"
+                                                        Margin="14,0"
+                                                        HeightRequest="1"
+                                                        VerticalOptions="End"
+                                                        IsVisible="{Binding ShowDivider}"
+                                                        BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
                                                 </Grid>
                                             </SwipeView>
                                         </DataTemplate>
