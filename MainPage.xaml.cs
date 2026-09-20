@@ -12,9 +12,6 @@ using FinancialTracker.Models;
 public partial class MainPage : ContentPage
 {
     private const string HomeSectionOrderPreferenceKey = "home_section_order";
-    private const string InitialLoadingRingAnimationName = "InitialLoadingRingRotation";
-    private const int InitialLoadingRingRevolutionMilliseconds = 900;
-    private const int MinimumInitialLoadingDurationMilliseconds = 1700;
     private static readonly IReadOnlyList<string> DefaultHomeSectionOrder =
     [
         "glance",
@@ -53,7 +50,6 @@ public partial class MainPage : ContentPage
     private double draggedHomeSectionOffset;
     private Point? homeSectionPointerStart;
     private CancellationTokenSource? loadingSkeletonPulseCancellation;
-    private bool isInitialLoadingRingUsingPlatformAnimation;
     private bool hasStartedInitialDataLoad;
     private bool isInitialDataLoading;
     private bool isDataLoadingSkeletonShown = true;
@@ -115,10 +111,6 @@ public partial class MainPage : ContentPage
         hasStartedInitialDataLoad = true;
         isInitialDataLoading = true;
         UpdateLoadingSkeletonForSelectedSection();
-        StartInitialLoadingRingAnimation();
-        var minimumLoadingDuration = Task.Delay(
-            MinimumInitialLoadingDurationMilliseconds);
-
         // Give the first-frame loader a chance to render before database work
         // begins, including on platforms where initialization resumes inline.
         await Task.Yield();
@@ -131,7 +123,6 @@ public partial class MainPage : ContentPage
         finally
         {
             isInitialDataLoading = false;
-            await minimumLoadingDuration;
             await HideLoadingSkeletonAsync();
         }
     }
@@ -928,68 +919,9 @@ public partial class MainPage : ContentPage
         DataLoadingSkeletonPulseLayer.Opacity = 1;
     }
 
-    private async Task HideInitialLoadingFocusAsync()
-    {
-        InitialLoadingFocusOverlay.CancelAnimations();
-        InitialLoadingFocusContent.CancelAnimations();
-
-        if (InitialLoadingFocusOverlay.IsVisible)
-        {
-            await Task.WhenAll(
-                InitialLoadingFocusOverlay.FadeToAsync(0, 110, Easing.CubicIn),
-                InitialLoadingFocusContent.ScaleToAsync(0.96, 110, Easing.CubicIn));
-        }
-
-        InitialLoadingFocusOverlay.IsVisible = false;
-        InitialLoadingFocusOverlay.Opacity = 0;
-        InitialLoadingFocusContent.Scale = 1;
-        InitialLoadingAnimation.IsAnimationPlaying = false;
-        StopInitialLoadingRingAnimation();
-    }
-
-    private void StartInitialLoadingRingAnimation()
-    {
-        StopInitialLoadingRingAnimation();
-        isInitialLoadingRingUsingPlatformAnimation =
-            PlatformRotationAnimation.TryStart(
-                InitialLoadingRing,
-                TimeSpan.FromMilliseconds(
-                    InitialLoadingRingRevolutionMilliseconds));
-        if (isInitialLoadingRingUsingPlatformAnimation)
-        {
-            return;
-        }
-
-        var rotation = new Animation(
-            value => InitialLoadingRing.Rotation = value,
-            0,
-            36_000,
-            Easing.Linear);
-        rotation.Commit(
-            InitialLoadingRing,
-            InitialLoadingRingAnimationName,
-            rate: 16,
-            length: InitialLoadingRingRevolutionMilliseconds * 100,
-            easing: Easing.Linear,
-            repeat: () => isDataLoadingSkeletonShown);
-    }
-
-    private void StopInitialLoadingRingAnimation()
-    {
-        if (isInitialLoadingRingUsingPlatformAnimation)
-        {
-            PlatformRotationAnimation.Stop(InitialLoadingRing);
-            isInitialLoadingRingUsingPlatformAnimation = false;
-        }
-
-        InitialLoadingRing.AbortAnimation(InitialLoadingRingAnimationName);
-        InitialLoadingRing.Rotation = 0;
-    }
-
     private async Task HideLoadingSkeletonAsync()
     {
         isDataLoadingSkeletonShown = false;
-        await HideInitialLoadingFocusAsync();
         StopLoadingSkeletonPulse();
         DataLoadingOverlay.CancelAnimations();
 
