@@ -82,7 +82,9 @@ public partial class ExpensesView : ContentView
         RenderDisplayedMonth();
     }
 
-    public async Task FocusTransactionAsync(int transactionId)
+    public async Task FocusTransactionAsync(
+        int transactionId,
+        Func<Task>? revealTargetAsync = null)
     {
         CancelTransactionFocusAnimation();
         var focusCancellation = new CancellationTokenSource();
@@ -91,6 +93,11 @@ public partial class ExpensesView : ContentView
         var transaction = transactionRecords.FirstOrDefault(record => record.Id == transactionId);
         if (transaction is null)
         {
+            if (revealTargetAsync is not null)
+            {
+                await revealTargetAsync();
+            }
+
             transactionFocusCancellation = null;
             focusCancellation.Dispose();
             return;
@@ -127,6 +134,11 @@ public partial class ExpensesView : ContentView
 
         if (highlight is null)
         {
+            if (revealTargetAsync is not null)
+            {
+                await revealTargetAsync();
+            }
+
             if (ReferenceEquals(transactionFocusCancellation, focusCancellation))
             {
                 transactionFocusCancellation = null;
@@ -173,6 +185,12 @@ public partial class ExpensesView : ContentView
             }
 
             cancellationToken.ThrowIfCancellationRequested();
+            if (revealTargetAsync is not null)
+            {
+                await revealTargetAsync();
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+
             highlight.CancelAnimations();
             highlight.Opacity = 0;
             for (var pulse = 0; pulse < 3; pulse++)

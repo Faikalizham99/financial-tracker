@@ -13,8 +13,7 @@ public partial class MainPage : ContentPage
 {
     private const string HomeSectionOrderPreferenceKey = "home_section_order";
     private const string InitialLoadingRingAnimationName = "InitialLoadingRingRotation";
-    private const uint InitialLoadingRingAnimationDurationMilliseconds = 90_000;
-    private const double InitialLoadingRingRotationCount = 100;
+    private const int InitialLoadingRingRevolutionMilliseconds = 900;
     private const int MinimumInitialLoadingDurationMilliseconds = 1700;
     private static readonly IReadOnlyList<string> DefaultHomeSectionOrder =
     [
@@ -54,6 +53,7 @@ public partial class MainPage : ContentPage
     private double draggedHomeSectionOffset;
     private Point? homeSectionPointerStart;
     private CancellationTokenSource? loadingSkeletonPulseCancellation;
+    private bool isInitialLoadingRingUsingPlatformAnimation;
     private bool hasStartedInitialDataLoad;
     private bool isInitialDataLoading;
     private bool isDataLoadingSkeletonShown = true;
@@ -561,14 +561,16 @@ public partial class MainPage : ContentPage
     private async void OnTransactionSearchRequested() =>
         await TransactionSearchView.OpenAsync();
 
-    private async void OnTransactionSearchResultSelected(int transactionId)
+    private async Task OnTransactionSearchResultSelected(int transactionId)
     {
         if (selectedSectionIndex != 1)
         {
             await NavigateToSectionAsync(1);
         }
 
-        await ExpensesView.FocusTransactionAsync(transactionId);
+        await ExpensesView.FocusTransactionAsync(
+            transactionId,
+            TransactionSearchView.CloseAsync);
     }
 
     private async void OnTransactionEditRequested(int transactionId) =>
@@ -948,23 +950,38 @@ public partial class MainPage : ContentPage
     private void StartInitialLoadingRingAnimation()
     {
         StopInitialLoadingRingAnimation();
+        isInitialLoadingRingUsingPlatformAnimation =
+            PlatformRotationAnimation.TryStart(
+                InitialLoadingRing,
+                TimeSpan.FromMilliseconds(
+                    InitialLoadingRingRevolutionMilliseconds));
+        if (isInitialLoadingRingUsingPlatformAnimation)
+        {
+            return;
+        }
 
         var rotation = new Animation(
             value => InitialLoadingRing.Rotation = value,
             0,
-            360 * InitialLoadingRingRotationCount,
+            36_000,
             Easing.Linear);
         rotation.Commit(
             InitialLoadingRing,
             InitialLoadingRingAnimationName,
             rate: 16,
-            length: InitialLoadingRingAnimationDurationMilliseconds,
+            length: InitialLoadingRingRevolutionMilliseconds * 100,
             easing: Easing.Linear,
             repeat: () => isDataLoadingSkeletonShown);
     }
 
     private void StopInitialLoadingRingAnimation()
     {
+        if (isInitialLoadingRingUsingPlatformAnimation)
+        {
+            PlatformRotationAnimation.Stop(InitialLoadingRing);
+            isInitialLoadingRingUsingPlatformAnimation = false;
+        }
+
         InitialLoadingRing.AbortAnimation(InitialLoadingRingAnimationName);
         InitialLoadingRing.Rotation = 0;
     }

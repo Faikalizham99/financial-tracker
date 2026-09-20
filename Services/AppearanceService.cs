@@ -10,6 +10,8 @@ public static class AppearanceService
     private const string AccentPreferenceKey = "startup_accent_color";
     private const string DefaultTheme = "Light";
     private const string DefaultAccentColor = "#5044E4";
+    private static string? appliedTheme;
+    private static string? appliedAccentColor;
 
     public static void ApplyStartupAppearance(Application application)
     {
@@ -76,6 +78,15 @@ public static class AppearanceService
         string theme,
         string accentColorHex)
     {
+        if (string.Equals(appliedTheme, theme, StringComparison.Ordinal) &&
+            string.Equals(
+                appliedAccentColor,
+                accentColorHex,
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
         application.UserAppTheme = theme switch
         {
             "System" => AppTheme.Unspecified,
@@ -101,6 +112,8 @@ public static class AppearanceService
         resources["Primary"] = Color.FromArgb(accentColorHex);
         resources["PrimaryDark"] = Color.FromArgb(accentColorHex);
         resources["Secondary"] = Color.FromArgb(tintHex);
+        appliedTheme = theme;
+        appliedAccentColor = accentColorHex;
     }
 
     private static string NormalizeTheme(string? theme) =>

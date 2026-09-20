@@ -15,6 +15,7 @@ public partial class TransactionSearchView : ContentView
     private IReadOnlyList<SearchDocument> searchDocuments = [];
     private CancellationTokenSource? searchCancellation;
     private bool isAnimating;
+    private bool isSelectingResult;
 
     public TransactionSearchView()
     {
@@ -22,7 +23,7 @@ public partial class TransactionSearchView : ContentView
         Unloaded += OnUnloaded;
     }
 
-    public event Action<int>? TransactionSelected;
+    public event Func<int, Task>? TransactionSelected;
 
     public void SetTransactions(IReadOnlyList<TransactionRecord> transactions)
     {
@@ -65,7 +66,7 @@ public partial class TransactionSearchView : ContentView
         SearchEntry.Focus();
     }
 
-    private async Task CloseAsync()
+    public async Task CloseAsync()
     {
         if (!IsVisible || isAnimating)
         {
@@ -89,6 +90,11 @@ public partial class TransactionSearchView : ContentView
 
     private async void OnCancelTapped(object? sender, TappedEventArgs e)
     {
+        if (isSelectingResult)
+        {
+            return;
+        }
+
         var feedback = InteractionAnimations.PulseAsync(sender);
         await CloseAsync();
         await feedback;
@@ -202,7 +208,8 @@ public partial class TransactionSearchView : ContentView
 
     private async void OnResultTapped(object? sender, TappedEventArgs e)
     {
-        if (e.Parameter is not TransactionActivityItem transaction)
+        if (e.Parameter is not TransactionActivityItem transaction ||
+            isSelectingResult)
         {
             return;
         }
@@ -213,8 +220,29 @@ public partial class TransactionSearchView : ContentView
             AddRecentSearch(query);
         }
 
-        await CloseAsync();
-        TransactionSelected?.Invoke(transaction.Id);
+        isSelectingResult = true;
+        CancelPendingSearch();
+        SearchEntry.Unfocus();
+        InputTransparent = true;
+        SearchResultsCard.InputTransparent = true;
+
+        try
+        {
+            var selectionHandler = TransactionSelected;
+            if (selectionHandler is null)
+            {
+                await CloseAsync();
+                return;
+            }
+
+            await selectionHandler(transaction.Id);
+        }
+        finally
+        {
+            isSelectingResult = false;
+            InputTransparent = false;
+            SearchResultsCard.InputTransparent = false;
+        }
     }
 
     private void UpdateSearchPresentation(string query)
