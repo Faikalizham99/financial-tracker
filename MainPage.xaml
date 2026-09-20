@@ -340,17 +340,20 @@
                     HorizontalOptions="Center"
                     VerticalOptions="Center">
                     <Ellipse
+                        x:Name="InitialLoadingRing"
                         WidthRequest="138"
                         HeightRequest="138"
                         Stroke="{DynamicResource Accent}"
                         StrokeThickness="3"
+                        StrokeDashArray="96,48"
+                        StrokeLineCap="Round"
                         HorizontalOptions="Center"
                         VerticalOptions="Center" />
                     <Border
                         WidthRequest="112"
                         HeightRequest="112"
                         Padding="0"
-                        BackgroundColor="#09090B"
+                        BackgroundColor="Transparent"
                         Stroke="#FFFFFF"
                         StrokeThickness="2"
                         StrokeShape="RoundRectangle 56"

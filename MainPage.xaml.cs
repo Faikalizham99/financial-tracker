@@ -12,6 +12,9 @@ using FinancialTracker.Models;
 public partial class MainPage : ContentPage
 {
     private const string HomeSectionOrderPreferenceKey = "home_section_order";
+    private const string InitialLoadingRingAnimationName = "InitialLoadingRingRotation";
+    private const uint InitialLoadingRingAnimationDurationMilliseconds = 90_000;
+    private const double InitialLoadingRingRotationCount = 100;
     private const int MinimumInitialLoadingDurationMilliseconds = 1700;
     private static readonly IReadOnlyList<string> DefaultHomeSectionOrder =
     [
@@ -112,6 +115,7 @@ public partial class MainPage : ContentPage
         hasStartedInitialDataLoad = true;
         isInitialDataLoading = true;
         UpdateLoadingSkeletonForSelectedSection();
+        StartInitialLoadingRingAnimation();
         var minimumLoadingDuration = Task.Delay(
             MinimumInitialLoadingDurationMilliseconds);
 
@@ -938,6 +942,31 @@ public partial class MainPage : ContentPage
         InitialLoadingFocusOverlay.Opacity = 0;
         InitialLoadingFocusContent.Scale = 1;
         InitialLoadingAnimation.IsAnimationPlaying = false;
+        StopInitialLoadingRingAnimation();
+    }
+
+    private void StartInitialLoadingRingAnimation()
+    {
+        StopInitialLoadingRingAnimation();
+
+        var rotation = new Animation(
+            value => InitialLoadingRing.Rotation = value,
+            0,
+            360 * InitialLoadingRingRotationCount,
+            Easing.Linear);
+        rotation.Commit(
+            InitialLoadingRing,
+            InitialLoadingRingAnimationName,
+            rate: 16,
+            length: InitialLoadingRingAnimationDurationMilliseconds,
+            easing: Easing.Linear,
+            repeat: () => isDataLoadingSkeletonShown);
+    }
+
+    private void StopInitialLoadingRingAnimation()
+    {
+        InitialLoadingRing.AbortAnimation(InitialLoadingRingAnimationName);
+        InitialLoadingRing.Rotation = 0;
     }
 
     private async Task HideLoadingSkeletonAsync()
