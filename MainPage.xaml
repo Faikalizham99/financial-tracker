@@ -613,5 +613,62 @@
                 </VerticalStackLayout>
             </Border>
         </Grid>
+
+        <Border
+            x:Name="TransactionLockToast"
+            IsVisible="False"
+            Opacity="0"
+            TranslationY="10"
+            ZIndex="150"
+            Margin="22,0,22,104"
+            Padding="14,11"
+            MaximumWidthRequest="390"
+            HorizontalOptions="Center"
+            VerticalOptions="End"
+            InputTransparent="True"
+            BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}"
+            Stroke="{DynamicResource Accent}"
+            StrokeThickness="1.5"
+            StrokeShape="RoundRectangle 18">
+            <Border.Shadow>
+                <Shadow Brush="{AppThemeBinding Light={StaticResource ShadowLight}, Dark={StaticResource ShadowDark}}" Offset="0,5" Opacity="0.3" Radius="12" />
+            </Border.Shadow>
+            <Grid ColumnDefinitions="22,*" ColumnSpacing="9">
+                <Path
+                    x:Name="TransactionLockedToastIcon"
+                    WidthRequest="18"
+                    HeightRequest="20"
+                    Data="M 6,10 L 6,7 A 6,6 0 0 1 18,7 L 18,10 M 5,10 L 19,10 L 19,21 L 5,21 Z M 12,14 L 12,17"
+                    Stroke="{DynamicResource Accent}"
+                    StrokeThickness="2"
+                    StrokeLineCap="Round"
+                    StrokeLineJoin="Round"
+                    Fill="Transparent"
+                    Aspect="Uniform"
+                    VerticalOptions="Center" />
+                <Path
+                    x:Name="TransactionEditingToastIcon"
+                    IsVisible="False"
+                    WidthRequest="19"
+                    HeightRequest="19"
+                    Data="M 4,20 L 8,19 L 19,8 L 16,5 L 5,16 Z M 14,7 L 17,10"
+                    Stroke="{DynamicResource Accent}"
+                    StrokeThickness="2"
+                    StrokeLineCap="Round"
+                    StrokeLineJoin="Round"
+                    Fill="Transparent"
+                    Aspect="Uniform"
+                    VerticalOptions="Center" />
+                <Label
+                    x:Name="TransactionLockToastLabel"
+                    Grid.Column="1"
+                    Text="Transactions locked"
+                    FontFamily="OpenSansSemibold"
+                    FontSize="13"
+                    LineBreakMode="NoWrap"
+                    MaxLines="1"
+                    VerticalTextAlignment="Center" />
+            </Grid>
+        </Border>
     </Grid>
 </ContentPage>

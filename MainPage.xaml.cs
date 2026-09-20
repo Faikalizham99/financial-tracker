@@ -50,6 +50,7 @@ public partial class MainPage : ContentPage
     private double draggedHomeSectionOffset;
     private Point? homeSectionPointerStart;
     private CancellationTokenSource? loadingSkeletonPulseCancellation;
+    private CancellationTokenSource? transactionLockToastCancellation;
     private bool hasStartedInitialDataLoad;
     private bool isInitialDataLoading;
     private bool isDataLoadingSkeletonShown = true;
@@ -621,6 +622,60 @@ public partial class MainPage : ContentPage
                 cachedTransactionRecords,
                 settingsViewModel.SelectedCurrency);
             Dispatcher.Dispatch(UpdateDashboardTransactionContextMenus);
+        }
+
+        _ = ShowTransactionLockToastAsync(isLocked);
+    }
+
+    private async Task ShowTransactionLockToastAsync(bool isLocked)
+    {
+        var previousToast = transactionLockToastCancellation;
+        transactionLockToastCancellation = null;
+        if (previousToast is not null)
+        {
+            previousToast.Cancel();
+            previousToast.Dispose();
+        }
+
+        var cancellation = new CancellationTokenSource();
+        transactionLockToastCancellation = cancellation;
+        var message = isLocked
+            ? "Transactions locked"
+            : "Edit and delete enabled";
+
+        TransactionLockToast.CancelAnimations();
+        TransactionLockedToastIcon.IsVisible = isLocked;
+        TransactionEditingToastIcon.IsVisible = !isLocked;
+        TransactionLockToastLabel.Text = message;
+        TransactionLockToast.Opacity = 0;
+        TransactionLockToast.TranslationY = 10;
+        TransactionLockToast.IsVisible = true;
+        SemanticScreenReader.Default.Announce(message);
+
+        try
+        {
+            await Task.WhenAll(
+                TransactionLockToast.FadeToAsync(1, 140, Easing.CubicOut),
+                TransactionLockToast.TranslateToAsync(0, 0, 170, Easing.CubicOut));
+            await Task.Delay(1700, cancellation.Token);
+            await Task.WhenAll(
+                TransactionLockToast.FadeToAsync(0, 170, Easing.CubicIn),
+                TransactionLockToast.TranslateToAsync(0, 8, 170, Easing.CubicIn));
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        finally
+        {
+            if (ReferenceEquals(transactionLockToastCancellation, cancellation))
+            {
+                TransactionLockToast.CancelAnimations();
+                TransactionLockToast.IsVisible = false;
+                TransactionLockToast.Opacity = 0;
+                TransactionLockToast.TranslationY = 10;
+                transactionLockToastCancellation = null;
+                cancellation.Dispose();
+            }
         }
     }
 
