@@ -13,6 +13,7 @@ public partial class ExpensesView : ContentView
     public event Action<int>? EditTransactionRequested;
     public event Action<int>? DeleteTransactionRequested;
     public event Action? SearchRequested;
+    public event EventHandler? TransactionEditingLockToggleRequested;
     public Func<DateTime, DateTime, DateTime, Task<DateTime?>>? DatePickerRequested { get; set; }
 
     private enum FilterSelectorKind
@@ -62,10 +63,13 @@ public partial class ExpensesView : ContentView
     private bool isDateRangeFilterAnimating;
     private CancellationTokenSource? transactionFocusCancellation;
     private CancellationTokenSource? descriptionMeasurementCancellation;
+    private bool isTransactionEditingLocked = true;
 
     public ExpensesView()
     {
         InitializeComponent();
+        TransactionsMonthlySummary.TransactionEditingLockToggleRequested +=
+            OnTransactionEditingLockToggleRequested;
         UpdateMonthSwitcherLabel();
         UpdateFilterChips();
     }
@@ -81,6 +85,22 @@ public partial class ExpensesView : ContentView
         this.selectedCurrency = selectedCurrency;
         RenderDisplayedMonth();
     }
+
+    public void SetTransactionEditingLocked(bool isLocked)
+    {
+        if (isTransactionEditingLocked == isLocked)
+        {
+            return;
+        }
+
+        isTransactionEditingLocked = isLocked;
+        TransactionsMonthlySummary.IsTransactionEditingLocked = isLocked;
+        RenderDisplayedMonth();
+        Dispatcher.Dispatch(UpdateTransactionContextMenus);
+    }
+
+    private void OnTransactionEditingLockToggleRequested(object? sender, EventArgs e) =>
+        TransactionEditingLockToggleRequested?.Invoke(this, EventArgs.Empty);
 
     public async Task FocusTransactionAsync(
         int transactionId,
@@ -738,7 +758,8 @@ public partial class ExpensesView : ContentView
 
     private void OnEditTransactionInvoked(object? sender, EventArgs e)
     {
-        if (sender is SwipeItemView { BindingContext: TransactionActivityItem item })
+        if (!isTransactionEditingLocked &&
+            sender is SwipeItemView { BindingContext: TransactionActivityItem item })
         {
             EditTransactionRequested?.Invoke(item.Id);
         }
@@ -746,7 +767,8 @@ public partial class ExpensesView : ContentView
 
     private void OnDeleteTransactionInvoked(object? sender, EventArgs e)
     {
-        if (sender is SwipeItemView { BindingContext: TransactionActivityItem item })
+        if (!isTransactionEditingLocked &&
+            sender is SwipeItemView { BindingContext: TransactionActivityItem item })
         {
             DeleteTransactionRequested?.Invoke(item.Id);
         }
@@ -754,9 +776,33 @@ public partial class ExpensesView : ContentView
 
     private void OnTransactionRowHandlerChanged(object? sender, EventArgs e)
     {
+        if (sender is Grid row)
+        {
+            ConfigureTransactionContextMenu(row);
+        }
+    }
+
+    private void UpdateTransactionContextMenus()
+    {
+        foreach (var row in ActivityGroupsLayout
+            .GetVisualTreeDescendants()
+            .OfType<Grid>()
+            .Where(view => view.ClassId == "TransactionContextMenuTarget"))
+        {
+            ConfigureTransactionContextMenu(row);
+        }
+    }
+
+    private void ConfigureTransactionContextMenu(Grid row)
+    {
 #if WINDOWS
-        if (sender is not Grid row ||
-            row.Handler?.PlatformView is not Microsoft.UI.Xaml.FrameworkElement nativeRow)
+        if (row.Handler?.PlatformView is not Microsoft.UI.Xaml.FrameworkElement nativeRow)
+        {
+            return;
+        }
+
+        nativeRow.ContextFlyout = null;
+        if (isTransactionEditingLocked)
         {
             return;
         }
@@ -764,7 +810,8 @@ public partial class ExpensesView : ContentView
         var editItem = new Microsoft.UI.Xaml.Controls.MenuFlyoutItem { Text = "Edit" };
         editItem.Click += (_, _) =>
         {
-            if (row.BindingContext is TransactionActivityItem item)
+            if (!isTransactionEditingLocked &&
+                row.BindingContext is TransactionActivityItem item)
             {
                 EditTransactionRequested?.Invoke(item.Id);
             }
@@ -773,7 +820,8 @@ public partial class ExpensesView : ContentView
         var deleteItem = new Microsoft.UI.Xaml.Controls.MenuFlyoutItem { Text = "Delete" };
         deleteItem.Click += (_, _) =>
         {
-            if (row.BindingContext is TransactionActivityItem item)
+            if (!isTransactionEditingLocked &&
+                row.BindingContext is TransactionActivityItem item)
             {
                 DeleteTransactionRequested?.Invoke(item.Id);
             }
@@ -995,7 +1043,8 @@ public partial class ExpensesView : ContentView
                     .Select((record, index) => TransactionActivityItem.FromRecord(
                         record,
                         index < groupRecords.Count - 1,
-                        expandedTransactionDescriptionIds.Contains(record.Id)))
+                        expandedTransactionDescriptionIds.Contains(record.Id),
+                        canModifyTransaction: !isTransactionEditingLocked))
                     .ToList();
                 var netAmountMinor = groupRecords.Sum(record =>
                     record.Type.Equals("Income", StringComparison.OrdinalIgnoreCase)
@@ -1040,6 +1089,7 @@ public partial class ExpensesView : ContentView
         UpdateFilterChips();
         ScheduleDescriptionMeasurements();
         Dispatcher.Dispatch(UpdateStickyActivityHeader);
+        Dispatcher.Dispatch(UpdateTransactionContextMenus);
     }
 
     private void UpdateFilterChips()

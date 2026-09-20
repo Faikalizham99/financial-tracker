@@ -8,7 +8,7 @@
         <Border Style="{StaticResource CardShadowLayer}" />
         <Border Style="{StaticResource CardSurface}" Padding="20,18">
             <VerticalStackLayout Spacing="17">
-                <Grid ColumnDefinitions="23,*,18" ColumnSpacing="10">
+                <Grid ColumnDefinitions="23,*,Auto" ColumnSpacing="10">
                     <Path
                         WidthRequest="23"
                         HeightRequest="23"
@@ -30,18 +30,66 @@
                         LineBreakMode="TailTruncation"
                         MaxLines="1"
                         VerticalTextAlignment="Center" />
-                    <Path
+                    <Border
+                        x:Name="TransactionLockButton"
                         Grid.Column="2"
-                        WidthRequest="18"
-                        HeightRequest="20"
-                        Data="M 6,10 L 6,7 A 6,6 0 0 1 18,7 L 18,10 M 5,10 L 19,10 L 19,21 L 5,21 Z M 12,14 L 12,17"
-                        Stroke="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}"
-                        StrokeThickness="2"
-                        StrokeLineCap="Round"
-                        StrokeLineJoin="Round"
-                        Fill="Transparent"
-                        Aspect="Uniform"
-                        VerticalOptions="Center" />
+                        HeightRequest="34"
+                        Padding="9,6"
+                        BackgroundColor="Transparent"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 17"
+                        VerticalOptions="Center"
+                        SemanticProperties.Description="Transactions locked. Tap to allow editing and deletion.">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnTransactionLockTapped" />
+                        </Border.GestureRecognizers>
+                        <Grid>
+                            <HorizontalStackLayout
+                                x:Name="LockedTransactionState"
+                                Spacing="5"
+                                VerticalOptions="Center">
+                                <Path
+                                    WidthRequest="16"
+                                    HeightRequest="18"
+                                    Data="M 6,10 L 6,7 A 6,6 0 0 1 18,7 L 18,10 M 5,10 L 19,10 L 19,21 L 5,21 Z M 12,14 L 12,17"
+                                    Stroke="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}"
+                                    StrokeThickness="2"
+                                    StrokeLineCap="Round"
+                                    StrokeLineJoin="Round"
+                                    Fill="Transparent"
+                                    Aspect="Uniform" />
+                                <Label
+                                    Text="LOCKED"
+                                    Style="{StaticResource SectionLabel}"
+                                    FontSize="9"
+                                    CharacterSpacing="0.6"
+                                    VerticalTextAlignment="Center" />
+                            </HorizontalStackLayout>
+                            <HorizontalStackLayout
+                                x:Name="UnlockedTransactionState"
+                                IsVisible="False"
+                                Spacing="5"
+                                VerticalOptions="Center">
+                                <Path
+                                    WidthRequest="16"
+                                    HeightRequest="18"
+                                    Data="M 7,11 L 7,7 A 5,5 0 0 1 17,7 L 17,8 M 5,11 L 19,11 L 19,21 L 5,21 Z M 12,15 L 12,18"
+                                    Stroke="{DynamicResource Accent}"
+                                    StrokeThickness="2"
+                                    StrokeLineCap="Round"
+                                    StrokeLineJoin="Round"
+                                    Fill="Transparent"
+                                    Aspect="Uniform" />
+                                <Label
+                                    Text="EDIT ON"
+                                    FontFamily="OpenSansSemibold"
+                                    FontSize="9"
+                                    CharacterSpacing="0.6"
+                                    TextColor="{DynamicResource Accent}"
+                                    VerticalTextAlignment="Center" />
+                            </HorizontalStackLayout>
+                        </Grid>
+                    </Border>
                 </Grid>
 
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="18">

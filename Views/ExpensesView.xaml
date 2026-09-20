@@ -231,6 +231,15 @@
                                             <SwipeView
                                                 HeightRequest="{Binding DescriptionRowHeightRequest}"
                                                 MinimumHeightRequest="63">
+                                                <SwipeView.Triggers>
+                                                    <DataTrigger TargetType="SwipeView" Binding="{Binding CanModifyTransaction}" Value="False">
+                                                        <Setter Property="RightItems">
+                                                            <Setter.Value>
+                                                                <SwipeItems />
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </DataTrigger>
+                                                </SwipeView.Triggers>
                                                 <SwipeView.RightItems>
                                                     <SwipeItems Mode="Reveal" SwipeBehaviorOnInvoked="Close">
                                                         <SwipeItemView Invoked="OnEditTransactionInvoked">
@@ -247,7 +256,7 @@
                                                         </SwipeItemView>
                                                     </SwipeItems>
                                                 </SwipeView.RightItems>
-                                                <Grid BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" HandlerChanged="OnTransactionRowHandlerChanged">
+                                                <Grid ClassId="TransactionContextMenuTarget" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" HandlerChanged="OnTransactionRowHandlerChanged">
                                                     <BoxView
                                                         ClassId="TransactionSearchHighlight"
                                                         BackgroundColor="{DynamicResource AccentTint}"

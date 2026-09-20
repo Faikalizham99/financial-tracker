@@ -53,6 +53,7 @@ public partial class MainPage : ContentPage
     private bool hasStartedInitialDataLoad;
     private bool isInitialDataLoading;
     private bool isDataLoadingSkeletonShown = true;
+    private bool isTransactionEditingLocked = true;
 
     public MainPage()
         : this(new LocalDatabase())
@@ -96,6 +97,10 @@ public partial class MainPage : ContentPage
         ExpensesView.EditTransactionRequested += OnTransactionEditRequested;
         ExpensesView.DeleteTransactionRequested += OnTransactionDeleteRequested;
         ExpensesView.SearchRequested += OnTransactionSearchRequested;
+        ExpensesView.TransactionEditingLockToggleRequested +=
+            OnTransactionEditingLockToggleRequested;
+        DashboardMonthlySummary.TransactionEditingLockToggleRequested +=
+            OnTransactionEditingLockToggleRequested;
         TransactionSearchView.TransactionSelected += OnTransactionSearchResultSelected;
         settingsViewModel.PropertyChanged += OnSettingsPropertyChanged;
         Loaded += OnLoaded;
@@ -580,15 +585,49 @@ public partial class MainPage : ContentPage
         }
     }
 
-    private async void OnTransactionEditRequested(int transactionId) =>
-        await OpenTransactionForEditAsync(transactionId);
+    private async void OnTransactionEditRequested(int transactionId)
+    {
+        if (!isTransactionEditingLocked)
+        {
+            await OpenTransactionForEditAsync(transactionId);
+        }
+    }
 
-    private async void OnTransactionDeleteRequested(int transactionId) =>
-        await OpenDeleteConfirmationAsync(transactionId);
+    private async void OnTransactionDeleteRequested(int transactionId)
+    {
+        if (!isTransactionEditingLocked)
+        {
+            await OpenDeleteConfirmationAsync(transactionId);
+        }
+    }
+
+    private void OnTransactionEditingLockToggleRequested(object? sender, EventArgs e) =>
+        SetTransactionEditingLocked(!isTransactionEditingLocked);
+
+    private void SetTransactionEditingLocked(bool isLocked)
+    {
+        if (isTransactionEditingLocked == isLocked)
+        {
+            return;
+        }
+
+        isTransactionEditingLocked = isLocked;
+        DashboardMonthlySummary.IsTransactionEditingLocked = isLocked;
+        ExpensesView.SetTransactionEditingLocked(isLocked);
+
+        if (cachedTransactionRecords is not null)
+        {
+            RefreshDashboard(
+                cachedTransactionRecords,
+                settingsViewModel.SelectedCurrency);
+            Dispatcher.Dispatch(UpdateDashboardTransactionContextMenus);
+        }
+    }
 
     private async void OnDashboardEditTransactionInvoked(object? sender, EventArgs e)
     {
-        if (sender is SwipeItemView { BindingContext: TransactionActivityItem item })
+        if (!isTransactionEditingLocked &&
+            sender is SwipeItemView { BindingContext: TransactionActivityItem item })
         {
             await OpenTransactionForEditAsync(item.Id);
         }
@@ -596,7 +635,8 @@ public partial class MainPage : ContentPage
 
     private async void OnDashboardDeleteTransactionInvoked(object? sender, EventArgs e)
     {
-        if (sender is SwipeItemView { BindingContext: TransactionActivityItem item })
+        if (!isTransactionEditingLocked &&
+            sender is SwipeItemView { BindingContext: TransactionActivityItem item })
         {
             await OpenDeleteConfirmationAsync(item.Id);
         }
@@ -604,9 +644,33 @@ public partial class MainPage : ContentPage
 
     private void OnDashboardTransactionRowHandlerChanged(object? sender, EventArgs e)
     {
+        if (sender is Grid row)
+        {
+            ConfigureDashboardTransactionContextMenu(row);
+        }
+    }
+
+    private void UpdateDashboardTransactionContextMenus()
+    {
+        foreach (var row in DashboardActivityLayout
+            .GetVisualTreeDescendants()
+            .OfType<Grid>()
+            .Where(view => view.ClassId == "TransactionContextMenuTarget"))
+        {
+            ConfigureDashboardTransactionContextMenu(row);
+        }
+    }
+
+    private void ConfigureDashboardTransactionContextMenu(Grid row)
+    {
 #if WINDOWS
-        if (sender is not Grid row ||
-            row.Handler?.PlatformView is not Microsoft.UI.Xaml.FrameworkElement nativeRow)
+        if (row.Handler?.PlatformView is not Microsoft.UI.Xaml.FrameworkElement nativeRow)
+        {
+            return;
+        }
+
+        nativeRow.ContextFlyout = null;
+        if (isTransactionEditingLocked)
         {
             return;
         }
@@ -614,7 +678,8 @@ public partial class MainPage : ContentPage
         var editItem = new Microsoft.UI.Xaml.Controls.MenuFlyoutItem { Text = "Edit" };
         editItem.Click += async (_, _) =>
         {
-            if (row.BindingContext is TransactionActivityItem item)
+            if (!isTransactionEditingLocked &&
+                row.BindingContext is TransactionActivityItem item)
             {
                 await OpenTransactionForEditAsync(item.Id);
             }
@@ -623,7 +688,8 @@ public partial class MainPage : ContentPage
         var deleteItem = new Microsoft.UI.Xaml.Controls.MenuFlyoutItem { Text = "Delete" };
         deleteItem.Click += async (_, _) =>
         {
-            if (row.BindingContext is TransactionActivityItem item)
+            if (!isTransactionEditingLocked &&
+                row.BindingContext is TransactionActivityItem item)
             {
                 await OpenDeleteConfirmationAsync(item.Id);
             }
@@ -638,6 +704,11 @@ public partial class MainPage : ContentPage
 
     private async Task OpenTransactionForEditAsync(int transactionId)
     {
+        if (isTransactionEditingLocked)
+        {
+            return;
+        }
+
         var transaction = await localDatabase.GetTransactionAsync(transactionId);
         if (transaction is null)
         {
@@ -653,7 +724,9 @@ public partial class MainPage : ContentPage
 
     private async Task OpenDeleteConfirmationAsync(int transactionId)
     {
-        if (DeleteConfirmationOverlay.IsVisible || isDeleteConfirmationAnimating)
+        if (isTransactionEditingLocked ||
+            DeleteConfirmationOverlay.IsVisible ||
+            isDeleteConfirmationAnimating)
         {
             return;
         }
@@ -710,7 +783,9 @@ public partial class MainPage : ContentPage
 
     private async void OnDeleteConfirmationConfirmedTapped(object? sender, TappedEventArgs e)
     {
-        if (pendingDeleteTransaction is null || isDeletingTransaction)
+        if (isTransactionEditingLocked ||
+            pendingDeleteTransaction is null ||
+            isDeletingTransaction)
         {
             return;
         }
@@ -1058,7 +1133,8 @@ public partial class MainPage : ContentPage
         var recentActivity = recentRecords
             .Select((record, index) => TransactionActivityItem.FromRecord(
                 record,
-                index < recentRecords.Count - 1))
+                index < recentRecords.Count - 1,
+                canModifyTransaction: !isTransactionEditingLocked))
             .ToList();
         BindableLayout.SetItemsSource(DashboardActivityLayout, recentActivity);
         DashboardActivityCard.IsVisible = recentActivity.Count > 0;

@@ -24,6 +24,7 @@ public sealed class TransactionActivityItem : INotifyPropertyChanged
     public string PaymentMethodIconAsset { get; private init; } = string.Empty;
     public bool IsIncome { get; private init; }
     public bool ShowDivider { get; private init; }
+    public bool CanModifyTransaction { get; private init; }
     public DateTime TransactionDate { get; private init; }
     public bool CanExpandDescription => canExpandDescription;
     public bool IsDescriptionExpanded => isDescriptionExpanded;
@@ -39,7 +40,8 @@ public sealed class TransactionActivityItem : INotifyPropertyChanged
     public static TransactionActivityItem FromRecord(
         TransactionRecord record,
         bool showDivider = false,
-        bool isDescriptionExpanded = false)
+        bool isDescriptionExpanded = false,
+        bool canModifyTransaction = false)
     {
         var isIncome = record.Type.Equals("Income", StringComparison.OrdinalIgnoreCase);
         var category = TransactionCatalog.GetCategory(record.Category, isIncome);
@@ -68,6 +70,7 @@ public sealed class TransactionActivityItem : INotifyPropertyChanged
             PaymentMethodIconAsset = paymentMethod.IconAsset,
             IsIncome = isIncome,
             ShowDivider = showDivider,
+            CanModifyTransaction = canModifyTransaction,
             TransactionDate = record.TransactionDate.Date,
             isDescriptionExpanded = isDescriptionExpanded
         };

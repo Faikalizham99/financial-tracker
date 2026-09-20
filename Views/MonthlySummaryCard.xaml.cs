@@ -15,6 +15,15 @@ public partial class MonthlySummaryCard : ContentView
             propertyChanged: static (bindable, _, newValue) =>
                 ((MonthlySummaryCard)bindable).TransactionCountPanel.IsVisible = (bool)newValue);
 
+    public static readonly BindableProperty IsTransactionEditingLockedProperty =
+        BindableProperty.Create(
+            nameof(IsTransactionEditingLocked),
+            typeof(bool),
+            typeof(MonthlySummaryCard),
+            true,
+            propertyChanged: static (bindable, _, _) =>
+                ((MonthlySummaryCard)bindable).UpdateTransactionLockVisuals());
+
     private string availableAmountText = "RM 0.00";
     private string incomeAmountText = "RM 0.00";
     private string expenseAmountText = "RM 0.00";
@@ -23,12 +32,21 @@ public partial class MonthlySummaryCard : ContentView
     public MonthlySummaryCard()
     {
         InitializeComponent();
+        UpdateTransactionLockVisuals();
     }
+
+    public event EventHandler? TransactionEditingLockToggleRequested;
 
     public bool ShowTransactionCount
     {
         get => (bool)GetValue(ShowTransactionCountProperty);
         set => SetValue(ShowTransactionCountProperty, value);
+    }
+
+    public bool IsTransactionEditingLocked
+    {
+        get => (bool)GetValue(IsTransactionEditingLockedProperty);
+        set => SetValue(IsTransactionEditingLockedProperty, value);
     }
 
     public void Refresh(
@@ -131,6 +149,36 @@ public partial class MonthlySummaryCard : ContentView
         areAmountsVisible = !areAmountsVisible;
         UpdateAmountVisibility();
         await feedback;
+    }
+
+    private async void OnTransactionLockTapped(object? sender, TappedEventArgs e)
+    {
+        var feedback = InteractionAnimations.PulseAsync(TransactionLockButton);
+        TransactionEditingLockToggleRequested?.Invoke(this, EventArgs.Empty);
+        await feedback;
+    }
+
+    private void UpdateTransactionLockVisuals()
+    {
+        LockedTransactionState.IsVisible = IsTransactionEditingLocked;
+        UnlockedTransactionState.IsVisible = !IsTransactionEditingLocked;
+        if (IsTransactionEditingLocked)
+        {
+            TransactionLockButton.RemoveDynamicResource(BackgroundColorProperty);
+            TransactionLockButton.BackgroundColor = Colors.Transparent;
+        }
+        else
+        {
+            TransactionLockButton.SetDynamicResource(
+                BackgroundColorProperty,
+                "AccentTint");
+        }
+
+        SemanticProperties.SetDescription(
+            TransactionLockButton,
+            IsTransactionEditingLocked
+                ? "Transactions locked. Tap to allow editing and deletion."
+                : "Transactions unlocked. Tap to prevent editing and deletion.");
     }
 
     private void UpdateAmountVisibility()
