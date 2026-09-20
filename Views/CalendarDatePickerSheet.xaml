@@ -7,7 +7,7 @@
     SizeChanged="OnOverlaySizeChanged">
 
     <Grid x:Name="OverlayRoot" Opacity="0">
-        <BoxView BackgroundColor="#99000000">
+        <BoxView BackgroundColor="{StaticResource OverlayScrim}">
             <BoxView.GestureRecognizers>
                 <TapGestureRecognizer Tapped="OnDismissTapped" />
             </BoxView.GestureRecognizers>

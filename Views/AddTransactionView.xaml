@@ -18,8 +18,8 @@
 
         <Style x:Key="KeypadButton" TargetType="Border">
             <Setter Property="HeightRequest" Value="52" />
-            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark=#202023}" />
-            <Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource DividerLight}, Dark=#2C2C30}" />
+            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource ControlSurfaceDark}}" />
+            <Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource ControlDividerDark}}" />
             <Setter Property="StrokeThickness" Value="1" />
             <Setter Property="StrokeShape" Value="RoundRectangle 15" />
         </Style>
@@ -98,8 +98,8 @@
                         Grid.Row="1"
                         HeightRequest="62"
                         Padding="15,0"
-                        BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark=#202023}"
-                        Stroke="{AppThemeBinding Light={StaticResource DividerLight}, Dark=#2C2C30}"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource ControlSurfaceDark}}"
+                        Stroke="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource ControlDividerDark}}"
                         StrokeThickness="1"
                         StrokeShape="RoundRectangle 19">
                         <Grid ColumnDefinitions="24,*" ColumnSpacing="12">
@@ -333,7 +333,7 @@
             Opacity="0"
             ZIndex="20"
             SizeChanged="OnSelectorOverlaySizeChanged">
-            <BoxView BackgroundColor="#99000000">
+            <BoxView BackgroundColor="{StaticResource OverlayScrim}">
                 <BoxView.GestureRecognizers>
                     <TapGestureRecognizer Tapped="OnSelectorBackdropTapped" />
                 </BoxView.GestureRecognizers>

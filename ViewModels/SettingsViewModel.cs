@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using FinancialTracker.Helpers;
 using FinancialTracker.Models;
 using FinancialTracker.Services;
 
@@ -15,16 +16,16 @@ public sealed class SettingsViewModel(SettingsService settingsService) : INotify
     private string name = "Faikal";
     private string savedName = "Faikal";
     private CurrencyOption selectedCurrency = SupportedCurrencies[0];
-    private string selectedTheme = "Light";
-    private string selectedAccentColorHex = "#5044E4";
-    private string customAccentColorHex = "#5044E4";
+    private string selectedTheme = AppearanceValueNormalizer.DefaultTheme;
+    private string selectedAccentColorHex = AppearanceValueNormalizer.DefaultAccentColor;
+    private string customAccentColorHex = AppearanceValueNormalizer.DefaultAccentColor;
 
     public static IReadOnlyList<CurrencyOption> SupportedCurrencies { get; } =
     [
-        new("🇲🇾", "flag_myr.png", "MYR", "Malaysian Ringgit", "RM"),
-        new("🇺🇸", "flag_usd.png", "USD", "United States Dollar", "$"),
-        new("🇸🇬", "flag_sgd.png", "SGD", "Singapore Dollar", "S$"),
-        new("🇰🇷", "flag_krw.png", "KRW", "South Korean Won", "₩")
+        new("flag_myr.png", "MYR", "Malaysian Ringgit", "RM"),
+        new("flag_usd.png", "USD", "United States Dollar", "$"),
+        new("flag_sgd.png", "SGD", "Singapore Dollar", "S$"),
+        new("flag_krw.png", "KRW", "South Korean Won", "₩")
     ];
 
     public static IReadOnlyList<AccentColorOption> SupportedAccentColors { get; } =
@@ -130,18 +131,22 @@ public sealed class SettingsViewModel(SettingsService settingsService) : INotify
     }
 
     public bool CanApplyCustomAccent =>
-        TryNormalizeAccentColor(CustomAccentColorHex, out var normalized) &&
+        AppearanceValueNormalizer.TryNormalizeAccentColor(
+            CustomAccentColorHex,
+            out var normalized) &&
         !normalized.Equals(SelectedAccentColorHex, StringComparison.OrdinalIgnoreCase);
 
     public string ApplyAccentButtonText =>
-        TryNormalizeAccentColor(CustomAccentColorHex, out var normalized) &&
+        AppearanceValueNormalizer.TryNormalizeAccentColor(
+            CustomAccentColorHex,
+            out var normalized) &&
         normalized.Equals(SelectedAccentColorHex, StringComparison.OrdinalIgnoreCase)
             ? "Applied"
             : "Apply";
 
     public bool HasAccentValidationError =>
         !string.IsNullOrWhiteSpace(CustomAccentColorHex) &&
-        !TryNormalizeAccentColor(CustomAccentColorHex, out _);
+        !AppearanceValueNormalizer.TryNormalizeAccentColor(CustomAccentColorHex, out _);
 
     public string AccentValidationMessage =>
         HasAccentValidationError ? "Enter a HEX colour such as #5044E4." : string.Empty;
@@ -188,8 +193,9 @@ public sealed class SettingsViewModel(SettingsService settingsService) : INotify
             selectedCurrency = SupportedCurrencies.FirstOrDefault(
                 option => option.Code.Equals(settings.CurrencyCode, StringComparison.OrdinalIgnoreCase))
                 ?? SupportedCurrencies[0];
-            selectedTheme = NormalizeTheme(settings.Theme);
-            selectedAccentColorHex = NormalizeAccentColor(settings.AccentColorHex);
+            selectedTheme = AppearanceValueNormalizer.NormalizeTheme(settings.Theme);
+            selectedAccentColorHex = AppearanceValueNormalizer.NormalizeAccentColor(
+                settings.AccentColorHex);
             customAccentColorHex = selectedAccentColorHex;
             AppearanceService.ApplyAndCache(
                 selectedTheme,
@@ -239,7 +245,7 @@ public sealed class SettingsViewModel(SettingsService settingsService) : INotify
     public async Task SelectThemeAsync(string theme)
     {
         await InitializeAsync();
-        var normalizedTheme = NormalizeTheme(theme);
+        var normalizedTheme = AppearanceValueNormalizer.NormalizeTheme(theme);
         if (normalizedTheme == SelectedTheme)
         {
             return;
@@ -256,7 +262,7 @@ public sealed class SettingsViewModel(SettingsService settingsService) : INotify
     public async Task SelectAccentColorAsync(string accentColorHex)
     {
         await InitializeAsync();
-        var normalized = NormalizeAccentColor(accentColorHex);
+        var normalized = AppearanceValueNormalizer.NormalizeAccentColor(accentColorHex);
         if (normalized.Equals(SelectedAccentColorHex, StringComparison.OrdinalIgnoreCase))
         {
             CustomAccentColorHex = normalized;
@@ -271,7 +277,9 @@ public sealed class SettingsViewModel(SettingsService settingsService) : INotify
     }
 
     public Task ApplyCustomAccentColorAsync() =>
-        TryNormalizeAccentColor(CustomAccentColorHex, out var normalized)
+        AppearanceValueNormalizer.TryNormalizeAccentColor(
+            CustomAccentColorHex,
+            out var normalized)
             ? SelectAccentColorAsync(normalized)
             : Task.CompletedTask;
 
@@ -288,35 +296,6 @@ public sealed class SettingsViewModel(SettingsService settingsService) : INotify
         {
             saveLock.Release();
         }
-    }
-
-    private static string NormalizeTheme(string? theme) =>
-        theme?.Trim().ToLowerInvariant() switch
-        {
-            "system" => "System",
-            "dark" => "Dark",
-            _ => "Light"
-        };
-
-    private static string NormalizeAccentColor(string? value) =>
-        TryNormalizeAccentColor(value, out var normalized) ? normalized : "#5044E4";
-
-    private static bool TryNormalizeAccentColor(string? value, out string normalized)
-    {
-        var hex = value?.Trim().TrimStart('#') ?? string.Empty;
-        if (hex.Length == 3 && hex.All(Uri.IsHexDigit))
-        {
-            hex = string.Concat(hex.Select(character => $"{character}{character}"));
-        }
-
-        if (hex.Length == 6 && hex.All(Uri.IsHexDigit))
-        {
-            normalized = $"#{hex.ToUpperInvariant()}";
-            return true;
-        }
-
-        normalized = string.Empty;
-        return false;
     }
 
     private void NotifyCurrencyFormattingChanged()

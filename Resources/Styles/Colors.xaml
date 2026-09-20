@@ -25,6 +25,9 @@
     <Color x:Key="BorderDark">#8B8798</Color>
     <Color x:Key="SurfaceMutedDark">#161618</Color>
     <Color x:Key="DividerDark">#29292D</Color>
+    <Color x:Key="ControlSurfaceDark">#202023</Color>
+    <Color x:Key="ControlDividerDark">#2C2C30</Color>
+    <Color x:Key="OverlayScrim">#99000000</Color>
 
     <!-- Shared accents -->
     <Color x:Key="Accent">#5044E4</Color>

@@ -130,10 +130,6 @@
         <Setter Property="StrokeShape" Value="RoundRectangle 23" />
     </Style>
 
-    <Style x:Key="SelectedNavTab" TargetType="Border" BasedOn="{StaticResource NavTab}">
-        <Setter Property="BackgroundColor" Value="{DynamicResource AccentTint}" />
-    </Style>
-
     <Style x:Key="SelectedNavLabel" TargetType="Label" BasedOn="{StaticResource NavLabel}">
         <Setter Property="TextColor" Value="{DynamicResource Accent}" />
     </Style>

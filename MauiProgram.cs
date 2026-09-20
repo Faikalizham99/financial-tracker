@@ -1,6 +1,9 @@
 ﻿using Microsoft.Extensions.Logging;
 
+using FinancialTracker.Data;
 using FinancialTracker.Helpers;
+using FinancialTracker.Services;
+using FinancialTracker.ViewModels;
 using Microsoft.Maui.Handlers;
 
 namespace FinancialTracker;
@@ -23,6 +26,11 @@ public static class MauiProgram
                 fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                 fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
             });
+
+        builder.Services.AddSingleton<LocalDatabase>();
+        builder.Services.AddSingleton<SettingsService>();
+        builder.Services.AddSingleton<SettingsViewModel>();
+        builder.Services.AddSingleton<MainPage>();
 
 #if DEBUG
         builder.Logging.AddDebug();

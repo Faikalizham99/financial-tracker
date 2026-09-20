@@ -5,7 +5,7 @@ namespace FinancialTracker.Data;
 
 public sealed class LocalDatabase
 {
-    private const int CurrentSchemaVersion = 3;
+    private const int CurrentSchemaVersion = 4;
     private readonly SemaphoreSlim initializationLock = new(1, 1);
     private SQLiteAsyncConnection? connection;
     private bool isInitialized;
@@ -50,6 +50,13 @@ public sealed class LocalDatabase
             if (version < 3)
             {
                 await Connection.CreateTableAsync<TransactionRecord>();
+            }
+
+            if (version < 4)
+            {
+                await Connection.ExecuteAsync(
+                    "CREATE INDEX IF NOT EXISTS IX_Transactions_Date_Created_Id " +
+                    "ON Transactions (TransactionDate DESC, CreatedAtUtc DESC, Id DESC)");
             }
 
             if (version < CurrentSchemaVersion)

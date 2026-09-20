@@ -402,7 +402,7 @@
     </Border>
 
     <Grid x:Name="FilterSelectorOverlay" IsVisible="False" Opacity="0" ZIndex="40" SizeChanged="OnFilterSelectorOverlaySizeChanged">
-        <BoxView BackgroundColor="#99000000">
+        <BoxView BackgroundColor="{StaticResource OverlayScrim}">
             <BoxView.GestureRecognizers>
                 <TapGestureRecognizer Tapped="OnFilterSelectorBackdropTapped" />
             </BoxView.GestureRecognizers>
@@ -475,7 +475,7 @@
     </Grid>
 
     <Grid x:Name="DateRangeFilterOverlay" IsVisible="False" Opacity="0" ZIndex="45">
-        <BoxView BackgroundColor="#99000000">
+        <BoxView BackgroundColor="{StaticResource OverlayScrim}">
             <BoxView.GestureRecognizers>
                 <TapGestureRecognizer Tapped="OnDateRangeBackdropTapped" />
             </BoxView.GestureRecognizers>

@@ -1,4 +1,5 @@
 using FinancialTracker.Data;
+using FinancialTracker.Helpers;
 using FinancialTracker.Models;
 using SQLite;
 
@@ -8,37 +9,40 @@ public static class AppearanceService
 {
     private const string ThemePreferenceKey = "startup_theme";
     private const string AccentPreferenceKey = "startup_accent_color";
-    private const string DefaultTheme = "Light";
-    private const string DefaultAccentColor = "#5044E4";
     private static string? appliedTheme;
     private static string? appliedAccentColor;
 
     public static void ApplyStartupAppearance(Application application)
     {
         var cachedTheme = Preferences.Default.ContainsKey(ThemePreferenceKey)
-            ? Preferences.Default.Get(ThemePreferenceKey, DefaultTheme)
+            ? Preferences.Default.Get(
+                ThemePreferenceKey,
+                AppearanceValueNormalizer.DefaultTheme)
             : null;
         var cachedAccent = Preferences.Default.ContainsKey(AccentPreferenceKey)
-            ? Preferences.Default.Get(AccentPreferenceKey, DefaultAccentColor)
+            ? Preferences.Default.Get(
+                AccentPreferenceKey,
+                AppearanceValueNormalizer.DefaultAccentColor)
             : null;
 
         if (cachedTheme is null || cachedAccent is null)
         {
             var storedAppearance = TryReadStoredAppearance();
-            cachedTheme ??= storedAppearance?.Theme ?? DefaultTheme;
-            cachedAccent ??= storedAppearance?.AccentColorHex ?? DefaultAccentColor;
+            cachedTheme ??= storedAppearance?.Theme ?? AppearanceValueNormalizer.DefaultTheme;
+            cachedAccent ??= storedAppearance?.AccentColorHex ??
+                AppearanceValueNormalizer.DefaultAccentColor;
         }
 
-        var theme = NormalizeTheme(cachedTheme);
-        var accent = NormalizeAccentColor(cachedAccent);
+        var theme = AppearanceValueNormalizer.NormalizeTheme(cachedTheme);
+        var accent = AppearanceValueNormalizer.NormalizeAccentColor(cachedAccent);
         Cache(theme, accent);
         Apply(application, theme, accent);
     }
 
     public static void ApplyAndCache(string theme, string accentColorHex)
     {
-        var normalizedTheme = NormalizeTheme(theme);
-        var normalizedAccent = NormalizeAccentColor(accentColorHex);
+        var normalizedTheme = AppearanceValueNormalizer.NormalizeTheme(theme);
+        var normalizedAccent = AppearanceValueNormalizer.NormalizeAccentColor(accentColorHex);
         Cache(normalizedTheme, normalizedAccent);
 
         if (Application.Current is not null)
@@ -114,27 +118,6 @@ public static class AppearanceService
         resources["Secondary"] = Color.FromArgb(tintHex);
         appliedTheme = theme;
         appliedAccentColor = accentColorHex;
-    }
-
-    private static string NormalizeTheme(string? theme) =>
-        theme?.Trim().ToLowerInvariant() switch
-        {
-            "system" => "System",
-            "dark" => "Dark",
-            _ => DefaultTheme
-        };
-
-    private static string NormalizeAccentColor(string? value)
-    {
-        var hex = value?.Trim().TrimStart('#') ?? string.Empty;
-        if (hex.Length == 3 && hex.All(Uri.IsHexDigit))
-        {
-            hex = string.Concat(hex.Select(character => $"{character}{character}"));
-        }
-
-        return hex.Length == 6 && hex.All(Uri.IsHexDigit)
-            ? $"#{hex.ToUpperInvariant()}"
-            : DefaultAccentColor;
     }
 
     private static string MixColors(

@@ -9,6 +9,9 @@ namespace FinancialTracker.Views;
 public partial class SettingsView : ContentView
 {
     private readonly ColorWheelDrawable accentColorWheelDrawable = new();
+    private readonly (string Code, Border Card, Label Check)[] currencyOptionControls;
+    private readonly (string Theme, Border Card)[] themeOptionControls;
+    private readonly (string Hex, Border Card, Label Check)[] accentOptionControls;
     private SettingsViewModel? subscribedViewModel;
     private bool isSynchronizingColorWheel;
     private bool isCurrencySelectorExpanded;
@@ -21,8 +24,30 @@ public partial class SettingsView : ContentView
     public SettingsView()
     {
         InitializeComponent();
+        currencyOptionControls =
+        [
+            ("MYR", MyrOption, MyrCheck),
+            ("USD", UsdOption, UsdCheck),
+            ("SGD", SgdOption, SgdCheck),
+            ("KRW", KrwOption, KrwCheck)
+        ];
+        themeOptionControls =
+        [
+            ("System", SystemThemeOption),
+            ("Light", LightThemeOption),
+            ("Dark", DarkThemeOption)
+        ];
+        accentOptionControls =
+        [
+            ("#5044E4", PurpleAccentOption, PurpleAccentCheck),
+            ("#1477D4", OceanAccentOption, OceanAccentCheck),
+            ("#0F766E", TealAccentOption, TealAccentCheck),
+            ("#C2416C", RoseAccentOption, RoseAccentCheck),
+            ("#C65D16", OrangeAccentOption, OrangeAccentCheck),
+            ("#475569", SlateAccentOption, SlateAccentCheck)
+        ];
         AccentColorWheel.Drawable = accentColorWheelDrawable;
-        SynchronizeColorWheel("#5044E4");
+        SynchronizeColorWheel(AppearanceValueNormalizer.DefaultAccentColor);
     }
 
     protected override void OnBindingContextChanged()
@@ -213,54 +238,29 @@ public partial class SettingsView : ContentView
             return;
         }
 
-        var currencyOptions = new Dictionary<string, (Border Card, Label Check)>
-        {
-            ["MYR"] = (MyrOption, MyrCheck),
-            ["USD"] = (UsdOption, UsdCheck),
-            ["SGD"] = (SgdOption, SgdCheck),
-            ["KRW"] = (KrwOption, KrwCheck)
-        };
-
-        foreach (var (code, controls) in currencyOptions)
+        foreach (var (code, card, check) in currencyOptionControls)
         {
             var isSelected = code == viewModel.SelectedCurrency.Code;
-            controls.Card.Style = GetStyle(isSelected);
-            controls.Check.IsVisible = isSelected;
+            card.Style = GetStyle(isSelected);
+            check.IsVisible = isSelected;
         }
 
-        var themeOptions = new Dictionary<string, Border>
-        {
-            ["System"] = SystemThemeOption,
-            ["Light"] = LightThemeOption,
-            ["Dark"] = DarkThemeOption
-        };
-
-        foreach (var (theme, card) in themeOptions)
+        foreach (var (theme, card) in themeOptionControls)
         {
             card.Style = GetStyle(theme == viewModel.SelectedTheme);
             card.Padding = new Thickness(10, 9);
         }
 
-        var accentOptions = new Dictionary<string, (Border Card, Label Check)>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["#5044E4"] = (PurpleAccentOption, PurpleAccentCheck),
-            ["#1477D4"] = (OceanAccentOption, OceanAccentCheck),
-            ["#0F766E"] = (TealAccentOption, TealAccentCheck),
-            ["#C2416C"] = (RoseAccentOption, RoseAccentCheck),
-            ["#C65D16"] = (OrangeAccentOption, OrangeAccentCheck),
-            ["#475569"] = (SlateAccentOption, SlateAccentCheck)
-        };
-
-        foreach (var (hex, controls) in accentOptions)
+        foreach (var (hex, card, check) in accentOptionControls)
         {
             var isSelected = hex.Equals(
                 viewModel.SelectedAccentColorHex,
                 StringComparison.OrdinalIgnoreCase);
-            controls.Card.Style = GetStyle(isSelected);
-            controls.Card.WidthRequest = 44;
-            controls.Card.HeightRequest = 44;
-            controls.Card.Padding = 6;
-            controls.Check.IsVisible = isSelected;
+            card.Style = GetStyle(isSelected);
+            card.WidthRequest = 44;
+            card.HeightRequest = 44;
+            card.Padding = 6;
+            check.IsVisible = isSelected;
         }
     }
 

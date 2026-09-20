@@ -19,9 +19,9 @@ public partial class AddTransactionView : ContentView
     }
 
     private LocalDatabase? database;
-    private CurrencyOption currency = SettingsViewModelDefaults.Currency;
+    private CurrencyOption currency = SettingsViewModel.SupportedCurrencies[0];
     private TransactionOption selectedType = TransactionCatalog.TransactionTypes[0];
-    private TransactionOption selectedPayment = TransactionCatalog.PaymentMethods.First(item => item.Key == "Cash");
+    private TransactionOption selectedPayment = TransactionCatalog.DefaultPaymentMethod;
     private TransactionOption selectedCategory = TransactionCatalog.ExpenseCategories[^1];
     private SelectorKind selectorKind;
     private string currentInput = "0";
@@ -48,6 +48,7 @@ public partial class AddTransactionView : ContentView
     public async Task OpenAsync(
         LocalDatabase localDatabase,
         CurrencyOption selectedCurrency,
+        IReadOnlyList<TransactionRecord> transactionHistory,
         TransactionRecord? transactionToEdit = null)
     {
         if (isOpen || isAnimating)
@@ -64,7 +65,7 @@ public partial class AddTransactionView : ContentView
                     transactionToEdit.CurrencyCode,
                     StringComparison.OrdinalIgnoreCase))
               ?? selectedCurrency;
-        var descriptionHistoryTask = LoadDescriptionHistoryAsync(localDatabase);
+        var descriptionHistoryTask = LoadDescriptionHistoryAsync(transactionHistory);
         ResetForm();
         isOpen = true;
         isAnimating = true;
@@ -228,8 +229,8 @@ public partial class AddTransactionView : ContentView
                 TypeLabel.FadeToAsync(0.35, 90, Easing.CubicIn));
 
             selectedType = selectedType.Key == "Expense"
-                ? TransactionCatalog.TransactionTypes.First(item => item.Key == "Income")
-                : TransactionCatalog.TransactionTypes.First(item => item.Key == "Expense");
+                ? TransactionCatalog.TransactionTypes[1]
+                : TransactionCatalog.TransactionTypes[0];
             selectedCategory = selectedType.Key == "Income"
                 ? TransactionCatalog.IncomeCategories[^1]
                 : TransactionCatalog.ExpenseCategories[^1];
@@ -547,21 +548,18 @@ public partial class AddTransactionView : ContentView
         DescriptionEntry.Focus();
     }
 
-    private async Task LoadDescriptionHistoryAsync(LocalDatabase localDatabase)
+    private async Task LoadDescriptionHistoryAsync(
+        IReadOnlyList<TransactionRecord> records)
     {
         try
         {
-            var records = await localDatabase.GetTransactionsAsync();
-            descriptionHistory = records
+            descriptionHistory = await Task.Run(() => records
                 .Where(record => !string.IsNullOrWhiteSpace(record.Description))
-                .OrderByDescending(record => record.TransactionDate)
-                .ThenByDescending(record => record.CreatedAtUtc)
-                .ThenByDescending(record => record.Id)
                 .GroupBy(
                     record => record.Description.Trim(),
                     StringComparer.OrdinalIgnoreCase)
                 .Select(group => CreateHistorySuggestion(group.First()))
-                .ToList();
+                .ToList());
         }
         catch
         {
@@ -604,9 +602,7 @@ public partial class AddTransactionView : ContentView
     private static TransactionHistorySuggestion CreateHistorySuggestion(
         TransactionRecord record)
     {
-        var transactionType = TransactionCatalog.TransactionTypes.FirstOrDefault(option =>
-                option.Key.Equals(record.Type, StringComparison.OrdinalIgnoreCase))
-            ?? TransactionCatalog.TransactionTypes[0];
+        var transactionType = TransactionCatalog.GetTransactionType(record.Type);
         var isIncome = transactionType.Key.Equals("Income", StringComparison.OrdinalIgnoreCase);
         return new TransactionHistorySuggestion(
             record.Description.Trim(),
@@ -693,14 +689,12 @@ public partial class AddTransactionView : ContentView
         var transaction = editingTransaction;
         selectedType = transaction is null
             ? TransactionCatalog.TransactionTypes[0]
-            : TransactionCatalog.TransactionTypes.FirstOrDefault(item =>
-                item.Key.Equals(transaction.Type, StringComparison.OrdinalIgnoreCase))
-              ?? TransactionCatalog.TransactionTypes[0];
+            : TransactionCatalog.GetTransactionType(transaction.Type);
         selectedPayment = transaction is null
-            ? TransactionCatalog.PaymentMethods.First(item => item.Key == "Cash")
+            ? TransactionCatalog.DefaultPaymentMethod
             : TransactionCatalog.PaymentMethods.FirstOrDefault(item =>
                 item.Key.Equals(transaction.PaymentMethod, StringComparison.OrdinalIgnoreCase))
-              ?? TransactionCatalog.PaymentMethods.First(item => item.Key == "Cash");
+              ?? TransactionCatalog.DefaultPaymentMethod;
         var categories = selectedType.Key == "Income"
             ? TransactionCatalog.IncomeCategories
             : TransactionCatalog.ExpenseCategories;
@@ -841,9 +835,4 @@ public partial class AddTransactionView : ContentView
         SaveButton.Opacity = isSaving ? 0.7 : 1;
     }
 
-    private static class SettingsViewModelDefaults
-    {
-        public static CurrencyOption Currency { get; } =
-            new("", "flag_myr.png", "MYR", "Malaysian Ringgit", "RM");
-    }
 }

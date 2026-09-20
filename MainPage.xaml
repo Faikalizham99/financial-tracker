@@ -449,7 +449,7 @@
             IsVisible="False"
             Opacity="0"
             ZIndex="115">
-            <BoxView BackgroundColor="#99000000">
+            <BoxView BackgroundColor="{StaticResource OverlayScrim}">
                 <BoxView.GestureRecognizers>
                     <TapGestureRecognizer Tapped="OnArrangeHomeBackdropTapped" />
                 </BoxView.GestureRecognizers>
@@ -534,7 +534,7 @@
             Opacity="0"
             ZIndex="120"
             SizeChanged="OnDeleteConfirmationOverlaySizeChanged">
-            <BoxView BackgroundColor="#99000000">
+            <BoxView BackgroundColor="{StaticResource OverlayScrim}">
                 <BoxView.GestureRecognizers>
                     <TapGestureRecognizer Tapped="OnDeleteConfirmationBackdropTapped" />
                 </BoxView.GestureRecognizers>

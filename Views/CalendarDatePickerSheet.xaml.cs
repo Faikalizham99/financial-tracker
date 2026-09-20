@@ -18,6 +18,8 @@ public partial class CalendarDatePickerSheet : ContentView
     private DateTime displayedMonth;
     private DateTime minimumDate;
     private DateTime maximumDate;
+    private int renderedMinimumYear;
+    private int renderedMaximumYear;
     private bool isOpen;
     private bool isAnimating;
     private bool isMonthYearVisible;
@@ -179,6 +181,13 @@ public partial class CalendarDatePickerSheet : ContentView
 
     private void CreateYearOptions()
     {
+        if (renderedMinimumYear == minimumDate.Year &&
+            renderedMaximumYear == maximumDate.Year &&
+            YearOptionsLayout.Children.Count > 0)
+        {
+            return;
+        }
+
         YearOptionsLayout.Children.Clear();
         for (var year = minimumDate.Year; year <= maximumDate.Year; year++)
         {
@@ -187,6 +196,9 @@ public partial class CalendarDatePickerSheet : ContentView
                 year,
                 OnYearOptionTapped));
         }
+
+        renderedMinimumYear = minimumDate.Year;
+        renderedMaximumYear = maximumDate.Year;
     }
 
     private static Border CreateChoice(

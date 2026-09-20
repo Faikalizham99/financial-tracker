@@ -52,12 +52,20 @@ public static class TransactionCatalog
         new("Others", "Others", "payment_others.png")
     ];
 
+    public static TransactionOption DefaultPaymentMethod { get; } =
+        PaymentMethods.First(option => option.Key == "Cash");
+
+    private static readonly IReadOnlyDictionary<string, TransactionOption> TransactionTypesByKey =
+        TransactionTypes.ToDictionary(option => option.Key, StringComparer.OrdinalIgnoreCase);
     private static readonly IReadOnlyDictionary<string, TransactionOption> ExpenseCategoriesByKey =
         ExpenseCategories.ToDictionary(option => option.Key, StringComparer.OrdinalIgnoreCase);
     private static readonly IReadOnlyDictionary<string, TransactionOption> IncomeCategoriesByKey =
         IncomeCategories.ToDictionary(option => option.Key, StringComparer.OrdinalIgnoreCase);
     private static readonly IReadOnlyDictionary<string, TransactionOption> PaymentMethodsByKey =
         PaymentMethods.ToDictionary(option => option.Key, StringComparer.OrdinalIgnoreCase);
+
+    public static TransactionOption GetTransactionType(string key) =>
+        TransactionTypesByKey.GetValueOrDefault(key) ?? TransactionTypes[0];
 
     public static TransactionOption GetCategory(string key, bool isIncome)
     {

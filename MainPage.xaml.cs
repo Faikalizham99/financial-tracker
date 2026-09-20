@@ -35,6 +35,10 @@ public partial class MainPage : ContentPage
     private readonly SemaphoreSlim transactionRefreshLock = new(1, 1);
     private readonly List<string> homeSectionOrder = [];
     private readonly List<string> draftHomeSectionOrder = [];
+    private readonly VisualElement[] navigationPages;
+    private readonly VisualElement[] navigationIcons;
+    private readonly Border[] navigationTabs;
+    private readonly Label[] navigationLabels;
     private IReadOnlyList<TransactionRecord>? cachedTransactionRecords;
     private int selectedSectionIndex = 1;
     private int navigationTransitionVersion;
@@ -56,28 +60,15 @@ public partial class MainPage : ContentPage
     private bool isDataLoadingSkeletonShown = true;
     private bool isTransactionEditingLocked = true;
 
-    public MainPage()
-        : this(new LocalDatabase())
-    {
-    }
-
-    private MainPage(LocalDatabase localDatabase)
-        : this(
-            new SettingsViewModel(new SettingsService(localDatabase)),
-            localDatabase)
-    {
-    }
-
-    public MainPage(SettingsViewModel settingsViewModel)
-        : this(settingsViewModel, new LocalDatabase())
-    {
-    }
-
-    private MainPage(
+    public MainPage(
         SettingsViewModel settingsViewModel,
         LocalDatabase localDatabase)
     {
         InitializeComponent();
+        navigationPages = [DashboardView, ExpensesView, SettingsView];
+        navigationIcons = [DashboardIcon, ExpensesIcon, SettingsIcon];
+        navigationTabs = [DashboardTab, ExpensesTab, SettingsTab];
+        navigationLabels = [DashboardLabel, ExpensesLabel, SettingsLabel];
 #if WINDOWS
         var arrangeHomePointerGesture = new PointerGestureRecognizer();
         arrangeHomePointerGesture.PointerPressed += OnHomeSectionPointerPressed;
@@ -551,7 +542,8 @@ public partial class MainPage : ContentPage
         var feedback = InteractionAnimations.PulseAsync(sender);
         await AddTransactionOverlay.OpenAsync(
             localDatabase,
-            settingsViewModel.SelectedCurrency);
+            settingsViewModel.SelectedCurrency,
+            cachedTransactionRecords ?? []);
         await feedback;
     }
 
@@ -757,6 +749,13 @@ public partial class MainPage : ContentPage
 #endif
     }
 
+    private async Task<TransactionRecord?> FindTransactionAsync(int transactionId)
+    {
+        var cachedTransaction = cachedTransactionRecords?
+            .FirstOrDefault(transaction => transaction.Id == transactionId);
+        return cachedTransaction ?? await localDatabase.GetTransactionAsync(transactionId);
+    }
+
     private async Task OpenTransactionForEditAsync(int transactionId)
     {
         if (isTransactionEditingLocked)
@@ -764,7 +763,7 @@ public partial class MainPage : ContentPage
             return;
         }
 
-        var transaction = await localDatabase.GetTransactionAsync(transactionId);
+        var transaction = await FindTransactionAsync(transactionId);
         if (transaction is null)
         {
             await RefreshTransactionViewsAsync();
@@ -774,6 +773,7 @@ public partial class MainPage : ContentPage
         await AddTransactionOverlay.OpenAsync(
             localDatabase,
             settingsViewModel.SelectedCurrency,
+            cachedTransactionRecords ?? [],
             transaction);
     }
 
@@ -786,7 +786,7 @@ public partial class MainPage : ContentPage
             return;
         }
 
-        var transaction = await localDatabase.GetTransactionAsync(transactionId);
+        var transaction = await FindTransactionAsync(transactionId);
         if (transaction is null)
         {
             await RefreshTransactionViewsAsync();
@@ -934,9 +934,7 @@ public partial class MainPage : ContentPage
             UpdateDashboardGreeting();
         }
 
-        var pages = new VisualElement[] { DashboardView, ExpensesView, SettingsView };
-        var icons = new VisualElement[] { DashboardIcon, ExpensesIcon, SettingsIcon };
-        var selectedIcon = icons[selectedIndex];
+        var selectedIcon = navigationIcons[selectedIndex];
 
         if (selectedIndex == selectedSectionIndex)
         {
@@ -946,10 +944,10 @@ public partial class MainPage : ContentPage
 
         var transitionVersion = ++navigationTransitionVersion;
         var previousIndex = selectedSectionIndex;
-        var previousPage = pages[previousIndex];
-        var selectedPage = pages[selectedIndex];
+        var previousPage = navigationPages[previousIndex];
+        var selectedPage = navigationPages[selectedIndex];
 
-        foreach (var page in pages)
+        foreach (var page in navigationPages)
         {
             page.CancelAnimations();
             if (page != previousPage && page != selectedPage)
@@ -1120,176 +1118,36 @@ public partial class MainPage : ContentPage
         CurrencyOption selectedCurrency)
     {
         DashboardMonthlySummary.Refresh(records, selectedCurrency);
-
-        var today = DateTime.Today;
-        var currentMonthRecords = records
-            .Where(record =>
-                record.CurrencyCode.Equals(selectedCurrency.Code, StringComparison.OrdinalIgnoreCase) &&
-                record.TransactionDate.Year == today.Year &&
-                record.TransactionDate.Month == today.Month)
-            .ToList();
-        var expenseRecords = currentMonthRecords
-            .Where(record => record.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase))
-            .ToList();
-        var incomeRecords = currentMonthRecords
-            .Where(record => record.Type.Equals("Income", StringComparison.OrdinalIgnoreCase))
-            .ToList();
-        var totalExpenseMinor = expenseRecords.Sum(record => record.AmountMinor);
-        var totalIncomeMinor = incomeRecords.Sum(record => record.AmountMinor);
-        var expenseThroughTodayMinor = expenseRecords
-            .Where(record => record.TransactionDate.Date <= today)
-            .Sum(record => record.AmountMinor);
-        var spentTodayMinor = expenseRecords
-            .Where(record => record.TransactionDate.Date == today)
-            .Sum(record => record.AmountMinor);
-        var dailyAverageMinor = today.Day > 0
-            ? (long)Math.Round(expenseThroughTodayMinor / (double)today.Day)
-            : 0;
-
-        TodaySpentValueLabel.Text = MoneyFormatter.FormatMinor(
-            spentTodayMinor,
-            selectedCurrency.Symbol);
-        DailyAverageValueLabel.Text = MoneyFormatter.FormatMinor(
-            dailyAverageMinor,
-            selectedCurrency.Symbol);
-        DaysRemainingValueLabel.Text = (
-            DateTime.DaysInMonth(today.Year, today.Month) - today.Day)
-            .ToString(CultureInfo.InvariantCulture);
-
-        var expenseCategories = BuildCategorySummary(
-            TransactionCatalog.ExpenseCategories,
-            expenseRecords,
-            totalExpenseMinor,
-            selectedCurrency.Symbol,
-            isIncome: false);
-        var incomeCategories = BuildCategorySummary(
-            TransactionCatalog.IncomeCategories,
-            incomeRecords,
-            totalIncomeMinor,
-            selectedCurrency.Symbol,
-            isIncome: true);
-        BindableLayout.SetItemsSource(DashboardExpenseCategoriesLayout, expenseCategories);
-        BindableLayout.SetItemsSource(DashboardIncomeCategoriesLayout, incomeCategories);
-        ExpenseCategoryTotalLabel.Text = MoneyFormatter.FormatMinor(
-            totalExpenseMinor,
-            selectedCurrency.Symbol);
-        IncomeCategoryTotalLabel.Text = MoneyFormatter.FormatMinor(
-            totalIncomeMinor,
-            selectedCurrency.Symbol);
-        DashboardInsightLabel.Text = BuildMonthlyInsight(
+        var summary = DashboardSummaryBuilder.Build(
             records,
-            expenseRecords,
-            incomeRecords,
-            expenseThroughTodayMinor,
             selectedCurrency,
-            today);
+            canModifyTransactions: !isTransactionEditingLocked,
+            DateTime.Today);
 
-        var recentRecords = records.Take(3).ToList();
-        var recentActivity = recentRecords
-            .Select((record, index) => TransactionActivityItem.FromRecord(
-                record,
-                index < recentRecords.Count - 1,
-                canModifyTransaction: !isTransactionEditingLocked))
-            .ToList();
-        BindableLayout.SetItemsSource(DashboardActivityLayout, recentActivity);
-        DashboardActivityCard.IsVisible = recentActivity.Count > 0;
-        DashboardEmptyActivityState.IsVisible = recentActivity.Count == 0;
-        DashboardViewAllButton.IsVisible = recentActivity.Count > 0;
-    }
-
-    private static IReadOnlyList<CategorySummaryItem> BuildCategorySummary(
-        IReadOnlyList<TransactionOption> categories,
-        IReadOnlyList<TransactionRecord> records,
-        long totalMinor,
-        string currencySymbol,
-        bool isIncome)
-    {
-        var amountsByCategory = categories.ToDictionary(
-            category => category.Key,
-            _ => 0L,
-            StringComparer.OrdinalIgnoreCase);
-
-        foreach (var record in records)
-        {
-            var category = TransactionCatalog.GetCategory(record.Category, isIncome);
-            amountsByCategory[category.Key] += record.AmountMinor;
-        }
-
-        return categories
-            .Select((category, index) => new CategorySummaryItem(
-                category,
-                amountsByCategory[category.Key],
-                totalMinor,
-                currencySymbol,
-                isIncome,
-                index < categories.Count - 1))
-            .ToList();
-    }
-
-    private static string BuildMonthlyInsight(
-        IReadOnlyList<TransactionRecord> allRecords,
-        IReadOnlyList<TransactionRecord> expenseRecords,
-        IReadOnlyList<TransactionRecord> incomeRecords,
-        long expenseThroughTodayMinor,
-        CurrencyOption selectedCurrency,
-        DateTime today)
-    {
-        var previousMonth = today.AddMonths(-1);
-        var comparableDay = Math.Min(
-            today.Day,
-            DateTime.DaysInMonth(previousMonth.Year, previousMonth.Month));
-        var previousExpenseMinor = allRecords
-            .Where(record =>
-                record.CurrencyCode.Equals(selectedCurrency.Code, StringComparison.OrdinalIgnoreCase) &&
-                record.Type.Equals("Expense", StringComparison.OrdinalIgnoreCase) &&
-                record.TransactionDate.Year == previousMonth.Year &&
-                record.TransactionDate.Month == previousMonth.Month &&
-                record.TransactionDate.Day <= comparableDay)
-            .Sum(record => record.AmountMinor);
-
-        if (previousExpenseMinor > 0)
-        {
-            var differenceMinor = expenseThroughTodayMinor - previousExpenseMinor;
-            var percentageDifference = Math.Abs(differenceMinor) / (double)previousExpenseMinor;
-            if (percentageDifference < 0.01)
-            {
-                return "Your spending is nearly unchanged from this point last month.";
-            }
-
-            var direction = differenceMinor > 0 ? "higher" : "lower";
-            return $"Spending is {percentageDifference:P0} {direction} than at this point last month.";
-        }
-
-        if (expenseRecords.Count > 0)
-        {
-            var topCategory = expenseRecords
-                .GroupBy(record => TransactionCatalog.GetCategory(record.Category, isIncome: false))
-                .Select(group => new
-                {
-                    Category = group.Key,
-                    AmountMinor = group.Sum(record => record.AmountMinor)
-                })
-                .OrderByDescending(item => item.AmountMinor)
-                .First();
-            var totalExpenseMinor = expenseRecords.Sum(record => record.AmountMinor);
-            var share = totalExpenseMinor > 0
-                ? topCategory.AmountMinor / (double)totalExpenseMinor
-                : 0;
-            return $"{topCategory.Category.Title} is your largest expense at {share:P0} of this month’s spending.";
-        }
-
-        if (incomeRecords.Count > 0)
-        {
-            return "You have recorded income this month and no expenses yet.";
-        }
-
-        return "Record a transaction to start receiving monthly spending insights.";
+        TodaySpentValueLabel.Text = summary.TodaySpentText;
+        DailyAverageValueLabel.Text = summary.DailyAverageText;
+        DaysRemainingValueLabel.Text = summary.DaysRemainingText;
+        ExpenseCategoryTotalLabel.Text = summary.ExpenseTotalText;
+        IncomeCategoryTotalLabel.Text = summary.IncomeTotalText;
+        DashboardInsightLabel.Text = summary.InsightText;
+        BindableLayout.SetItemsSource(
+            DashboardExpenseCategoriesLayout,
+            summary.ExpenseCategories);
+        BindableLayout.SetItemsSource(
+            DashboardIncomeCategoriesLayout,
+            summary.IncomeCategories);
+        BindableLayout.SetItemsSource(
+            DashboardActivityLayout,
+            summary.RecentActivity);
+        var hasRecentActivity = summary.RecentActivity.Count > 0;
+        DashboardActivityCard.IsVisible = hasRecentActivity;
+        DashboardEmptyActivityState.IsVisible = !hasRecentActivity;
+        DashboardViewAllButton.IsVisible = hasRecentActivity;
     }
 
     private double GetSelectionPillOffset(int selectedIndex)
     {
-        var tabs = new[] { DashboardTab, ExpensesTab, SettingsTab };
-        return tabs[selectedIndex].X - ExpensesTab.X;
+        return navigationTabs[selectedIndex].X - ExpensesTab.X;
     }
 
     private static async Task AnimateNavigationIconAsync(VisualElement icon)
@@ -1308,20 +1166,16 @@ public partial class MainPage : ContentPage
 
     private void UpdateNavigationStyles(int selectedIndex)
     {
-        var tabs = new[] { DashboardTab, ExpensesTab, SettingsTab };
-
-        var icons = new[] { DashboardIcon, ExpensesIcon, SettingsIcon };
-        var labels = new[] { DashboardLabel, ExpensesLabel, SettingsLabel };
         var resources = Application.Current!.Resources;
 
-        for (var index = 0; index < tabs.Length; index++)
+        for (var index = 0; index < navigationTabs.Length; index++)
         {
             var isSelected = index == selectedIndex;
-            tabs[index].Style = (Style)resources["NavTab"];
-            labels[index].Style = (Style)resources[
+            navigationTabs[index].Style = (Style)resources["NavTab"];
+            navigationLabels[index].Style = (Style)resources[
                 isSelected ? "SelectedNavLabel" : "NavLabel"];
 
-            icons[index].Style = (Style)resources[
+            navigationIcons[index].Style = (Style)resources[
                 isSelected ? "SelectedNavIcon" : "NavIcon"];
         }
     }
