@@ -166,12 +166,6 @@ public partial class SettingsView : ContentView
         NameEntry.Unfocus();
     }
 
-    private async void OnButtonPressed(object? sender, EventArgs e) =>
-        await InteractionAnimations.PressAsync(sender);
-
-    private async void OnButtonReleased(object? sender, EventArgs e) =>
-        await InteractionAnimations.ReleaseAsync(sender);
-
     private void OnAccentWheelInteraction(object? sender, TouchEventArgs e)
     {
         if (e.Touches.Length == 0 ||

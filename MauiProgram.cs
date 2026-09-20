@@ -17,6 +17,15 @@ public static class MauiProgram
             .UseMauiApp<App>()
             .ConfigureMauiHandlers(_ =>
             {
+                ViewHandler.ViewMapper.AppendToMapping(
+                    nameof(InteractionAnimations),
+                    static (_, view) =>
+                    {
+                        if (view is View element)
+                        {
+                            InteractionAnimations.AttachPressFeedback(element);
+                        }
+                    });
                 EntryHandler.Mapper.AppendToMapping(
                     nameof(EntryChrome),
                     static (handler, _) => EntryChrome.RemoveNativeBorder(handler));

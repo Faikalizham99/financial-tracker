@@ -758,6 +758,7 @@ public partial class ExpensesView : ContentView
 
     private void OnEditTransactionInvoked(object? sender, EventArgs e)
     {
+        _ = InteractionAnimations.PulseAsync(sender);
         if (!isTransactionEditingLocked &&
             sender is SwipeItemView { BindingContext: TransactionActivityItem item })
         {
@@ -767,6 +768,7 @@ public partial class ExpensesView : ContentView
 
     private void OnDeleteTransactionInvoked(object? sender, EventArgs e)
     {
+        _ = InteractionAnimations.PulseAsync(sender);
         if (!isTransactionEditingLocked &&
             sender is SwipeItemView { BindingContext: TransactionActivityItem item })
         {

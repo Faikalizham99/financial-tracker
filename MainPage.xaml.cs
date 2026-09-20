@@ -673,20 +673,26 @@ public partial class MainPage : ContentPage
 
     private async void OnDashboardEditTransactionInvoked(object? sender, EventArgs e)
     {
+        var feedback = InteractionAnimations.PulseAsync(sender);
         if (!isTransactionEditingLocked &&
             sender is SwipeItemView { BindingContext: TransactionActivityItem item })
         {
             await OpenTransactionForEditAsync(item.Id);
         }
+
+        await feedback;
     }
 
     private async void OnDashboardDeleteTransactionInvoked(object? sender, EventArgs e)
     {
+        var feedback = InteractionAnimations.PulseAsync(sender);
         if (!isTransactionEditingLocked &&
             sender is SwipeItemView { BindingContext: TransactionActivityItem item })
         {
             await OpenDeleteConfirmationAsync(item.Id);
         }
+
+        await feedback;
     }
 
     private void OnDashboardTransactionRowHandlerChanged(object? sender, EventArgs e)
