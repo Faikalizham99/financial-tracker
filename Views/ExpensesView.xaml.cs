@@ -152,6 +152,17 @@ public partial class ExpensesView : ContentView
         try
         {
             await Task.Delay(80, cancellationToken);
+
+            // Reveal only after the target exists and has completed its first
+            // layout pass. The user then sees the actual animated scroll rather
+            // than the search surface covering it.
+            if (revealTargetAsync is not null)
+            {
+                await revealTargetAsync();
+                cancellationToken.ThrowIfCancellationRequested();
+                await Task.Yield();
+            }
+
             var targetOffset = GetVerticalOffsetWithinScrollContent(highlight);
             if (targetOffset >= 0)
             {
@@ -185,12 +196,6 @@ public partial class ExpensesView : ContentView
             }
 
             cancellationToken.ThrowIfCancellationRequested();
-            if (revealTargetAsync is not null)
-            {
-                await revealTargetAsync();
-                cancellationToken.ThrowIfCancellationRequested();
-            }
-
             highlight.CancelAnimations();
             highlight.Opacity = 0;
             for (var pulse = 0; pulse < 3; pulse++)

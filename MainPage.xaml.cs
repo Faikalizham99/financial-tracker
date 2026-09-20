@@ -554,14 +554,30 @@ public partial class MainPage : ContentPage
 
     private async Task OnTransactionSearchResultSelected(int transactionId)
     {
-        if (selectedSectionIndex != 1)
-        {
-            await NavigateToSectionAsync(1);
-        }
+        ShowTransactionLoadingSkeleton();
 
-        await ExpensesView.FocusTransactionAsync(
-            transactionId,
-            TransactionSearchView.CloseAsync);
+        try
+        {
+            // Fade the search surface onto an already-visible skeleton so the
+            // search and transaction layouts are never shown together.
+            await TransactionSearchView.CloseAsync();
+
+            if (selectedSectionIndex != 1)
+            {
+                await NavigateToSectionAsync(1);
+            }
+
+            await ExpensesView.FocusTransactionAsync(
+                transactionId,
+                HideLoadingSkeletonAsync);
+        }
+        finally
+        {
+            // FocusTransactionAsync also reveals the page before scrolling.
+            // This fallback guarantees that a missing or cancelled target can
+            // never leave the transition skeleton on screen.
+            await HideLoadingSkeletonAsync();
+        }
     }
 
     private async void OnTransactionEditRequested(int transactionId) =>
@@ -887,6 +903,17 @@ public partial class MainPage : ContentPage
         loadingSkeletonPulseCancellation = new CancellationTokenSource();
         _ = PulseLoadingSkeletonAsync(
             loadingSkeletonPulseCancellation.Token);
+    }
+
+    private void ShowTransactionLoadingSkeleton()
+    {
+        isDataLoadingSkeletonShown = true;
+        DataLoadingOverlay.CancelAnimations();
+        HomeLoadingSkeleton.IsVisible = false;
+        TransactionLoadingSkeleton.IsVisible = true;
+        DataLoadingOverlay.Opacity = 1;
+        DataLoadingOverlay.IsVisible = true;
+        StartLoadingSkeletonPulse();
     }
 
     private async Task PulseLoadingSkeletonAsync(
