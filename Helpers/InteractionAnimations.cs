@@ -2,12 +2,11 @@ namespace FinancialTracker.Helpers;
 
 public static class InteractionAnimations
 {
-    private const string PressScaleAnimationName = "InteractionPressScale";
-    private const string PressOpacityAnimationName = "InteractionPressOpacity";
-    private const uint PressDuration = 45;
-    private const uint ReleaseDuration = 90;
-    private const double PressedScale = 0.965;
-    private const double PressedOpacity = 0.82;
+    private const string PressDepthAnimationName = "InteractionPressDepth";
+    private const uint PressDuration = 60;
+    private const uint ReleaseDuration = 105;
+    private const double PressedScale = 0.95;
+    private const double PressedTranslationY = 2;
 
     private static readonly BindableProperty IsFeedbackAttachedProperty =
         BindableProperty.CreateAttached(
@@ -30,12 +29,26 @@ public static class InteractionAnimations
             typeof(InteractionAnimations),
             1d);
 
-    private static readonly BindableProperty RestingOpacityProperty =
+    private static readonly BindableProperty RestingTranslationYProperty =
         BindableProperty.CreateAttached(
-            "RestingOpacity",
+            "RestingTranslationY",
             typeof(double),
             typeof(InteractionAnimations),
-            1d);
+            0d);
+
+    private static readonly BindableProperty PointerPressObservedProperty =
+        BindableProperty.CreateAttached(
+            "PointerPressObserved",
+            typeof(bool),
+            typeof(InteractionAnimations),
+            false);
+
+    private static readonly BindableProperty IsFallbackPulseRunningProperty =
+        BindableProperty.CreateAttached(
+            "IsFallbackPulseRunning",
+            typeof(bool),
+            typeof(InteractionAnimations),
+            false);
 
     public static void AttachPressFeedback(View element)
     {
@@ -71,22 +84,23 @@ public static class InteractionAnimations
         element.GestureRecognizers.Add(pointerGesture);
     }
 
-    public static async Task PulseAsync(object? sender)
+    public static Task PulseAsync(object? sender)
     {
         var element = ResolveVisualElement(sender);
-        if (element is null || !element.IsEnabled)
+        if (element is null || !CanAnimate(element))
         {
-            return;
+            return Task.CompletedTask;
         }
 
-        if (GetIsFeedbackAttached(element))
+        if (GetIsFeedbackAttached(element) &&
+            (element is Button or ImageButton ||
+             GetPointerPressObserved(element) ||
+             GetIsPressed(element)))
         {
-            return;
+            return Task.CompletedTask;
         }
 
-        element.CancelAnimations();
-        await element.ScaleToAsync(0.96, 55, Easing.CubicOut);
-        await element.ScaleToAsync(1, 105, Easing.CubicOut);
+        return RunFallbackPulseAsync(element);
     }
 
     private static VisualElement? ResolveVisualElement(object? sender) =>
@@ -99,8 +113,12 @@ public static class InteractionAnimations
         };
 
     private static bool IsInteractive(View element) =>
-        element is Button or ImageButton ||
-        element.GestureRecognizers.OfType<TapGestureRecognizer>().Any();
+        element is not BoxView &&
+        (element is Button or ImageButton ||
+         element.GestureRecognizers.OfType<TapGestureRecognizer>().Any());
+
+    private static bool CanAnimate(VisualElement element) =>
+        element is not BoxView && element.IsEnabled;
 
     private static bool GetIsFeedbackAttached(BindableObject element) =>
         (bool)element.GetValue(IsFeedbackAttachedProperty);
@@ -110,6 +128,18 @@ public static class InteractionAnimations
 
     private static void SetIsPressed(BindableObject element, bool value) =>
         element.SetValue(IsPressedProperty, value);
+
+    private static bool GetPointerPressObserved(BindableObject element) =>
+        (bool)element.GetValue(PointerPressObservedProperty);
+
+    private static void SetPointerPressObserved(BindableObject element, bool value) =>
+        element.SetValue(PointerPressObservedProperty, value);
+
+    private static bool GetIsFallbackPulseRunning(BindableObject element) =>
+        (bool)element.GetValue(IsFallbackPulseRunningProperty);
+
+    private static void SetIsFallbackPulseRunning(BindableObject element, bool value) =>
+        element.SetValue(IsFallbackPulseRunningProperty, value);
 
     private static void OnButtonPressed(object? sender, EventArgs e)
     {
@@ -131,6 +161,7 @@ public static class InteractionAnimations
     {
         if (sender is PointerGestureRecognizer { Parent: VisualElement element })
         {
+            SetPointerPressObserved(element, true);
             ShowPressedState(element);
         }
     }
@@ -147,45 +178,50 @@ public static class InteractionAnimations
     {
         if (sender is PointerGestureRecognizer { Parent: VisualElement element })
         {
+            SetPointerPressObserved(element, false);
             ShowReleasedState(element);
         }
     }
 
     private static void OnTapCompleted(object? sender, TappedEventArgs e)
     {
-        if (sender is TapGestureRecognizer { Parent: VisualElement element } &&
-            GetIsPressed(element))
+        if (sender is not TapGestureRecognizer { Parent: VisualElement element } ||
+            GetIsFallbackPulseRunning(element))
+        {
+            return;
+        }
+
+        var pointerPressObserved = GetPointerPressObserved(element);
+        SetPointerPressObserved(element, false);
+
+        if (GetIsPressed(element))
         {
             ShowReleasedState(element);
+        }
+
+        if (!pointerPressObserved)
+        {
+            _ = RunFallbackPulseAsync(element);
         }
     }
 
     private static void ShowPressedState(VisualElement element)
     {
-        if (!element.IsEnabled || GetIsPressed(element))
+        if (!CanAnimate(element) ||
+            GetIsPressed(element) ||
+            GetIsFallbackPulseRunning(element))
         {
             return;
         }
 
+        CaptureRestingTransform(element);
         SetIsPressed(element, true);
-        if (element is BoxView)
-        {
-            element.SetValue(RestingOpacityProperty, element.Opacity);
-            AnimateOpacity(
-                element,
-                element.Opacity * PressedOpacity,
-                PressDuration,
-                Easing.CubicOut);
-        }
-        else
-        {
-            element.SetValue(RestingScaleProperty, element.Scale);
-            AnimateScale(
-                element,
-                element.Scale * PressedScale,
-                PressDuration,
-                Easing.CubicOut);
-        }
+        AnimateTransform(
+            element,
+            GetRestingScale(element) * PressedScale,
+            GetRestingTranslationY(element) + PressedTranslationY,
+            PressDuration,
+            Easing.CubicOut);
     }
 
     private static void ShowReleasedState(VisualElement element)
@@ -196,57 +232,88 @@ public static class InteractionAnimations
         }
 
         SetIsPressed(element, false);
-        if (element is BoxView)
+        AnimateTransform(
+            element,
+            GetRestingScale(element),
+            GetRestingTranslationY(element),
+            ReleaseDuration,
+            Easing.CubicOut);
+    }
+
+    private static async Task RunFallbackPulseAsync(VisualElement element)
+    {
+        if (!CanAnimate(element) || GetIsFallbackPulseRunning(element))
         {
-            AnimateOpacity(
-                element,
-                (double)element.GetValue(RestingOpacityProperty),
-                ReleaseDuration,
-                Easing.CubicOut);
+            return;
         }
-        else
+
+        SetIsFallbackPulseRunning(element, true);
+        CaptureRestingTransform(element);
+        SetIsPressed(element, true);
+
+        var restingScale = GetRestingScale(element);
+        var restingTranslationY = GetRestingTranslationY(element);
+        element.AbortAnimation(PressDepthAnimationName);
+        element.Scale = restingScale * PressedScale;
+        element.TranslationY = restingTranslationY + PressedTranslationY;
+
+        try
         {
-            AnimateScale(
+            await Task.Delay((int)PressDuration);
+            SetIsPressed(element, false);
+            AnimateTransform(
                 element,
-                (double)element.GetValue(RestingScaleProperty),
+                restingScale,
+                restingTranslationY,
                 ReleaseDuration,
                 Easing.CubicOut);
+            await Task.Delay((int)ReleaseDuration);
+        }
+        finally
+        {
+            element.AbortAnimation(PressDepthAnimationName);
+            element.Scale = restingScale;
+            element.TranslationY = restingTranslationY;
+            SetIsPressed(element, false);
+            SetIsFallbackPulseRunning(element, false);
         }
     }
 
-    private static void AnimateScale(
-        VisualElement element,
-        double target,
-        uint duration,
-        Easing easing)
+    private static void CaptureRestingTransform(VisualElement element)
     {
-        element.AbortAnimation(PressScaleAnimationName);
-        new Animation(
-                value => element.Scale = value,
-                element.Scale,
-                target,
-                easing)
-            .Commit(
-                element,
-                PressScaleAnimationName,
-                length: duration);
+        element.SetValue(RestingScaleProperty, element.Scale);
+        element.SetValue(RestingTranslationYProperty, element.TranslationY);
     }
 
-    private static void AnimateOpacity(
+    private static double GetRestingScale(BindableObject element) =>
+        (double)element.GetValue(RestingScaleProperty);
+
+    private static double GetRestingTranslationY(BindableObject element) =>
+        (double)element.GetValue(RestingTranslationYProperty);
+
+    private static void AnimateTransform(
         VisualElement element,
-        double target,
+        double targetScale,
+        double targetTranslationY,
         uint duration,
         Easing easing)
     {
-        element.AbortAnimation(PressOpacityAnimationName);
+        element.AbortAnimation(PressDepthAnimationName);
+        var startScale = element.Scale;
+        var startTranslationY = element.TranslationY;
         new Animation(
-                value => element.Opacity = value,
-                element.Opacity,
-                target,
+                progress =>
+                {
+                    element.Scale = startScale + ((targetScale - startScale) * progress);
+                    element.TranslationY = startTranslationY +
+                        ((targetTranslationY - startTranslationY) * progress);
+                },
+                0,
+                1,
                 easing)
             .Commit(
                 element,
-                PressOpacityAnimationName,
+                PressDepthAnimationName,
                 length: duration);
     }
 }
