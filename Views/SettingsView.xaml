@@ -471,7 +471,7 @@
                 VerticalOptions="Fill"
                 BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}"
                 StrokeThickness="0">
-                <Grid RowDefinitions="Auto,*">
+                <Grid RowDefinitions="Auto,Auto,*">
                     <Grid ColumnDefinitions="44,*,44" ColumnSpacing="14">
                         <Label
                             x:Name="DataDrawerTitle"
@@ -508,16 +508,12 @@
                         </Border>
                     </Grid>
 
-                    <ScrollView
-                        x:Name="DataDrawerScrollView"
+                    <Grid
+                        x:Name="CategoryTypeTabsContainer"
                         Grid.Row="1"
                         Margin="0,27,0,0"
-                        VerticalScrollBarVisibility="Never">
-                    <Grid
-                        Padding="0,0,0,40"
                         MaximumWidthRequest="900"
                         HorizontalOptions="Fill">
-                    <VerticalStackLayout x:Name="CategoriesDrawerContent" Spacing="25">
                         <Border
                             WidthRequest="204"
                             HeightRequest="46"
@@ -542,7 +538,18 @@
                                 </Border>
                             </Grid>
                         </Border>
+                    </Grid>
 
+                    <ScrollView
+                        x:Name="DataDrawerScrollView"
+                        Grid.Row="2"
+                        Margin="0,25,0,0"
+                        VerticalScrollBarVisibility="Never">
+                    <Grid
+                        Padding="0,0,0,40"
+                        MaximumWidthRequest="900"
+                        HorizontalOptions="Fill">
+                    <VerticalStackLayout x:Name="CategoriesDrawerContent">
                         <VerticalStackLayout x:Name="ExpenseCategoriesPanel" Spacing="12">
                             <Label Text="12 EXPENSE CATEGORIES" Style="{StaticResource SectionLabel}" FontSize="10" />
                             <Border Style="{StaticResource SoftCard}" Padding="12,10">

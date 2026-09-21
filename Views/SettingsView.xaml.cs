@@ -359,8 +359,10 @@ public partial class SettingsView : ContentView
     private void ConfigureDataDrawer(bool showCategories)
     {
         DataDrawerTitle.Text = showCategories ? "Categories" : "Payment methods";
+        CategoryTypeTabsContainer.IsVisible = showCategories;
         CategoriesDrawerContent.IsVisible = showCategories;
         PaymentMethodsDrawerContent.IsVisible = !showCategories;
+        DataDrawerScrollView.Margin = new Thickness(0, showCategories ? 25 : 27, 0, 0);
 
         if (showCategories)
         {
