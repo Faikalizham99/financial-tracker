@@ -201,10 +201,10 @@ public partial class TransactionSearchView : ContentView
             return;
         }
 
+        SearchEntry.Unfocus();
         SearchEntry.Text = query;
         SearchEntry.CursorPosition = query.Length;
         QueueSearch(query, useDebounce: false);
-        SearchEntry.Focus();
         AddRecentSearch(query);
     }
 
