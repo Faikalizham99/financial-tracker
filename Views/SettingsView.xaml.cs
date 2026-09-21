@@ -20,6 +20,10 @@ public partial class SettingsView : ContentView
     private bool isDataDrawerAnimating;
     private bool isCategoryTypeAnimating;
     private Task? dataDrawerScrollResetTask;
+    private bool isPreservingSettingsScrollPosition;
+    private bool isSettingsScrollCorrectionQueued;
+    private double preservedSettingsScrollY;
+    private int settingsScrollPreservationVersion;
     private string selectedCategoryType = "Expense";
 
     public event Action<bool>? DataDrawerVisibilityChanged;
@@ -98,11 +102,98 @@ public partial class SettingsView : ContentView
         if (BindingContext is SettingsViewModel viewModel &&
             e.Parameter is string theme)
         {
+            var scrollY = SettingsScrollView.ScrollY;
+            var preservationVersion = BeginSettingsScrollPreservation(scrollY);
+            UnfocusEditableFields();
+            // Let native text controls release focus before the app-wide theme
+            // invalidates and remeasures the visual tree.
+            await Task.Yield();
             await viewModel.SelectThemeAsync(theme);
             UpdateSelectionVisuals();
+            _ = CompleteSettingsScrollPreservationAsync(preservationVersion);
         }
 
         await feedback;
+    }
+
+    private void UnfocusEditableFields()
+    {
+        NameEntry.Unfocus();
+        AccentHexEntry.Unfocus();
+    }
+
+    private int BeginSettingsScrollPreservation(double scrollY)
+    {
+        preservedSettingsScrollY = scrollY;
+        isPreservingSettingsScrollPosition = true;
+        return ++settingsScrollPreservationVersion;
+    }
+
+    private void OnSettingsScrollViewScrolled(object? sender, ScrolledEventArgs e)
+    {
+        if (!isPreservingSettingsScrollPosition ||
+            Math.Abs(e.ScrollY - preservedSettingsScrollY) < 0.5)
+        {
+            return;
+        }
+
+        QueueSettingsScrollCorrection(settingsScrollPreservationVersion);
+    }
+
+    private void QueueSettingsScrollCorrection(int preservationVersion)
+    {
+        if (isSettingsScrollCorrectionQueued)
+        {
+            return;
+        }
+
+        isSettingsScrollCorrectionQueued = true;
+        Dispatcher.Dispatch(() =>
+        {
+            isSettingsScrollCorrectionQueued = false;
+            if (isPreservingSettingsScrollPosition &&
+                preservationVersion == settingsScrollPreservationVersion)
+            {
+                _ = RestoreSettingsScrollPositionAsync(preservationVersion);
+            }
+        });
+    }
+
+    private async Task CompleteSettingsScrollPreservationAsync(int preservationVersion)
+    {
+        // First-use theme resources can cause more than one native layout pass.
+        // Correct after the immediate pass and once more after it settles.
+        await Task.Yield();
+        _ = RestoreSettingsScrollPositionAsync(preservationVersion);
+        await Task.Delay(120);
+
+        if (preservationVersion != settingsScrollPreservationVersion)
+        {
+            return;
+        }
+
+        _ = RestoreSettingsScrollPositionAsync(preservationVersion);
+        isPreservingSettingsScrollPosition = false;
+    }
+
+    private async Task RestoreSettingsScrollPositionAsync(int preservationVersion)
+    {
+        if (preservationVersion != settingsScrollPreservationVersion)
+        {
+            return;
+        }
+
+        try
+        {
+            await SettingsScrollView.ScrollToAsync(
+                0,
+                preservedSettingsScrollY,
+                false);
+        }
+        catch (ObjectDisposedException)
+        {
+            // The view may be disposed while the non-blocking restore is queued.
+        }
     }
 
     private async void OnCategoriesTapped(object? sender, TappedEventArgs e)

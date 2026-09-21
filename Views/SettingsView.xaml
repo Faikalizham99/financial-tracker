@@ -6,7 +6,10 @@
     xmlns:helpers="clr-namespace:FinancialTracker.Helpers">
 
     <Grid>
-    <ScrollView VerticalScrollBarVisibility="Never">
+    <ScrollView
+        x:Name="SettingsScrollView"
+        Scrolled="OnSettingsScrollViewScrolled"
+        VerticalScrollBarVisibility="Never">
         <VerticalStackLayout Padding="24,30,24,126" Spacing="27">
             <VerticalStackLayout Spacing="5">
                 <Label Text="Settings" Style="{StaticResource PageTitle}" />
