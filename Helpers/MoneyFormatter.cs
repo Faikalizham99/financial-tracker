@@ -4,15 +4,6 @@ namespace FinancialTracker.Helpers;
 
 public static class MoneyFormatter
 {
-    public static string GetCurrencySymbol(string currencyCode) =>
-        currencyCode.ToUpperInvariant() switch
-        {
-            "USD" => "$",
-            "SGD" => "S$",
-            "KRW" => "₩",
-            _ => "RM"
-        };
-
     public static string FormatMinor(
         long amountMinor,
         string currencySymbol,

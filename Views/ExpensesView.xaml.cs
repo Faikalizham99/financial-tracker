@@ -1044,6 +1044,7 @@ public partial class ExpensesView : ContentView
                 var items = groupRecords
                     .Select((record, index) => TransactionActivityItem.FromRecord(
                         record,
+                        selectedCurrency.Symbol,
                         index < groupRecords.Count - 1,
                         expandedTransactionDescriptionIds.Contains(record.Id),
                         canModifyTransaction: !isTransactionEditingLocked))

@@ -39,6 +39,7 @@ public sealed class TransactionActivityItem : INotifyPropertyChanged
 
     public static TransactionActivityItem FromRecord(
         TransactionRecord record,
+        string currencySymbol,
         bool showDivider = false,
         bool isDescriptionExpanded = false,
         bool canModifyTransaction = false)
@@ -46,7 +47,6 @@ public sealed class TransactionActivityItem : INotifyPropertyChanged
         var isIncome = record.Type.Equals("Income", StringComparison.OrdinalIgnoreCase);
         var category = TransactionCatalog.GetCategory(record.Category, isIncome);
         var paymentMethod = TransactionCatalog.GetPaymentMethod(record.PaymentMethod);
-        var symbol = MoneyFormatter.GetCurrencySymbol(record.CurrencyCode);
         var dateText = record.TransactionDate.Date switch
         {
             var date when date == DateTime.Today => "Today",
@@ -63,7 +63,7 @@ public sealed class TransactionActivityItem : INotifyPropertyChanged
             DashboardDateText = dateText,
             AmountText = MoneyFormatter.FormatMinor(
                 isIncome ? record.AmountMinor : -record.AmountMinor,
-                symbol,
+                currencySymbol,
                 showPositiveSign: true,
                 separateSign: true),
             IconAsset = category.IconAsset,

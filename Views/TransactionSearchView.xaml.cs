@@ -13,6 +13,7 @@ public partial class TransactionSearchView : ContentView
 
     private readonly List<string> recentSearches = [];
     private IReadOnlyList<SearchDocument> searchDocuments = [];
+    private string currencySymbol = "RM";
     private CancellationTokenSource? searchCancellation;
     private bool isAnimating;
     private bool isSelectingResult;
@@ -25,8 +26,11 @@ public partial class TransactionSearchView : ContentView
 
     public event Func<int, Task>? TransactionSelected;
 
-    public void SetTransactions(IReadOnlyList<TransactionRecord> transactions)
+    public void SetTransactions(
+        IReadOnlyList<TransactionRecord> transactions,
+        CurrencyOption selectedCurrency)
     {
+        currencySymbol = selectedCurrency.Symbol;
         searchDocuments = transactions
             .Select(transaction => new SearchDocument(
                 transaction,
@@ -134,8 +138,13 @@ public partial class TransactionSearchView : ContentView
             }
 
             var documents = searchDocuments;
+            var searchCurrencySymbol = currencySymbol;
             var results = await Task.Run(
-                    () => BuildSearchResults(documents, query, cancellation.Token),
+                    () => BuildSearchResults(
+                        documents,
+                        query,
+                        searchCurrencySymbol,
+                        cancellation.Token),
                     cancellation.Token)
                 .ConfigureAwait(false);
 
@@ -275,6 +284,7 @@ public partial class TransactionSearchView : ContentView
     private static IReadOnlyList<TransactionActivityItem> BuildSearchResults(
         IReadOnlyList<SearchDocument> documents,
         string query,
+        string currencySymbol,
         CancellationToken cancellationToken)
     {
         var matchingRecords = new List<TransactionRecord>();
@@ -293,6 +303,7 @@ public partial class TransactionSearchView : ContentView
         var results = matchingRecords
             .Select((record, index) => TransactionActivityItem.FromRecord(
                 record,
+                currencySymbol,
                 index < matchingRecords.Count - 1))
             .ToList();
         cancellationToken.ThrowIfCancellationRequested();

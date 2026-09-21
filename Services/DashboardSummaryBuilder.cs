@@ -23,13 +23,6 @@ public static class DashboardSummaryBuilder
 
         foreach (var record in records)
         {
-            if (!record.CurrencyCode.Equals(
-                    selectedCurrency.Code,
-                    StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
             var transactionDate = record.TransactionDate;
             var isExpense = record.Type.Equals(
                 "Expense",
@@ -72,6 +65,7 @@ public static class DashboardSummaryBuilder
         var recentActivity = recentRecords
             .Select((record, index) => TransactionActivityItem.FromRecord(
                 record,
+                selectedCurrency.Symbol,
                 index < recentRecords.Count - 1,
                 canModifyTransaction: canModifyTransactions))
             .ToList();

@@ -100,8 +100,7 @@ public partial class MonthlySummaryCard : ContentView
 
         foreach (var record in records)
         {
-            if (!record.CurrencyCode.Equals(selectedCurrency.Code, StringComparison.OrdinalIgnoreCase) ||
-                record.TransactionDate.Date < startDate ||
+            if (record.TransactionDate.Date < startDate ||
                 record.TransactionDate.Date > endDate)
             {
                 continue;

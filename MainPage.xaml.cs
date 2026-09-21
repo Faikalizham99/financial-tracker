@@ -800,7 +800,9 @@ public partial class MainPage : ContentPage
         }
 
         pendingDeleteTransaction = transaction;
-        var transactionActivity = TransactionActivityItem.FromRecord(transaction);
+        var transactionActivity = TransactionActivityItem.FromRecord(
+            transaction,
+            settingsViewModel.SelectedCurrency.Symbol);
         DeleteCategoryIcon.Source = transactionActivity.IconAsset;
         DeletePaymentMethodIcon.Source = transactionActivity.PaymentMethodIconAsset;
         var transactionDate = transaction.TransactionDate.ToString(
@@ -1115,7 +1117,7 @@ public partial class MainPage : ContentPage
         CurrencyOption currency)
     {
         ExpensesView.Refresh(records, currency);
-        TransactionSearchView.SetTransactions(records);
+        TransactionSearchView.SetTransactions(records, currency);
         RefreshDashboard(records, currency);
     }
 

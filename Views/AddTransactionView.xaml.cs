@@ -58,13 +58,7 @@ public partial class AddTransactionView : ContentView
 
         database = localDatabase;
         editingTransaction = transactionToEdit;
-        currency = transactionToEdit is null
-            ? selectedCurrency
-            : SettingsViewModel.SupportedCurrencies.FirstOrDefault(option =>
-                option.Code.Equals(
-                    transactionToEdit.CurrencyCode,
-                    StringComparison.OrdinalIgnoreCase))
-              ?? selectedCurrency;
+        currency = selectedCurrency;
         var descriptionHistoryTask = LoadDescriptionHistoryAsync(transactionHistory);
         ResetForm();
         isOpen = true;
@@ -652,7 +646,7 @@ public partial class AddTransactionView : ContentView
                 PaymentMethod = selectedPayment.Key,
                 Description = DescriptionEntry.Text?.Trim() ?? string.Empty,
                 AmountMinor = decimal.ToInt64(decimal.Round(amount * 100, 0, MidpointRounding.AwayFromZero)),
-                CurrencyCode = currency.Code,
+                CurrencyCode = editingTransaction?.CurrencyCode ?? currency.Code,
                 TransactionDate = transactionDate,
                 CreatedAtUtc = editingTransaction?.CreatedAtUtc ?? DateTime.UtcNow
             };
