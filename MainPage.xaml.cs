@@ -52,6 +52,7 @@ public partial class MainPage : ContentPage
     private Grid? draggedHomeSectionRow;
     private string? draggedHomeSectionKey;
     private int draggedHomeSectionStartIndex = -1;
+    private int draggedHomeSectionTargetIndex = -1;
     private double draggedHomeSectionOffset;
     private Point? homeSectionPointerStart;
     private CancellationTokenSource? loadingSkeletonPulseCancellation;
@@ -327,6 +328,7 @@ public partial class MainPage : ContentPage
         draggedHomeSectionRow = row;
         draggedHomeSectionKey = key;
         draggedHomeSectionStartIndex = startIndex;
+        draggedHomeSectionTargetIndex = startIndex;
         draggedHomeSectionOffset = 0;
         row.ZIndex = 10;
         row.Opacity = 0.94;
@@ -345,6 +347,50 @@ public partial class MainPage : ContentPage
         var maximumOffset = (draftHomeSectionOrder.Count - 1 - draggedHomeSectionStartIndex) * rowHeight;
         draggedHomeSectionOffset = Math.Clamp(totalY, minimumOffset, maximumOffset);
         row.TranslationY = draggedHomeSectionOffset;
+
+        var indexOffset = (int)Math.Round(
+            draggedHomeSectionOffset / rowHeight,
+            MidpointRounding.AwayFromZero);
+        draggedHomeSectionTargetIndex = Math.Clamp(
+            draggedHomeSectionStartIndex + indexOffset,
+            0,
+            draftHomeSectionOrder.Count - 1);
+        UpdateHomeSectionInsertionGap(row, rowHeight);
+    }
+
+    private void UpdateHomeSectionInsertionGap(Grid draggedRow, double rowHeight)
+    {
+        var rows = ArrangeHomeSectionsLayout.Children.OfType<Grid>().ToList();
+        for (var index = 0; index < rows.Count; index++)
+        {
+            var row = rows[index];
+            if (ReferenceEquals(row, draggedRow))
+            {
+                continue;
+            }
+
+            row.TranslationY = draggedHomeSectionTargetIndex switch
+            {
+                _ when draggedHomeSectionTargetIndex > draggedHomeSectionStartIndex &&
+                    index > draggedHomeSectionStartIndex &&
+                    index <= draggedHomeSectionTargetIndex => -rowHeight,
+                _ when draggedHomeSectionTargetIndex < draggedHomeSectionStartIndex &&
+                    index >= draggedHomeSectionTargetIndex &&
+                    index < draggedHomeSectionStartIndex => rowHeight,
+                _ => 0
+            };
+        }
+    }
+
+    private async Task RestoreHomeSectionRowsAsync(Grid draggedRow)
+    {
+        var animations = ArrangeHomeSectionsLayout.Children
+            .OfType<Grid>()
+            .Select(row => row.TranslateToAsync(0, 0, 130, Easing.CubicOut))
+            .Cast<Task>()
+            .ToList();
+        animations.Add(draggedRow.ScaleToAsync(1, 130, Easing.CubicOut));
+        await Task.WhenAll(animations);
     }
 
     private async Task CompleteHomeSectionDragAsync(Grid row, bool shouldReorder)
@@ -359,18 +405,15 @@ public partial class MainPage : ContentPage
         var key = draggedHomeSectionKey;
         var startIndex = draggedHomeSectionStartIndex;
         var rowHeight = Math.Max(row.Height, 53);
-        var indexOffset = shouldReorder
-            ? (int)Math.Round(draggedHomeSectionOffset / rowHeight, MidpointRounding.AwayFromZero)
-            : 0;
-        var targetIndex = Math.Clamp(startIndex + indexOffset, 0, draftHomeSectionOrder.Count - 1);
+        var targetIndex = shouldReorder
+            ? draggedHomeSectionTargetIndex
+            : startIndex;
 
         try
         {
             if (targetIndex == startIndex)
             {
-                await Task.WhenAll(
-                    row.TranslateToAsync(0, 0, 130, Easing.CubicOut),
-                    row.ScaleToAsync(1, 130, Easing.CubicOut));
+                await RestoreHomeSectionRowsAsync(row);
                 return;
             }
 
@@ -386,6 +429,11 @@ public partial class MainPage : ContentPage
         }
         finally
         {
+            foreach (var sectionRow in ArrangeHomeSectionsLayout.Children.OfType<Grid>())
+            {
+                sectionRow.TranslationY = 0;
+            }
+
             row.TranslationY = 0;
             row.Scale = 1;
             row.Opacity = 1;
@@ -393,6 +441,7 @@ public partial class MainPage : ContentPage
             draggedHomeSectionRow = null;
             draggedHomeSectionKey = null;
             draggedHomeSectionStartIndex = -1;
+            draggedHomeSectionTargetIndex = -1;
             draggedHomeSectionOffset = 0;
             homeSectionPointerStart = null;
             isHomeSectionReordering = false;
