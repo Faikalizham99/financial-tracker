@@ -17,6 +17,7 @@ public partial class TransactionSearchView : ContentView
     private CancellationTokenSource? searchCancellation;
     private bool isAnimating;
     private bool isSelectingResult;
+    private bool isClearingRecentSearches;
 
     public TransactionSearchView()
     {
@@ -208,11 +209,36 @@ public partial class TransactionSearchView : ContentView
         AddRecentSearch(query);
     }
 
-    private void OnClearRecentSearchesTapped(object? sender, TappedEventArgs e)
+    private async void OnClearRecentSearchesTapped(object? sender, TappedEventArgs e)
     {
-        recentSearches.Clear();
-        SaveRecentSearches();
-        UpdateRecentSearchesView();
+        if (isClearingRecentSearches || recentSearches.Count == 0)
+        {
+            return;
+        }
+
+        isClearingRecentSearches = true;
+        SearchEntry.Unfocus();
+        ClearRecentSearchesButton.InputTransparent = true;
+        RecentSearchesScrollView.IsVisible = false;
+        RecentSearchesLoadingPanel.IsVisible = true;
+
+        try
+        {
+            // Yield a frame so the local skeleton is visible before the
+            // preference and bound-list updates are applied.
+            await Task.Yield();
+            recentSearches.Clear();
+            SaveRecentSearches();
+            UpdateRecentSearchesView();
+            await Task.Yield();
+        }
+        finally
+        {
+            RecentSearchesLoadingPanel.IsVisible = false;
+            RecentSearchesScrollView.IsVisible = true;
+            ClearRecentSearchesButton.InputTransparent = false;
+            isClearingRecentSearches = false;
+        }
     }
 
     private async void OnResultTapped(object? sender, TappedEventArgs e)
@@ -264,6 +290,8 @@ public partial class TransactionSearchView : ContentView
         {
             SearchNoResultsLabel.IsVisible = false;
             SearchResultsCountLabel.Text = "SEARCHING...";
+            SearchResultsLoadingPanel.IsVisible = true;
+            SearchResultsCard.IsVisible = false;
             SearchResultsCard.InputTransparent = true;
         }
     }
@@ -275,6 +303,7 @@ public partial class TransactionSearchView : ContentView
         RecentSearchesScrollView.IsVisible = true;
         SearchResultsPanel.IsVisible = false;
         SearchResultsCollection.ItemsSource = null;
+        SearchResultsLoadingPanel.IsVisible = false;
         SearchResultsCard.IsVisible = false;
         SearchResultsCard.InputTransparent = false;
         SearchNoResultsLabel.IsVisible = false;
@@ -315,6 +344,7 @@ public partial class TransactionSearchView : ContentView
         SearchResultsCollection.ItemsSource = results;
         SearchResultsCountLabel.Text =
             $"TRANSACTIONS \u00B7 {results.Count.ToString(CultureInfo.InvariantCulture)}";
+        SearchResultsLoadingPanel.IsVisible = false;
         SearchResultsCard.IsVisible = results.Count > 0;
         SearchResultsCard.InputTransparent = false;
         SearchNoResultsLabel.IsVisible = results.Count == 0;

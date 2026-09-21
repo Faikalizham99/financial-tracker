@@ -9,6 +9,14 @@
     Opacity="0"
     BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}">
 
+    <ContentView.Resources>
+        <Style x:Key="SearchSkeletonLine" TargetType="Border">
+            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}" />
+            <Setter Property="StrokeThickness" Value="0" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 999" />
+        </Style>
+    </ContentView.Resources>
+
     <Grid Padding="{OnIdiom Phone='20,30,20,24', Tablet='28,30,28,24', Desktop='28,30,28,24'}" RowDefinitions="Auto,*" RowSpacing="22">
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
             <Border
@@ -56,7 +64,7 @@
                 <VerticalStackLayout x:Name="RecentSearchesPanel" Spacing="12">
                     <Grid ColumnDefinitions="*,Auto">
                         <Label Text="RECENT SEARCHES" Style="{StaticResource SectionLabel}" VerticalTextAlignment="Center" />
-                        <Label Grid.Column="1" Text="Clear" FontFamily="OpenSansSemibold" FontSize="12" TextColor="{DynamicResource Accent}" VerticalTextAlignment="Center" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                        <Label x:Name="ClearRecentSearchesButton" Grid.Column="1" Text="Clear" FontFamily="OpenSansSemibold" FontSize="12" TextColor="{DynamicResource Accent}" VerticalTextAlignment="Center" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                             <Label.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="OnClearRecentSearchesTapped" />
                             </Label.GestureRecognizers>
@@ -82,6 +90,38 @@
                 </VerticalStackLayout>
             </ScrollView>
 
+            <VerticalStackLayout
+                x:Name="RecentSearchesLoadingPanel"
+                IsVisible="False"
+                InputTransparent="True"
+                Spacing="12"
+                SemanticProperties.Description="Clearing recent searches">
+                <Border Style="{StaticResource SearchSkeletonLine}" WidthRequest="118" HeightRequest="10" HorizontalOptions="Start" />
+                <Border
+                    Padding="14,4"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}"
+                    Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                    StrokeThickness="1.5"
+                    StrokeShape="RoundRectangle 22">
+                    <VerticalStackLayout Spacing="0">
+                        <Grid HeightRequest="48" ColumnDefinitions="24,*" ColumnSpacing="11">
+                            <Border Style="{StaticResource SearchSkeletonLine}" WidthRequest="19" HeightRequest="19" VerticalOptions="Center" />
+                            <Border Grid.Column="1" Style="{StaticResource SearchSkeletonLine}" WidthRequest="180" HeightRequest="12" HorizontalOptions="Start" VerticalOptions="Center" />
+                        </Grid>
+                        <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+                        <Grid HeightRequest="48" ColumnDefinitions="24,*" ColumnSpacing="11">
+                            <Border Style="{StaticResource SearchSkeletonLine}" WidthRequest="19" HeightRequest="19" VerticalOptions="Center" />
+                            <Border Grid.Column="1" Style="{StaticResource SearchSkeletonLine}" WidthRequest="140" HeightRequest="12" HorizontalOptions="Start" VerticalOptions="Center" />
+                        </Grid>
+                        <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+                        <Grid HeightRequest="48" ColumnDefinitions="24,*" ColumnSpacing="11">
+                            <Border Style="{StaticResource SearchSkeletonLine}" WidthRequest="19" HeightRequest="19" VerticalOptions="Center" />
+                            <Border Grid.Column="1" Style="{StaticResource SearchSkeletonLine}" WidthRequest="165" HeightRequest="12" HorizontalOptions="Start" VerticalOptions="Center" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+
             <Grid
                 x:Name="SearchResultsPanel"
                 IsVisible="False"
@@ -95,6 +135,36 @@
                     Style="{StaticResource BodyMuted}"
                     FontSize="13"
                     IsVisible="False" />
+                <Border
+                    x:Name="SearchResultsLoadingPanel"
+                    Grid.Row="1"
+                    IsVisible="False"
+                    Padding="14,4"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}"
+                    Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                    StrokeThickness="1.5"
+                    StrokeShape="RoundRectangle 22"
+                    SemanticProperties.Description="Searching transactions">
+                    <VerticalStackLayout Spacing="0">
+                        <Grid HeightRequest="62" ColumnDefinitions="90,*,72" ColumnSpacing="12">
+                            <Border Style="{StaticResource SearchSkeletonLine}" WidthRequest="76" HeightRequest="38" HorizontalOptions="Start" VerticalOptions="Center" />
+                            <VerticalStackLayout Grid.Column="1" Spacing="7" VerticalOptions="Center">
+                                <Border Style="{StaticResource SearchSkeletonLine}" WidthRequest="155" HeightRequest="12" HorizontalOptions="Start" />
+                                <Border Style="{StaticResource SearchSkeletonLine}" WidthRequest="105" HeightRequest="9" HorizontalOptions="Start" />
+                            </VerticalStackLayout>
+                            <Border Grid.Column="2" Style="{StaticResource SearchSkeletonLine}" WidthRequest="66" HeightRequest="12" HorizontalOptions="End" VerticalOptions="Center" />
+                        </Grid>
+                        <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+                        <Grid HeightRequest="62" ColumnDefinitions="90,*,72" ColumnSpacing="12">
+                            <Border Style="{StaticResource SearchSkeletonLine}" WidthRequest="76" HeightRequest="38" HorizontalOptions="Start" VerticalOptions="Center" />
+                            <VerticalStackLayout Grid.Column="1" Spacing="7" VerticalOptions="Center">
+                                <Border Style="{StaticResource SearchSkeletonLine}" WidthRequest="130" HeightRequest="12" HorizontalOptions="Start" />
+                                <Border Style="{StaticResource SearchSkeletonLine}" WidthRequest="90" HeightRequest="9" HorizontalOptions="Start" />
+                            </VerticalStackLayout>
+                            <Border Grid.Column="2" Style="{StaticResource SearchSkeletonLine}" WidthRequest="58" HeightRequest="12" HorizontalOptions="End" VerticalOptions="Center" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
                 <Grid x:Name="SearchResultsCard" Grid.Row="1" Margin="0,0,0,8" IsVisible="False">
                     <Border Style="{StaticResource CardShadowLayer}" />
                     <Border Style="{StaticResource CardSurface}" Padding="0">

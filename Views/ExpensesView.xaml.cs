@@ -15,6 +15,7 @@ public partial class ExpensesView : ContentView
     public event Action? SearchRequested;
     public event EventHandler? TransactionEditingLockToggleRequested;
     public Func<DateTime, DateTime, DateTime, Task<DateTime?>>? DatePickerRequested { get; set; }
+    public Func<Func<Task>, Task>? RunWithTransactionLoadingAsync { get; set; }
 
     private enum FilterSelectorKind
     {
@@ -548,7 +549,7 @@ public partial class ExpensesView : ContentView
         displayedMonth = displayedMonth.AddMonths(monthOffset);
         selectedStartDate = null;
         selectedEndDate = null;
-        RenderDisplayedMonth();
+        await RenderDisplayedMonthWithLoadingAsync();
         await feedback;
     }
 
@@ -559,7 +560,7 @@ public partial class ExpensesView : ContentView
         selectedCategoryFilter = null;
         selectedStartDate = null;
         selectedEndDate = null;
-        RenderDisplayedMonth();
+        await RenderDisplayedMonthWithLoadingAsync();
         await feedback;
     }
 
@@ -672,8 +673,8 @@ public partial class ExpensesView : ContentView
         var feedback = InteractionAnimations.PulseAsync(sender);
         selectedStartDate = dateRangeStartDraft;
         selectedEndDate = dateRangeEndDraft;
-        RenderDisplayedMonth();
         await CloseDateRangeFilterAsync();
+        await RenderDisplayedMonthWithLoadingAsync();
         await feedback;
     }
 
@@ -682,8 +683,8 @@ public partial class ExpensesView : ContentView
         var feedback = InteractionAnimations.PulseAsync(sender);
         selectedStartDate = null;
         selectedEndDate = null;
-        RenderDisplayedMonth();
         await CloseDateRangeFilterAsync();
+        await RenderDisplayedMonthWithLoadingAsync();
         await feedback;
     }
 
@@ -889,8 +890,24 @@ public partial class ExpensesView : ContentView
             selectedCategoryFilter = string.IsNullOrEmpty(option.Key) ? null : option;
         }
 
-        RenderDisplayedMonth();
         await CloseFilterSelectorAsync();
+        await RenderDisplayedMonthWithLoadingAsync();
+    }
+
+    private Task RenderDisplayedMonthWithLoadingAsync()
+    {
+        var loadingHandler = RunWithTransactionLoadingAsync;
+        if (loadingHandler is null)
+        {
+            RenderDisplayedMonth();
+            return Task.CompletedTask;
+        }
+
+        return loadingHandler(() =>
+        {
+            RenderDisplayedMonth();
+            return Task.CompletedTask;
+        });
     }
 
     private async Task OpenFilterSelectorAsync(

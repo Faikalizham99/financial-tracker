@@ -33,6 +33,7 @@ public partial class MainPage : ContentPage
     private readonly SettingsViewModel settingsViewModel;
     private readonly LocalDatabase localDatabase;
     private readonly SemaphoreSlim transactionRefreshLock = new(1, 1);
+    private readonly SemaphoreSlim dataLoadingOperationLock = new(1, 1);
     private readonly List<string> homeSectionOrder = [];
     private readonly List<string> draftHomeSectionOrder = [];
     private readonly VisualElement[] navigationPages;
@@ -83,9 +84,11 @@ public partial class MainPage : ContentPage
         LoadHomeSectionOrder();
         ApplyHomeSectionOrder();
         BindingContext = settingsViewModel;
-        AddTransactionOverlay.TransactionSaved += OnTransactionSaved;
+        AddTransactionOverlay.TransactionSaved = OnTransactionSavedAsync;
         AddTransactionOverlay.DatePickerRequested = CalendarPicker.PickAsync;
+        AddTransactionOverlay.RunWithTransactionLoadingAsync = RunWithDataLoadingSkeletonAsync;
         ExpensesView.DatePickerRequested = CalendarPicker.PickAsync;
+        ExpensesView.RunWithTransactionLoadingAsync = RunWithDataLoadingSkeletonAsync;
         ExpensesView.EditTransactionRequested += OnTransactionEditRequested;
         ExpensesView.DeleteTransactionRequested += OnTransactionDeleteRequested;
         ExpensesView.SearchRequested += OnTransactionSearchRequested;
@@ -125,8 +128,7 @@ public partial class MainPage : ContentPage
         }
     }
 
-    private async void OnTransactionSaved(object? sender, EventArgs e) =>
-        await RefreshTransactionViewsAsync();
+    private Task OnTransactionSavedAsync() => RefreshTransactionViewsAsync();
 
     private async void OnSettingsPropertyChanged(
         object? sender,
@@ -141,13 +143,17 @@ public partial class MainPage : ContentPage
 
             if (cachedTransactionRecords is not null)
             {
-                ApplyTransactionData(
-                    cachedTransactionRecords,
-                    settingsViewModel.SelectedCurrency);
+                await RunWithDataLoadingSkeletonAsync(() =>
+                {
+                    ApplyTransactionData(
+                        cachedTransactionRecords,
+                        settingsViewModel.SelectedCurrency);
+                    return Task.CompletedTask;
+                });
                 return;
             }
 
-            await RefreshTransactionViewsAsync();
+            await RunWithDataLoadingSkeletonAsync(RefreshTransactionViewsAsync);
         }
     }
 
@@ -769,7 +775,22 @@ public partial class MainPage : ContentPage
     {
         var cachedTransaction = cachedTransactionRecords?
             .FirstOrDefault(transaction => transaction.Id == transactionId);
-        return cachedTransaction ?? await localDatabase.GetTransactionAsync(transactionId);
+        if (cachedTransaction is not null)
+        {
+            return cachedTransaction;
+        }
+
+        TransactionRecord? storedTransaction = null;
+        await RunWithDataLoadingSkeletonAsync(async () =>
+        {
+            storedTransaction = await localDatabase.GetTransactionAsync(transactionId);
+            if (storedTransaction is null)
+            {
+                await RefreshTransactionViewsAsync();
+            }
+        });
+
+        return storedTransaction;
     }
 
     private async Task OpenTransactionForEditAsync(int transactionId)
@@ -782,7 +803,6 @@ public partial class MainPage : ContentPage
         var transaction = await FindTransactionAsync(transactionId);
         if (transaction is null)
         {
-            await RefreshTransactionViewsAsync();
             return;
         }
 
@@ -805,7 +825,6 @@ public partial class MainPage : ContentPage
         var transaction = await FindTransactionAsync(transactionId);
         if (transaction is null)
         {
-            await RefreshTransactionViewsAsync();
             return;
         }
 
@@ -871,10 +890,14 @@ public partial class MainPage : ContentPage
 
         try
         {
-            await localDatabase.DeleteTransactionAsync(pendingDeleteTransaction.Id);
-            await RefreshTransactionViewsAsync();
-            isDeletingTransaction = false;
-            await CloseDeleteConfirmationAsync();
+            var transactionId = pendingDeleteTransaction.Id;
+            await RunWithDataLoadingSkeletonAsync(async () =>
+            {
+                await localDatabase.DeleteTransactionAsync(transactionId);
+                isDeletingTransaction = false;
+                await CloseDeleteConfirmationAsync();
+                await RefreshTransactionViewsAsync();
+            });
         }
         catch
         {
@@ -1060,6 +1083,53 @@ public partial class MainPage : ContentPage
         DataLoadingOverlay.Opacity = 1;
         DataLoadingOverlay.IsVisible = true;
         StartLoadingSkeletonPulse();
+    }
+
+    private bool ShowDataLoadingSkeletonForSelectedSection()
+    {
+        isDataLoadingSkeletonShown = true;
+        DataLoadingOverlay.CancelAnimations();
+        DataLoadingOverlay.ZIndex = 140;
+        HomeLoadingSkeleton.IsVisible = selectedSectionIndex == 0;
+        TransactionLoadingSkeleton.IsVisible = selectedSectionIndex != 0;
+        DataLoadingOverlay.Opacity = 1;
+        DataLoadingOverlay.IsVisible = true;
+        StartLoadingSkeletonPulse();
+        return true;
+    }
+
+    private async Task RunWithDataLoadingSkeletonAsync(Func<Task> operation)
+    {
+        await dataLoadingOperationLock.WaitAsync();
+        var isSkeletonVisible = false;
+
+        try
+        {
+            isSkeletonVisible = ShowDataLoadingSkeletonForSelectedSection();
+            if (isSkeletonVisible)
+            {
+                // Let the loading state reach the native compositor before an
+                // in-memory list rebuild or SQLite operation starts.
+                await Task.Yield();
+            }
+
+            await operation();
+        }
+        finally
+        {
+            try
+            {
+                if (isSkeletonVisible)
+                {
+                    await HideLoadingSkeletonAsync();
+                }
+            }
+            finally
+            {
+                DataLoadingOverlay.ZIndex = 20;
+                dataLoadingOperationLock.Release();
+            }
+        }
     }
 
     private async Task PulseLoadingSkeletonAsync(

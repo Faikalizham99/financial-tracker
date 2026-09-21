@@ -9,8 +9,9 @@ namespace FinancialTracker.Views;
 
 public partial class AddTransactionView : ContentView
 {
-    public event EventHandler? TransactionSaved;
+    public Func<Task>? TransactionSaved { get; set; }
     public Func<DateTime, DateTime, DateTime, Task<DateTime?>>? DatePickerRequested { get; set; }
+    public Func<Func<Task>, Task>? RunWithTransactionLoadingAsync { get; set; }
 
     private enum SelectorKind
     {
@@ -651,19 +652,36 @@ public partial class AddTransactionView : ContentView
                 CreatedAtUtc = editingTransaction?.CreatedAtUtc ?? DateTime.UtcNow
             };
 
-            if (editingTransaction is null)
+            async Task SaveAndRefreshAsync()
             {
-                await database.SaveTransactionAsync(transaction);
+                if (editingTransaction is null)
+                {
+                    await database.SaveTransactionAsync(transaction);
+                }
+                else
+                {
+                    await database.UpdateTransactionAsync(transaction);
+                }
+
+                SaveLabel.Text = editingTransaction is null ? "Saved" : "Updated";
+                await CloseAsync();
+
+                var transactionSaved = TransactionSaved;
+                if (transactionSaved is not null)
+                {
+                    await transactionSaved();
+                }
+            }
+
+            var loadingHandler = RunWithTransactionLoadingAsync;
+            if (loadingHandler is null)
+            {
+                await SaveAndRefreshAsync();
             }
             else
             {
-                await database.UpdateTransactionAsync(transaction);
+                await loadingHandler(SaveAndRefreshAsync);
             }
-
-            TransactionSaved?.Invoke(this, EventArgs.Empty);
-            SaveLabel.Text = editingTransaction is null ? "Saved" : "Updated";
-            await Task.Delay(420);
-            await CloseAsync();
         }
         catch
         {
