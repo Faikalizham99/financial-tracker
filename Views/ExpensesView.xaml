@@ -3,6 +3,7 @@
     x:Class="FinancialTracker.Views.ExpensesView"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:helpers="clr-namespace:FinancialTracker.Helpers"
     xmlns:models="clr-namespace:FinancialTracker.Models"
     xmlns:views="clr-namespace:FinancialTracker.Views">
 
@@ -27,14 +28,14 @@
                     Spacing="2"
                     HorizontalOptions="End"
                     VerticalOptions="Center">
-                    <Border WidthRequest="30" HeightRequest="30" Padding="6" BackgroundColor="Transparent" StrokeThickness="0" VerticalOptions="Center">
+                    <Border WidthRequest="30" HeightRequest="30" Padding="6" BackgroundColor="Transparent" StrokeThickness="0" VerticalOptions="Center" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnPreviousMonthTapped" />
                         </Border.GestureRecognizers>
                         <Path Data="M 15,4 L 7,12 L 15,20" Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" StrokeThickness="2.4" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" HorizontalOptions="Center" VerticalOptions="Center" />
                     </Border>
                     <Label x:Name="MonthSwitcherLabel" Text="September 2026" FontFamily="OpenSansSemibold" FontSize="13" MinimumWidthRequest="110" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
-                    <Border WidthRequest="30" HeightRequest="30" Padding="6" BackgroundColor="Transparent" StrokeThickness="0" VerticalOptions="Center">
+                    <Border WidthRequest="30" HeightRequest="30" Padding="6" BackgroundColor="Transparent" StrokeThickness="0" VerticalOptions="Center" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnNextMonthTapped" />
                         </Border.GestureRecognizers>
@@ -51,6 +52,7 @@
                     Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
                     StrokeThickness="2"
                     StrokeShape="RoundRectangle 22"
+                    helpers:InteractionAnimations.IsPressFeedbackEnabled="True"
                     SemanticProperties.Description="Filter transactions by date range">
                     <Border.GestureRecognizers>
                         <TapGestureRecognizer Tapped="OnCalendarFilterTapped" />
@@ -84,7 +86,7 @@
                     </Grid>
                 </Border>
 
-                <Border Grid.Column="3" WidthRequest="44" HeightRequest="44" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="2" StrokeShape="RoundRectangle 22">
+                <Border Grid.Column="3" WidthRequest="44" HeightRequest="44" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="2" StrokeShape="RoundRectangle 22" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                     <Border.GestureRecognizers>
                         <TapGestureRecognizer Tapped="OnSearchTapped" />
                     </Border.GestureRecognizers>
@@ -104,7 +106,8 @@
                         IsVisible="False"
                         BackgroundColor="{DynamicResource AccentTint}"
                         StrokeThickness="0"
-                        StrokeShape="RoundRectangle 999">
+                        StrokeShape="RoundRectangle 999"
+                        helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnAllFilterTapped" />
                         </Border.GestureRecognizers>
@@ -427,7 +430,7 @@
                         <Label x:Name="FilterSelectorTitle" Text="Choose a filter" Style="{StaticResource CardTitle}" FontSize="20" />
                         <Label Text="Tap an option to apply it" Style="{StaticResource BodyMuted}" FontSize="12" />
                     </VerticalStackLayout>
-                    <Border Grid.Column="1" WidthRequest="42" HeightRequest="42" Style="{StaticResource Pill}" Padding="0">
+                    <Border Grid.Column="1" WidthRequest="42" HeightRequest="42" Style="{StaticResource Pill}" Padding="0" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnFilterSelectorCloseTapped" />
                         </Border.GestureRecognizers>
@@ -502,7 +505,7 @@
                         <Label Text="Filter by date" Style="{StaticResource CardTitle}" FontSize="20" />
                         <Label x:Name="DateRangeMonthLabel" Text="Choose a date range" Style="{StaticResource BodyMuted}" FontSize="12" />
                     </VerticalStackLayout>
-                    <Border Grid.Column="1" WidthRequest="42" HeightRequest="42" Style="{StaticResource Pill}" Padding="0">
+                    <Border Grid.Column="1" WidthRequest="42" HeightRequest="42" Style="{StaticResource Pill}" Padding="0" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnDateRangeCloseTapped" />
                         </Border.GestureRecognizers>
@@ -539,13 +542,13 @@
                 </VerticalStackLayout>
 
                 <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                    <Border HeightRequest="50" Style="{StaticResource Pill}">
+                    <Border HeightRequest="50" Style="{StaticResource Pill}" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnDateRangeClearTapped" />
                         </Border.GestureRecognizers>
                         <Label Text="Clear" FontFamily="OpenSansSemibold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
                     </Border>
-                    <Border Grid.Column="1" HeightRequest="50" BackgroundColor="{DynamicResource Accent}" StrokeThickness="0" StrokeShape="RoundRectangle 999">
+                    <Border Grid.Column="1" HeightRequest="50" BackgroundColor="{DynamicResource Accent}" StrokeThickness="0" StrokeShape="RoundRectangle 999" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnDateRangeApplyTapped" />
                         </Border.GestureRecognizers>

@@ -94,6 +94,7 @@ public partial class MainPage : ContentPage
         DashboardMonthlySummary.TransactionEditingLockToggleRequested +=
             OnTransactionEditingLockToggleRequested;
         TransactionSearchView.TransactionSelected += OnTransactionSearchResultSelected;
+        SettingsView.DataDrawerVisibilityChanged += OnSettingsDataDrawerVisibilityChanged;
         settingsViewModel.PropertyChanged += OnSettingsPropertyChanged;
         Loaded += OnLoaded;
     }
@@ -576,6 +577,15 @@ public partial class MainPage : ContentPage
             // never leave the transition skeleton on screen.
             await HideLoadingSkeletonAsync();
         }
+    }
+
+    private void OnSettingsDataDrawerVisibilityChanged(bool isVisible)
+    {
+        // Keep the dock in its existing native layer to avoid reordering the
+        // visual tree while a pointer gesture is completing. The drawer can
+        // then cover the same space without the dock drawing or handling input.
+        BottomNavigationDock.Opacity = isVisible ? 0 : 1;
+        BottomNavigationDock.InputTransparent = isVisible;
     }
 
     private async void OnTransactionEditRequested(int transactionId)

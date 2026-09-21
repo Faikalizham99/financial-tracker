@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:controls="clr-namespace:FinancialTracker.Controls"
+    xmlns:helpers="clr-namespace:FinancialTracker.Helpers"
     xmlns:models="clr-namespace:FinancialTracker.Models"
     xmlns:views="clr-namespace:FinancialTracker.Views"
     Shell.NavBarIsVisible="False">
@@ -66,6 +67,7 @@
                         BackgroundColor="{DynamicResource Accent}"
                         StrokeThickness="0"
                         StrokeShape="RoundRectangle 29"
+                        helpers:InteractionAnimations.IsPressFeedbackEnabled="True"
                         SemanticProperties.Description="Open Settings">
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnProfileTapped" />
@@ -87,7 +89,7 @@
 
                 <Grid ColumnDefinitions="*,Auto">
                     <Label Text="HOME SECTIONS" Style="{StaticResource SectionLabel}" VerticalTextAlignment="Center" />
-                    <Border Grid.Column="1" Padding="11,5" BackgroundColor="{DynamicResource AccentTint}" StrokeThickness="0" StrokeShape="RoundRectangle 999">
+                    <Border Grid.Column="1" Padding="11,5" BackgroundColor="{DynamicResource AccentTint}" StrokeThickness="0" StrokeShape="RoundRectangle 999" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnArrangeHomeTapped" />
                         </Border.GestureRecognizers>
@@ -168,7 +170,7 @@
                 <VerticalStackLayout x:Name="DashboardRecentActivitySection" Spacing="13">
                     <Grid ColumnDefinitions="*,Auto">
                         <Label Text="RECENT ACTIVITY" Style="{StaticResource SectionLabel}" VerticalTextAlignment="Center" />
-                        <Border x:Name="DashboardViewAllButton" Grid.Column="1" Padding="11,5" IsVisible="False" BackgroundColor="{DynamicResource AccentTint}" StrokeThickness="0" StrokeShape="RoundRectangle 999">
+                        <Border x:Name="DashboardViewAllButton" Grid.Column="1" Padding="11,5" IsVisible="False" BackgroundColor="{DynamicResource AccentTint}" StrokeThickness="0" StrokeShape="RoundRectangle 999" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="OnDashboardViewAllTapped" />
                             </Border.GestureRecognizers>
@@ -338,6 +340,7 @@
 
         <!-- Bottom dock: navigation and a separate add button. -->
         <Grid
+            x:Name="BottomNavigationDock"
             Margin="18,0,18,18"
             ColumnDefinitions="*,70"
             ColumnSpacing="11"
@@ -415,6 +418,7 @@
                 Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
                 StrokeThickness="2"
                 StrokeShape="RoundRectangle 34"
+                helpers:InteractionAnimations.IsPressFeedbackEnabled="True"
                 VerticalOptions="Center">
                 <Border.GestureRecognizers>
                     <TapGestureRecognizer Tapped="OnAddTapped" />
@@ -476,7 +480,7 @@
                             <Label Text="Arrange Home" Style="{StaticResource CardTitle}" FontSize="20" />
                             <Label Text="Drag rows to reorder. Monthly Pulse stays at the top." Style="{StaticResource BodyMuted}" FontSize="12" />
                         </VerticalStackLayout>
-                        <Border Grid.Column="1" WidthRequest="42" HeightRequest="42" Style="{StaticResource Pill}" Padding="0">
+                        <Border Grid.Column="1" WidthRequest="42" HeightRequest="42" Style="{StaticResource Pill}" Padding="0" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="OnArrangeHomeCloseTapped" />
                             </Border.GestureRecognizers>
@@ -505,19 +509,19 @@
                     </Border>
 
                     <Grid ColumnDefinitions="Auto,*,*" ColumnSpacing="10">
-                        <Border Padding="14,0" HeightRequest="50" Style="{StaticResource Pill}">
+                        <Border Padding="14,0" HeightRequest="50" Style="{StaticResource Pill}" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="OnArrangeHomeResetTapped" />
                             </Border.GestureRecognizers>
                             <Label Text="Reset" FontFamily="OpenSansSemibold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
                         </Border>
-                        <Border Grid.Column="1" HeightRequest="50" Style="{StaticResource Pill}">
+                        <Border Grid.Column="1" HeightRequest="50" Style="{StaticResource Pill}" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="OnArrangeHomeCloseTapped" />
                             </Border.GestureRecognizers>
                             <Label Text="Cancel" FontFamily="OpenSansSemibold" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
                         </Border>
-                        <Border Grid.Column="2" HeightRequest="50" BackgroundColor="{DynamicResource Accent}" StrokeThickness="0" StrokeShape="RoundRectangle 999">
+                        <Border Grid.Column="2" HeightRequest="50" BackgroundColor="{DynamicResource Accent}" StrokeThickness="0" StrokeShape="RoundRectangle 999" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="OnArrangeHomeSaveTapped" />
                             </Border.GestureRecognizers>
@@ -590,7 +594,7 @@
                     <Label x:Name="DeleteDescriptionLabel" Text="This transaction will be permanently removed." Style="{StaticResource BodyMuted}" FontSize="13" LineBreakMode="WordWrap" />
 
                     <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
-                        <Border Style="{StaticResource Pill}" HeightRequest="52" Padding="16,0">
+                        <Border Style="{StaticResource Pill}" HeightRequest="52" Padding="16,0" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="OnDeleteConfirmationCancelTapped" />
                             </Border.GestureRecognizers>
@@ -603,7 +607,8 @@
                             Padding="16,0"
                             BackgroundColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}"
                             StrokeThickness="0"
-                            StrokeShape="RoundRectangle 20">
+                            StrokeShape="RoundRectangle 20"
+                            helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="OnDeleteConfirmationConfirmedTapped" />
                             </Border.GestureRecognizers>

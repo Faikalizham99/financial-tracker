@@ -2,7 +2,8 @@
 <ContentView
     x:Class="FinancialTracker.Views.SettingsView"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:helpers="clr-namespace:FinancialTracker.Helpers">
 
     <Grid>
     <ScrollView VerticalScrollBarVisibility="Never">
@@ -264,19 +265,19 @@
                                 VerticalOptions="Center" />
                         </Grid>
                         <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
-                            <Border x:Name="SystemThemeOption" Style="{StaticResource OptionCard}" Padding="10,9">
+                            <Border x:Name="SystemThemeOption" Style="{StaticResource OptionCard}" Padding="10,9" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer Tapped="OnThemeTapped" CommandParameter="System" />
                                 </Border.GestureRecognizers>
                                 <Label Text="System" HorizontalTextAlignment="Center" />
                             </Border>
-                            <Border x:Name="LightThemeOption" Grid.Column="1" Style="{StaticResource SelectedOptionCard}" Padding="10,9">
+                            <Border x:Name="LightThemeOption" Grid.Column="1" Style="{StaticResource SelectedOptionCard}" Padding="10,9" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer Tapped="OnThemeTapped" CommandParameter="Light" />
                                 </Border.GestureRecognizers>
                                 <Label Text="Light" HorizontalTextAlignment="Center" />
                             </Border>
-                            <Border x:Name="DarkThemeOption" Grid.Column="2" Style="{StaticResource OptionCard}" Padding="10,9">
+                            <Border x:Name="DarkThemeOption" Grid.Column="2" Style="{StaticResource OptionCard}" Padding="10,9" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer Tapped="OnThemeTapped" CommandParameter="Dark" />
                                 </Border.GestureRecognizers>
@@ -301,37 +302,37 @@
                         </Grid>
 
                         <HorizontalStackLayout Spacing="8">
-                            <Border x:Name="PurpleAccentOption" Style="{StaticResource SelectedOptionCard}" WidthRequest="44" HeightRequest="44" Padding="6">
+                            <Border x:Name="PurpleAccentOption" Style="{StaticResource SelectedOptionCard}" WidthRequest="44" HeightRequest="44" Padding="6" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                                 <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnAccentTapped" CommandParameter="#5044E4" /></Border.GestureRecognizers>
                                 <Border BackgroundColor="#5044E4" StrokeThickness="0" StrokeShape="RoundRectangle 14">
                                     <Label x:Name="PurpleAccentCheck" Text="✓" TextColor="White" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
                                 </Border>
                             </Border>
-                            <Border x:Name="OceanAccentOption" Style="{StaticResource OptionCard}" WidthRequest="44" HeightRequest="44" Padding="6">
+                            <Border x:Name="OceanAccentOption" Style="{StaticResource OptionCard}" WidthRequest="44" HeightRequest="44" Padding="6" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                                 <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnAccentTapped" CommandParameter="#1477D4" /></Border.GestureRecognizers>
                                 <Border BackgroundColor="#1477D4" StrokeThickness="0" StrokeShape="RoundRectangle 14">
                                     <Label x:Name="OceanAccentCheck" Text="✓" TextColor="White" IsVisible="False" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
                                 </Border>
                             </Border>
-                            <Border x:Name="TealAccentOption" Style="{StaticResource OptionCard}" WidthRequest="44" HeightRequest="44" Padding="6">
+                            <Border x:Name="TealAccentOption" Style="{StaticResource OptionCard}" WidthRequest="44" HeightRequest="44" Padding="6" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                                 <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnAccentTapped" CommandParameter="#0F766E" /></Border.GestureRecognizers>
                                 <Border BackgroundColor="#0F766E" StrokeThickness="0" StrokeShape="RoundRectangle 14">
                                     <Label x:Name="TealAccentCheck" Text="✓" TextColor="White" IsVisible="False" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
                                 </Border>
                             </Border>
-                            <Border x:Name="RoseAccentOption" Style="{StaticResource OptionCard}" WidthRequest="44" HeightRequest="44" Padding="6">
+                            <Border x:Name="RoseAccentOption" Style="{StaticResource OptionCard}" WidthRequest="44" HeightRequest="44" Padding="6" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                                 <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnAccentTapped" CommandParameter="#C2416C" /></Border.GestureRecognizers>
                                 <Border BackgroundColor="#C2416C" StrokeThickness="0" StrokeShape="RoundRectangle 14">
                                     <Label x:Name="RoseAccentCheck" Text="✓" TextColor="White" IsVisible="False" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
                                 </Border>
                             </Border>
-                            <Border x:Name="OrangeAccentOption" Style="{StaticResource OptionCard}" WidthRequest="44" HeightRequest="44" Padding="6">
+                            <Border x:Name="OrangeAccentOption" Style="{StaticResource OptionCard}" WidthRequest="44" HeightRequest="44" Padding="6" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                                 <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnAccentTapped" CommandParameter="#C65D16" /></Border.GestureRecognizers>
                                 <Border BackgroundColor="#C65D16" StrokeThickness="0" StrokeShape="RoundRectangle 14">
                                     <Label x:Name="OrangeAccentCheck" Text="✓" TextColor="White" IsVisible="False" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
                                 </Border>
                             </Border>
-                            <Border x:Name="SlateAccentOption" Style="{StaticResource OptionCard}" WidthRequest="44" HeightRequest="44" Padding="6">
+                            <Border x:Name="SlateAccentOption" Style="{StaticResource OptionCard}" WidthRequest="44" HeightRequest="44" Padding="6" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                                 <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnAccentTapped" CommandParameter="#475569" /></Border.GestureRecognizers>
                                 <Border BackgroundColor="#475569" StrokeThickness="0" StrokeShape="RoundRectangle 14">
                                     <Label x:Name="SlateAccentCheck" Text="✓" TextColor="White" IsVisible="False" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
@@ -484,7 +485,8 @@
                             BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}"
                             Stroke="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}"
                             StrokeThickness="1"
-                            StrokeShape="RoundRectangle 21">
+                            StrokeShape="RoundRectangle 21"
+                            helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="OnDataDrawerCloseTapped" />
                             </Border.GestureRecognizers>
@@ -504,10 +506,14 @@
                     </Grid>
 
                     <ScrollView
+                        x:Name="DataDrawerScrollView"
                         Grid.Row="1"
                         Margin="0,27,0,0"
                         VerticalScrollBarVisibility="Never">
-                    <Grid Padding="0,0,0,24">
+                    <Grid
+                        Padding="0,0,0,40"
+                        MaximumWidthRequest="900"
+                        HorizontalOptions="Fill">
                     <VerticalStackLayout x:Name="CategoriesDrawerContent" Spacing="25">
                         <Border
                             WidthRequest="204"

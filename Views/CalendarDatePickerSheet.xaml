@@ -3,6 +3,7 @@
     x:Class="FinancialTracker.Views.CalendarDatePickerSheet"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:helpers="clr-namespace:FinancialTracker.Helpers"
     IsVisible="False"
     SizeChanged="OnOverlaySizeChanged">
 
@@ -37,6 +38,7 @@
                         Padding="12"
                         HorizontalOptions="Start"
                         Style="{StaticResource Pill}"
+                        helpers:InteractionAnimations.IsPressFeedbackEnabled="True"
                         SemanticProperties.Description="Close date picker">
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnDismissTapped" />
@@ -65,6 +67,7 @@
                         HeightRequest="44"
                         Padding="12,0"
                         Style="{StaticResource Pill}"
+                        helpers:InteractionAnimations.IsPressFeedbackEnabled="True"
                         SemanticProperties.Description="Select today">
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnTodayTapped" />
@@ -84,6 +87,7 @@
                         Padding="9,0"
                         BackgroundColor="Transparent"
                         StrokeThickness="0"
+                        helpers:InteractionAnimations.IsPressFeedbackEnabled="True"
                         SemanticProperties.Description="Choose month and year">
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnMonthYearTapped" />
@@ -118,6 +122,7 @@
                         Padding="13"
                         BackgroundColor="Transparent"
                         StrokeThickness="0"
+                        helpers:InteractionAnimations.IsPressFeedbackEnabled="True"
                         SemanticProperties.Description="Previous month">
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnPreviousMonthTapped" />
@@ -133,6 +138,7 @@
                         Padding="13"
                         BackgroundColor="Transparent"
                         StrokeThickness="0"
+                        helpers:InteractionAnimations.IsPressFeedbackEnabled="True"
                         SemanticProperties.Description="Next month">
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnNextMonthTapped" />

@@ -5,8 +5,16 @@ public static class InteractionAnimations
     private const string PressDepthAnimationName = "InteractionPressDepth";
     private const uint PressDuration = 60;
     private const uint ReleaseDuration = 105;
-    private const double PressedScale = 0.95;
-    private const double PressedTranslationY = 2;
+    private const double PressedScale = 0.97;
+    private const double PressedTranslationY = 1;
+
+    public static readonly BindableProperty IsPressFeedbackEnabledProperty =
+        BindableProperty.CreateAttached(
+            "IsPressFeedbackEnabled",
+            typeof(bool),
+            typeof(InteractionAnimations),
+            false,
+            propertyChanged: OnIsPressFeedbackEnabledChanged);
 
     private static readonly BindableProperty IsFeedbackAttachedProperty =
         BindableProperty.CreateAttached(
@@ -52,7 +60,7 @@ public static class InteractionAnimations
 
     public static void AttachPressFeedback(View element)
     {
-        if (GetIsFeedbackAttached(element) || !IsInteractive(element))
+        if (GetIsFeedbackAttached(element) || !ShouldUsePressFeedback(element))
         {
             return;
         }
@@ -87,7 +95,9 @@ public static class InteractionAnimations
     public static Task PulseAsync(object? sender)
     {
         var element = ResolveVisualElement(sender);
-        if (element is null || !CanAnimate(element))
+        if (element is null ||
+            !ShouldUsePressFeedback(element) ||
+            !CanAnimate(element))
         {
             return Task.CompletedTask;
         }
@@ -112,10 +122,32 @@ public static class InteractionAnimations
             _ => null
         };
 
-    private static bool IsInteractive(View element) =>
-        element is not BoxView &&
-        (element is Button or ImageButton ||
-         element.GestureRecognizers.OfType<TapGestureRecognizer>().Any());
+    public static bool GetIsPressFeedbackEnabled(BindableObject element) =>
+        (bool)element.GetValue(IsPressFeedbackEnabledProperty);
+
+    public static void SetIsPressFeedbackEnabled(
+        BindableObject element,
+        bool value) =>
+        element.SetValue(IsPressFeedbackEnabledProperty, value);
+
+    private static void OnIsPressFeedbackEnabledChanged(
+        BindableObject bindable,
+        object oldValue,
+        object newValue)
+    {
+        if (bindable is View element && newValue is true)
+        {
+            AttachPressFeedback(element);
+        }
+    }
+
+    private static bool ShouldUsePressFeedback(VisualElement element) =>
+        element is View view &&
+        view is not BoxView &&
+        (view is Button or ImageButton ||
+         GetIsPressFeedbackEnabled(view)) &&
+        (view is Button or ImageButton ||
+         view.GestureRecognizers.OfType<TapGestureRecognizer>().Any());
 
     private static bool CanAnimate(VisualElement element) =>
         element is not BoxView && element.IsEnabled;

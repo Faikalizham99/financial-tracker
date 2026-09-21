@@ -2,7 +2,8 @@
 <ContentView
     x:Class="FinancialTracker.Views.MonthlySummaryCard"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:helpers="clr-namespace:FinancialTracker.Helpers">
 
     <Grid Margin="0,0,0,6">
         <Border Style="{StaticResource CardShadowLayer}" />
@@ -40,6 +41,7 @@
                         StrokeThickness="0"
                         StrokeShape="RoundRectangle 17"
                         VerticalOptions="Center"
+                        helpers:InteractionAnimations.IsPressFeedbackEnabled="True"
                         SemanticProperties.Description="Transactions locked. Tap to allow editing and deletion.">
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnTransactionLockTapped" />
@@ -107,7 +109,7 @@
                         Style="{StaticResource BodyMuted}"
                         FontSize="17"
                         VerticalTextAlignment="Center" />
-                    <Grid x:Name="AmountVisibilityButton" WidthRequest="28" HeightRequest="24" VerticalOptions="Center">
+                    <Grid x:Name="AmountVisibilityButton" WidthRequest="28" HeightRequest="24" VerticalOptions="Center" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                         <Grid.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnAmountVisibilityTapped" />
                         </Grid.GestureRecognizers>

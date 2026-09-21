@@ -19,7 +19,10 @@ public partial class SettingsView : ContentView
     private bool isDataDrawerOpen;
     private bool isDataDrawerAnimating;
     private bool isCategoryTypeAnimating;
+    private Task? dataDrawerScrollResetTask;
     private string selectedCategoryType = "Expense";
+
+    public event Action<bool>? DataDrawerVisibilityChanged;
 
     public SettingsView()
     {
@@ -286,11 +289,12 @@ public partial class SettingsView : ContentView
 
         isDataDrawerAnimating = true;
         isDataDrawerOpen = true;
-        ZIndex = 30;
+        DataDrawerVisibilityChanged?.Invoke(true);
         DataDrawerOverlay.IsVisible = true;
         DataDrawerOverlay.Opacity = 0;
         DataDrawerCard.Opacity = 0;
         DataDrawerCard.TranslationX = 44;
+        QueueDataDrawerScrollReset();
 
         try
         {
@@ -328,8 +332,32 @@ public partial class SettingsView : ContentView
             DataDrawerOverlay.Opacity = 0;
             DataDrawerCard.Opacity = 1;
             DataDrawerCard.TranslationX = 0;
-            ZIndex = 0;
+            DataDrawerVisibilityChanged?.Invoke(false);
             isDataDrawerAnimating = false;
+        }
+    }
+
+    private void QueueDataDrawerScrollReset()
+    {
+        if (dataDrawerScrollResetTask is { IsCompleted: false })
+        {
+            return;
+        }
+
+        dataDrawerScrollResetTask = ResetDataDrawerScrollPositionAsync();
+    }
+
+    private async Task ResetDataDrawerScrollPositionAsync()
+    {
+        try
+        {
+            // Do not await this from the drawer lifecycle. Some native MAUI
+            // handlers complete ScrollToAsync only after a later layout pass.
+            await DataDrawerScrollView.ScrollToAsync(0, 0, false);
+        }
+        catch (ObjectDisposedException)
+        {
+            // The view may be disposed while the non-blocking reset is pending.
         }
     }
 

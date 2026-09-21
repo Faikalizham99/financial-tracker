@@ -123,6 +123,7 @@ public partial class CalendarDatePickerSheet : ContentView
             var tap = new TapGestureRecognizer { CommandParameter = index };
             tap.Tapped += OnDayTapped;
             cell.GestureRecognizers.Add(tap);
+            InteractionAnimations.SetIsPressFeedbackEnabled(cell, true);
 
             Grid.SetColumn(cell, index % 7);
             Grid.SetRow(cell, index / 7);
@@ -228,6 +229,7 @@ public partial class CalendarDatePickerSheet : ContentView
         var gesture = new TapGestureRecognizer { CommandParameter = value };
         gesture.Tapped += tapped;
         border.GestureRecognizers.Add(gesture);
+        InteractionAnimations.SetIsPressFeedbackEnabled(border, true);
         return border;
     }
 

@@ -3,6 +3,7 @@
     x:Class="FinancialTracker.Views.TransactionSearchView"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:helpers="clr-namespace:FinancialTracker.Helpers"
     xmlns:models="clr-namespace:FinancialTracker.Models"
     IsVisible="False"
     Opacity="0"
@@ -31,7 +32,7 @@
                         FontSize="15"
                         TextColor="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}"
                         PlaceholderColor="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" />
-                    <Border x:Name="ClearButton" Grid.Column="2" WidthRequest="28" HeightRequest="28" IsVisible="False" BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}" StrokeThickness="0" StrokeShape="RoundRectangle 14" VerticalOptions="Center">
+                    <Border x:Name="ClearButton" Grid.Column="2" WidthRequest="28" HeightRequest="28" IsVisible="False" BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}" StrokeThickness="0" StrokeShape="RoundRectangle 14" VerticalOptions="Center" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnClearTapped" />
                         </Border.GestureRecognizers>
@@ -40,7 +41,7 @@
                 </Grid>
             </Border>
 
-            <Border Grid.Column="1" HeightRequest="52" Padding="16,0" Style="{StaticResource Pill}" StrokeShape="RoundRectangle 18">
+            <Border Grid.Column="1" HeightRequest="52" Padding="16,0" Style="{StaticResource Pill}" StrokeShape="RoundRectangle 18" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                 <Border.GestureRecognizers>
                     <TapGestureRecognizer Tapped="OnCancelTapped" />
                 </Border.GestureRecognizers>
@@ -55,7 +56,7 @@
                 <VerticalStackLayout x:Name="RecentSearchesPanel" Spacing="12">
                     <Grid ColumnDefinitions="*,Auto">
                         <Label Text="RECENT SEARCHES" Style="{StaticResource SectionLabel}" VerticalTextAlignment="Center" />
-                        <Label Grid.Column="1" Text="Clear" FontFamily="OpenSansSemibold" FontSize="12" TextColor="{DynamicResource Accent}" VerticalTextAlignment="Center">
+                        <Label Grid.Column="1" Text="Clear" FontFamily="OpenSansSemibold" FontSize="12" TextColor="{DynamicResource Accent}" VerticalTextAlignment="Center" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                             <Label.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="OnClearRecentSearchesTapped" />
                             </Label.GestureRecognizers>
