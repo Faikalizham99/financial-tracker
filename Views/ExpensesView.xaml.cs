@@ -14,6 +14,7 @@ public partial class ExpensesView : ContentView
     public event Action<int>? DeleteTransactionRequested;
     public event Action? SearchRequested;
     public event EventHandler? TransactionEditingLockToggleRequested;
+    public event EventHandler? InvestmentInclusionToggleRequested;
     public Func<DateTime, DateTime, DateTime, Task<DateTime?>>? DatePickerRequested { get; set; }
     public Func<Func<Task>, Task>? RunWithTransactionLoadingAsync { get; set; }
 
@@ -71,6 +72,8 @@ public partial class ExpensesView : ContentView
         InitializeComponent();
         TransactionsMonthlySummary.TransactionEditingLockToggleRequested +=
             OnTransactionEditingLockToggleRequested;
+        TransactionsMonthlySummary.InvestmentInclusionToggleRequested +=
+            OnInvestmentInclusionToggleRequested;
         UpdateMonthSwitcherLabel();
         UpdateFilterChips();
     }
@@ -102,6 +105,12 @@ public partial class ExpensesView : ContentView
 
     private void OnTransactionEditingLockToggleRequested(object? sender, EventArgs e) =>
         TransactionEditingLockToggleRequested?.Invoke(this, EventArgs.Empty);
+
+    private void OnInvestmentInclusionToggleRequested(object? sender, EventArgs e) =>
+        InvestmentInclusionToggleRequested?.Invoke(this, EventArgs.Empty);
+
+    public void SetIncludeInvestmentInTotals(bool includeInvestment) =>
+        TransactionsMonthlySummary.IncludeInvestmentInTotals = includeInvestment;
 
     public async Task FocusTransactionAsync(
         int transactionId,

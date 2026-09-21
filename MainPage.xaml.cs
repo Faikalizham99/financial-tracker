@@ -12,6 +12,8 @@ using FinancialTracker.Models;
 public partial class MainPage : ContentPage
 {
     private const string HomeSectionOrderPreferenceKey = "home_section_order";
+    private const string IncludeInvestmentInTotalsPreferenceKey =
+        "include_investment_in_summary_totals";
     private static readonly IReadOnlyList<string> DefaultHomeSectionOrder =
     [
         "glance",
@@ -61,6 +63,7 @@ public partial class MainPage : ContentPage
     private bool isInitialDataLoading;
     private bool isDataLoadingSkeletonShown = true;
     private bool isTransactionEditingLocked = true;
+    private bool includeInvestmentInTotals = true;
 
     public MainPage(
         SettingsViewModel settingsViewModel,
@@ -97,9 +100,17 @@ public partial class MainPage : ContentPage
             OnTransactionEditingLockToggleRequested;
         DashboardMonthlySummary.TransactionEditingLockToggleRequested +=
             OnTransactionEditingLockToggleRequested;
+        DashboardMonthlySummary.InvestmentInclusionToggleRequested +=
+            OnInvestmentInclusionToggleRequested;
+        ExpensesView.InvestmentInclusionToggleRequested +=
+            OnInvestmentInclusionToggleRequested;
         TransactionSearchView.TransactionSelected += OnTransactionSearchResultSelected;
         SettingsView.DataDrawerVisibilityChanged += OnSettingsDataDrawerVisibilityChanged;
         settingsViewModel.PropertyChanged += OnSettingsPropertyChanged;
+        includeInvestmentInTotals = Preferences.Default.Get(
+            IncludeInvestmentInTotalsPreferenceKey,
+            true);
+        UpdateInvestmentInclusionState();
         Loaded += OnLoaded;
     }
 
@@ -661,6 +672,21 @@ public partial class MainPage : ContentPage
 
     private void OnTransactionEditingLockToggleRequested(object? sender, EventArgs e) =>
         SetTransactionEditingLocked(!isTransactionEditingLocked);
+
+    private void OnInvestmentInclusionToggleRequested(object? sender, EventArgs e)
+    {
+        includeInvestmentInTotals = !includeInvestmentInTotals;
+        Preferences.Default.Set(
+            IncludeInvestmentInTotalsPreferenceKey,
+            includeInvestmentInTotals);
+        UpdateInvestmentInclusionState();
+    }
+
+    private void UpdateInvestmentInclusionState()
+    {
+        DashboardMonthlySummary.IncludeInvestmentInTotals = includeInvestmentInTotals;
+        ExpensesView.SetIncludeInvestmentInTotals(includeInvestmentInTotals);
+    }
 
     private void SetTransactionEditingLocked(bool isLocked)
     {

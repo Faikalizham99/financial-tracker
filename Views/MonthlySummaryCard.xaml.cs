@@ -1,6 +1,8 @@
 using System.Globalization;
 using FinancialTracker.Helpers;
 using FinancialTracker.Models;
+using FinancialTracker.Services;
+using Microsoft.Maui.Controls.Shapes;
 
 namespace FinancialTracker.Views;
 
@@ -24,18 +26,37 @@ public partial class MonthlySummaryCard : ContentView
             propertyChanged: static (bindable, _, _) =>
                 ((MonthlySummaryCard)bindable).UpdateTransactionLockVisuals());
 
+    public static readonly BindableProperty IncludeInvestmentInTotalsProperty =
+        BindableProperty.Create(
+            nameof(IncludeInvestmentInTotals),
+            typeof(bool),
+            typeof(MonthlySummaryCard),
+            true,
+            propertyChanged: static (bindable, _, _) =>
+            {
+                var card = (MonthlySummaryCard)bindable;
+                card.UpdateInvestmentToggleVisuals(card.IsLoaded);
+                card.RefreshCachedSummary();
+            });
+
     private string availableAmountText = "RM 0.00";
     private string incomeAmountText = "RM 0.00";
     private string expenseAmountText = "RM 0.00";
     private bool areAmountsVisible = true;
+    private IReadOnlyList<TransactionRecord>? cachedRecords;
+    private CurrencyOption? cachedCurrency;
+    private DateTime cachedStartDate;
+    private DateTime cachedEndDate;
 
     public MonthlySummaryCard()
     {
         InitializeComponent();
         UpdateTransactionLockVisuals();
+        UpdateInvestmentToggleVisuals(animate: false);
     }
 
     public event EventHandler? TransactionEditingLockToggleRequested;
+    public event EventHandler? InvestmentInclusionToggleRequested;
 
     public bool ShowTransactionCount
     {
@@ -47,6 +68,12 @@ public partial class MonthlySummaryCard : ContentView
     {
         get => (bool)GetValue(IsTransactionEditingLockedProperty);
         set => SetValue(IsTransactionEditingLockedProperty, value);
+    }
+
+    public bool IncludeInvestmentInTotals
+    {
+        get => (bool)GetValue(IncludeInvestmentInTotalsProperty);
+        set => SetValue(IncludeInvestmentInTotalsProperty, value);
     }
 
     public void Refresh(
@@ -94,19 +121,43 @@ public partial class MonthlySummaryCard : ContentView
         string title,
         string availableCaption)
     {
+        cachedRecords = records;
+        cachedCurrency = selectedCurrency;
+        cachedStartDate = startDate;
+        cachedEndDate = endDate;
+        SummaryMonthLabel.Text = title;
+        SummaryAvailableCaptionLabel.Text = availableCaption;
+        RefreshCachedSummary();
+    }
+
+    private void RefreshCachedSummary()
+    {
+        if (cachedRecords is null || cachedCurrency is null)
+        {
+            return;
+        }
+
         long incomeMinor = 0;
         long expenseMinor = 0;
         var transactionCount = 0;
 
-        foreach (var record in records)
+        foreach (var record in cachedRecords)
         {
-            if (record.TransactionDate.Date < startDate ||
-                record.TransactionDate.Date > endDate)
+            if (record.TransactionDate.Date < cachedStartDate ||
+                record.TransactionDate.Date > cachedEndDate)
             {
                 continue;
             }
 
             transactionCount++;
+            if (!IncludeInvestmentInTotals &&
+                record.Category.Equals(
+                    TransactionCatalog.InvestmentCategoryKey,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
             if (record.Type.Equals("Income", StringComparison.OrdinalIgnoreCase))
             {
                 incomeMinor += record.AmountMinor;
@@ -117,14 +168,12 @@ public partial class MonthlySummaryCard : ContentView
             }
         }
 
-        SummaryMonthLabel.Text = title;
-        SummaryAvailableCaptionLabel.Text = availableCaption;
         availableAmountText = MoneyFormatter.FormatMinor(
             incomeMinor - expenseMinor,
-            selectedCurrency.Symbol,
+            cachedCurrency.Symbol,
             separateSign: true);
-        incomeAmountText = MoneyFormatter.FormatMinor(incomeMinor, selectedCurrency.Symbol);
-        expenseAmountText = MoneyFormatter.FormatMinor(expenseMinor, selectedCurrency.Symbol);
+        incomeAmountText = MoneyFormatter.FormatMinor(incomeMinor, cachedCurrency.Symbol);
+        expenseAmountText = MoneyFormatter.FormatMinor(expenseMinor, cachedCurrency.Symbol);
         SummaryTransactionCountLabel.Text = transactionCount.ToString(
             CultureInfo.InvariantCulture);
         UpdateAmountVisibility();
@@ -155,6 +204,62 @@ public partial class MonthlySummaryCard : ContentView
         var feedback = InteractionAnimations.PulseAsync(TransactionLockButton);
         TransactionEditingLockToggleRequested?.Invoke(this, EventArgs.Empty);
         await feedback;
+    }
+
+    private async void OnInvestmentToggleTapped(object? sender, TappedEventArgs e)
+    {
+        var feedback = InteractionAnimations.PulseAsync(InvestmentToggleButton);
+        InvestmentInclusionToggleRequested?.Invoke(this, EventArgs.Empty);
+        await feedback;
+    }
+
+    private void UpdateInvestmentToggleVisuals(bool animate)
+    {
+        if (IncludeInvestmentInTotals)
+        {
+            ThemeResourceBindings.SetDynamic(
+                InvestmentToggleButton,
+                BackgroundColorProperty,
+                "Accent");
+            ThemeResourceBindings.SetDynamic(
+                InvestmentToggleIcon,
+                Shape.StrokeProperty,
+                "Accent");
+        }
+        else
+        {
+            ThemeResourceBindings.SetColor(
+                InvestmentToggleButton,
+                BackgroundColorProperty,
+                "SecondaryTextLight",
+                "ControlDividerDark");
+            ThemeResourceBindings.SetColor(
+                InvestmentToggleIcon,
+                Shape.StrokeProperty,
+                "SecondaryTextLight",
+                "SecondaryTextDark");
+        }
+
+        var targetTranslation = IncludeInvestmentInTotals ? 22d : 0d;
+        InvestmentToggleThumb.CancelAnimations();
+        if (animate)
+        {
+            _ = InvestmentToggleThumb.TranslateToAsync(
+                targetTranslation,
+                0,
+                150,
+                Easing.CubicOut);
+        }
+        else
+        {
+            InvestmentToggleThumb.TranslationX = targetTranslation;
+        }
+
+        SemanticProperties.SetDescription(
+            InvestmentToggleButton,
+            IncludeInvestmentInTotals
+                ? "Investment included in summary totals. Tap to exclude it."
+                : "Investment excluded from summary totals. Tap to include it.");
     }
 
     private void UpdateTransactionLockVisuals()

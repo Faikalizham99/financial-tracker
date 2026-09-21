@@ -4,6 +4,8 @@ namespace FinancialTracker.Services;
 
 public static class TransactionCatalog
 {
+    public const string InvestmentCategoryKey = "Investment";
+
     public static IReadOnlyList<TransactionOption> TransactionTypes { get; } =
     [
         new("Expense", "Expenses", "category_expense_others.png"),
@@ -19,7 +21,7 @@ public static class TransactionCatalog
         new("Gift", "Gift", "category_gift.png"),
         new("Groceries", "Groceries", "category_groceries.png"),
         new("Health", "Health", "category_health.png"),
-        new("Investment", "Investment", "category_investment.png"),
+        new(InvestmentCategoryKey, "Investment", "category_investment.png"),
         new("Shopping", "Shopping", "category_shopping.png"),
         new("Subscription", "Subscription", "category_subscription.png"),
         new("Transportation", "Transportation", "category_transportation.png"),

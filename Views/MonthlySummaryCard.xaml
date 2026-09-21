@@ -9,7 +9,7 @@
         <Border Style="{StaticResource CardShadowLayer}" />
         <Border Style="{StaticResource CardSurface}" Padding="20,18">
             <VerticalStackLayout Spacing="17">
-                <Grid ColumnDefinitions="23,*,34" ColumnSpacing="10">
+                <Grid ColumnDefinitions="23,*,50,34" ColumnSpacing="8">
                     <Path
                         WidthRequest="23"
                         HeightRequest="23"
@@ -32,8 +32,49 @@
                         MaxLines="1"
                         VerticalTextAlignment="Center" />
                     <Border
-                        x:Name="TransactionLockButton"
+                        x:Name="InvestmentToggleButton"
                         Grid.Column="2"
+                        WidthRequest="50"
+                        HeightRequest="28"
+                        Padding="2"
+                        BackgroundColor="{DynamicResource Accent}"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 14"
+                        VerticalOptions="Center"
+                        helpers:InteractionAnimations.IsPressFeedbackEnabled="True"
+                        SemanticProperties.Description="Investment included in summary totals. Tap to exclude it.">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnInvestmentToggleTapped" />
+                        </Border.GestureRecognizers>
+                        <Grid>
+                            <Border
+                                x:Name="InvestmentToggleThumb"
+                                WidthRequest="24"
+                                HeightRequest="24"
+                                Padding="2"
+                                TranslationX="22"
+                                HorizontalOptions="Start"
+                                VerticalOptions="Center"
+                                BackgroundColor="White"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 12">
+                                <Path
+                                    x:Name="InvestmentToggleIcon"
+                                    WidthRequest="20"
+                                    HeightRequest="20"
+                                    Data="M 4,4 L 4,18 L 20,18 M 7,14 L 11,10 L 14,13 L 20,6 M 15,6 L 20,6 L 20,11"
+                                    Stroke="{DynamicResource Accent}"
+                                    StrokeThickness="2"
+                                    StrokeLineCap="Round"
+                                    StrokeLineJoin="Round"
+                                    Fill="Transparent"
+                                    Aspect="Uniform" />
+                            </Border>
+                        </Grid>
+                    </Border>
+                    <Border
+                        x:Name="TransactionLockButton"
+                        Grid.Column="3"
                         WidthRequest="34"
                         HeightRequest="34"
                         Padding="7"
