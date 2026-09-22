@@ -6,7 +6,7 @@ namespace FinancialTracker.Data;
 public sealed class LocalDatabase
 {
     private const int CurrentSchemaVersion = 4;
-    private readonly SemaphoreSlim initializationLock = new(1, 1);
+    private readonly SemaphoreSlim databaseLock = new(1, 1);
     private SQLiteAsyncConnection? connection;
     private bool isInitialized;
 
@@ -22,113 +22,326 @@ public sealed class LocalDatabase
 
     public async Task InitializeAsync()
     {
+        await databaseLock.WaitAsync();
+        try
+        {
+            await EnsureInitializedCoreAsync();
+        }
+        finally
+        {
+            databaseLock.Release();
+        }
+    }
+
+    public Task<AppSettingsRecord> GetSettingsAsync() =>
+        ExecuteWithConnectionAsync(async activeConnection =>
+        {
+            var settings = await activeConnection
+                .Table<AppSettingsRecord>()
+                .Where(item => item.Id == 1)
+                .FirstOrDefaultAsync();
+
+            if (settings is not null)
+            {
+                return settings;
+            }
+
+            settings = new AppSettingsRecord();
+            await activeConnection.InsertAsync(settings);
+            return settings;
+        });
+
+    public Task SaveSettingsAsync(AppSettingsRecord settings)
+    {
+        settings.Id = 1;
+        settings.UpdatedAtUtc = DateTime.UtcNow;
+        return ExecuteWithConnectionAsync(
+            activeConnection => activeConnection.InsertOrReplaceAsync(settings));
+    }
+
+    public Task<int> SaveTransactionAsync(TransactionRecord transaction) =>
+        ExecuteWithConnectionAsync(
+            activeConnection => activeConnection.InsertAsync(transaction));
+
+    public Task<int> UpdateTransactionAsync(TransactionRecord transaction) =>
+        ExecuteWithConnectionAsync(
+            activeConnection => activeConnection.UpdateAsync(transaction));
+
+    public Task<int> DeleteTransactionAsync(int transactionId) =>
+        ExecuteWithConnectionAsync(activeConnection => activeConnection.ExecuteAsync(
+            "DELETE FROM Transactions WHERE Id = ?",
+            transactionId));
+
+    public Task<TransactionRecord?> GetTransactionAsync(int transactionId) =>
+        ExecuteWithConnectionAsync(async activeConnection =>
+            (TransactionRecord?)await activeConnection.FindAsync<TransactionRecord>(transactionId));
+
+    public async Task<IReadOnlyList<TransactionRecord>> GetTransactionsAsync() =>
+        await ExecuteWithConnectionAsync(activeConnection =>
+            activeConnection.QueryAsync<TransactionRecord>(
+                "SELECT * FROM Transactions " +
+                "ORDER BY TransactionDate DESC, CreatedAtUtc DESC, Id DESC"));
+
+    public Task CreateBackupAsync(string destinationPath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(destinationPath);
+
+        return ExecuteWithConnectionAsync(async activeConnection =>
+        {
+            if (File.Exists(destinationPath))
+            {
+                File.Delete(destinationPath);
+            }
+
+            await activeConnection.BackupAsync(destinationPath, "main");
+            ValidateDatabaseFile(destinationPath);
+        });
+    }
+
+    public async Task RestoreFromBackupAsync(
+        Stream backupStream,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(backupStream);
+
+        var databaseDirectory = Path.GetDirectoryName(DatabasePath)
+            ?? throw new InvalidOperationException("The database directory is unavailable.");
+        Directory.CreateDirectory(databaseDirectory);
+
+        var operationId = Guid.NewGuid().ToString("N");
+        var stagingPath = Path.Combine(
+            databaseDirectory,
+            $".financial-tracker-restore-{operationId}.db3");
+        var rollbackPath = Path.Combine(
+            databaseDirectory,
+            $".financial-tracker-rollback-{operationId}.db3");
+
+        try
+        {
+            await using (var stagingStream = new FileStream(
+                stagingPath,
+                FileMode.CreateNew,
+                FileAccess.Write,
+                FileShare.None,
+                bufferSize: 81920,
+                useAsync: true))
+            {
+                await backupStream.CopyToAsync(stagingStream, cancellationToken);
+                await stagingStream.FlushAsync(cancellationToken);
+            }
+
+            ValidateDatabaseFile(stagingPath);
+
+            await databaseLock.WaitAsync(cancellationToken);
+            try
+            {
+                await ReplaceDatabaseCoreAsync(stagingPath, rollbackPath);
+            }
+            finally
+            {
+                databaseLock.Release();
+            }
+        }
+        finally
+        {
+            TryDeleteFile(stagingPath);
+            TryDeleteFile(rollbackPath);
+        }
+    }
+
+    private async Task EnsureInitializedCoreAsync()
+    {
         if (isInitialized)
         {
             return;
         }
 
-        await initializationLock.WaitAsync();
+        var version = await Connection.ExecuteScalarAsync<int>("PRAGMA user_version");
+        if (version > CurrentSchemaVersion)
+        {
+            throw new InvalidDataException(
+                $"This database was created by a newer Financial Tracker version (schema {version}).");
+        }
+
+        if (version < 1)
+        {
+            await Connection.CreateTableAsync<AppSettingsRecord>();
+        }
+        else if (version < 2)
+        {
+            await Connection.ExecuteAsync(
+                "ALTER TABLE AppSettings ADD COLUMN AccentColorHex TEXT NOT NULL DEFAULT '#5044E4'");
+        }
+
+        if (version < 3)
+        {
+            await Connection.CreateTableAsync<TransactionRecord>();
+        }
+
+        if (version < 4)
+        {
+            await Connection.ExecuteAsync(
+                "CREATE INDEX IF NOT EXISTS IX_Transactions_Date_Created_Id " +
+                "ON Transactions (TransactionDate DESC, CreatedAtUtc DESC, Id DESC)");
+        }
+
+        if (version < CurrentSchemaVersion)
+        {
+            await Connection.ExecuteAsync($"PRAGMA user_version = {CurrentSchemaVersion}");
+        }
+
+        isInitialized = true;
+    }
+
+    private async Task ReplaceDatabaseCoreAsync(string stagingPath, string rollbackPath)
+    {
+        await EnsureInitializedCoreAsync();
+        await Connection.BackupAsync(rollbackPath, "main");
+        await CloseConnectionCoreAsync();
+
         try
         {
-            if (isInitialized)
+            DeleteCompanionFiles(DatabasePath);
+            File.Move(stagingPath, DatabasePath, overwrite: true);
+            ValidateDatabaseFile(DatabasePath);
+            await EnsureInitializedCoreAsync();
+        }
+        catch
+        {
+            await CloseConnectionCoreAsync();
+            DeleteCompanionFiles(DatabasePath);
+
+            if (File.Exists(rollbackPath))
             {
-                return;
+                File.Move(rollbackPath, DatabasePath, overwrite: true);
             }
 
-            var version = await Connection.ExecuteScalarAsync<int>("PRAGMA user_version");
+            await EnsureInitializedCoreAsync();
+            throw;
+        }
+    }
 
-            if (version < 1)
-            {
-                await Connection.CreateTableAsync<AppSettingsRecord>();
-            }
-            else if (version < 2)
-            {
-                await Connection.ExecuteAsync(
-                    "ALTER TABLE AppSettings ADD COLUMN AccentColorHex TEXT NOT NULL DEFAULT '#5044E4'");
-            }
+    private async Task CloseConnectionCoreAsync()
+    {
+        var activeConnection = connection;
+        connection = null;
+        isInitialized = false;
 
-            if (version < 3)
-            {
-                await Connection.CreateTableAsync<TransactionRecord>();
-            }
+        if (activeConnection is not null)
+        {
+            await activeConnection.CloseAsync();
+        }
+    }
 
-            if (version < 4)
-            {
-                await Connection.ExecuteAsync(
-                    "CREATE INDEX IF NOT EXISTS IX_Transactions_Date_Created_Id " +
-                    "ON Transactions (TransactionDate DESC, CreatedAtUtc DESC, Id DESC)");
-            }
-
-            if (version < CurrentSchemaVersion)
-            {
-                await Connection.ExecuteAsync($"PRAGMA user_version = {CurrentSchemaVersion}");
-            }
-
-            isInitialized = true;
+    private async Task<T> ExecuteWithConnectionAsync<T>(
+        Func<SQLiteAsyncConnection, Task<T>> operation)
+    {
+        await databaseLock.WaitAsync();
+        try
+        {
+            await EnsureInitializedCoreAsync();
+            return await operation(Connection);
         }
         finally
         {
-            initializationLock.Release();
+            databaseLock.Release();
         }
     }
 
-    public async Task<AppSettingsRecord> GetSettingsAsync()
+    private async Task ExecuteWithConnectionAsync(
+        Func<SQLiteAsyncConnection, Task> operation)
     {
-        await InitializeAsync();
-
-        var settings = await Connection
-            .Table<AppSettingsRecord>()
-            .Where(item => item.Id == 1)
-            .FirstOrDefaultAsync();
-
-        if (settings is not null)
+        await databaseLock.WaitAsync();
+        try
         {
-            return settings;
+            await EnsureInitializedCoreAsync();
+            await operation(Connection);
+        }
+        finally
+        {
+            databaseLock.Release();
+        }
+    }
+
+    private static void ValidateDatabaseFile(string databasePath)
+    {
+        if (!File.Exists(databasePath) || new FileInfo(databasePath).Length == 0)
+        {
+            throw new InvalidDataException("The selected backup is empty.");
         }
 
-        settings = new AppSettingsRecord();
-        await Connection.InsertAsync(settings);
-        return settings;
+        try
+        {
+            using var candidate = new SQLiteConnection(
+                databasePath,
+                SQLiteOpenFlags.ReadOnly);
+            var integrityResult = candidate.ExecuteScalar<string>("PRAGMA integrity_check");
+            if (!string.Equals(integrityResult, "ok", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidDataException("The selected backup failed SQLite integrity validation.");
+            }
+
+            var version = candidate.ExecuteScalar<int>("PRAGMA user_version");
+            if (version > CurrentSchemaVersion)
+            {
+                throw new InvalidDataException(
+                    $"The selected backup uses newer schema version {version}.");
+            }
+
+            var hasSettingsTable = TableExists(candidate, "AppSettings");
+            var hasTransactionsTable = TableExists(candidate, "Transactions");
+            if (!hasSettingsTable && !hasTransactionsTable)
+            {
+                throw new InvalidDataException(
+                    "The selected file is not a Financial Tracker database.");
+            }
+
+            if ((version >= 1 && !hasSettingsTable) ||
+                (version >= 3 && !hasTransactionsTable))
+            {
+                throw new InvalidDataException(
+                    "The selected backup is missing required Financial Tracker tables.");
+            }
+        }
+        catch (SQLiteException exception)
+        {
+            throw new InvalidDataException(
+                "The selected file is not a readable SQLite backup.",
+                exception);
+        }
     }
 
-    public async Task SaveSettingsAsync(AppSettingsRecord settings)
+    private static bool TableExists(SQLiteConnection candidate, string tableName) =>
+        candidate.ExecuteScalar<int>(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?",
+            tableName) > 0;
+
+    private static void DeleteCompanionFiles(string databasePath)
     {
-        await InitializeAsync();
-        settings.Id = 1;
-        settings.UpdatedAtUtc = DateTime.UtcNow;
-        await Connection.InsertOrReplaceAsync(settings);
+        DeleteFileIfExists($"{databasePath}-wal");
+        DeleteFileIfExists($"{databasePath}-shm");
+        DeleteFileIfExists($"{databasePath}-journal");
     }
 
-    public async Task<int> SaveTransactionAsync(TransactionRecord transaction)
+    private static void TryDeleteFile(string path)
     {
-        await InitializeAsync();
-        return await Connection.InsertAsync(transaction);
+        try
+        {
+            DeleteFileIfExists(path);
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
     }
 
-    public async Task<int> UpdateTransactionAsync(TransactionRecord transaction)
+    private static void DeleteFileIfExists(string path)
     {
-        await InitializeAsync();
-        return await Connection.UpdateAsync(transaction);
-    }
-
-    public async Task<int> DeleteTransactionAsync(int transactionId)
-    {
-        await InitializeAsync();
-        return await Connection.ExecuteAsync(
-            "DELETE FROM Transactions WHERE Id = ?",
-            transactionId);
-    }
-
-    public async Task<TransactionRecord?> GetTransactionAsync(int transactionId)
-    {
-        await InitializeAsync();
-        return await Connection.FindAsync<TransactionRecord>(transactionId);
-    }
-
-    public async Task<IReadOnlyList<TransactionRecord>> GetTransactionsAsync()
-    {
-        await InitializeAsync();
-        return await Connection.QueryAsync<TransactionRecord>(
-            "SELECT * FROM Transactions ORDER BY TransactionDate DESC, CreatedAtUtc DESC, Id DESC");
+        if (File.Exists(path))
+        {
+            File.Delete(path);
+        }
     }
 }

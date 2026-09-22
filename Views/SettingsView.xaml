@@ -252,6 +252,59 @@
             </VerticalStackLayout>
 
             <VerticalStackLayout Spacing="13">
+                <Label Text="BACKUP &amp; RESTORE" Style="{StaticResource SectionLabel}" />
+                <Label
+                    Text="Keep a portable copy of your settings and transactions."
+                    Style="{StaticResource BodyMuted}"
+                    FontSize="12" />
+                <Border Style="{StaticResource Card}">
+                    <VerticalStackLayout Spacing="14">
+                        <VerticalStackLayout Spacing="3">
+                            <Label Text="Database backup" Style="{StaticResource CardTitle}" FontSize="16" />
+                            <Label
+                                Text="Backups are validated SQLite files that can be restored after reinstalling the app."
+                                Style="{StaticResource BodyMuted}"
+                                FontSize="12" />
+                        </VerticalStackLayout>
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <Button
+                                x:Name="CreateBackupButton"
+                                Text="Create backup"
+                                Clicked="OnCreateBackupClicked"
+                                HeightRequest="48"
+                                BackgroundColor="{DynamicResource Accent}"
+                                TextColor="{DynamicResource AccentForeground}"
+                                FontFamily="OpenSansSemibold"
+                                FontSize="14"
+                                BorderWidth="0"
+                                CornerRadius="16"
+                                SemanticProperties.Description="Create and share a Financial Tracker database backup" />
+                            <Button
+                                x:Name="RestoreBackupButton"
+                                Grid.Column="1"
+                                Text="Restore backup"
+                                Clicked="OnRestoreBackupClicked"
+                                HeightRequest="48"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}"
+                                TextColor="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}"
+                                FontFamily="OpenSansSemibold"
+                                FontSize="14"
+                                BorderColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}"
+                                BorderWidth="1"
+                                CornerRadius="16"
+                                SemanticProperties.Description="Restore a Financial Tracker database backup" />
+                        </Grid>
+
+                        <Label
+                            Text="Restoring replaces the current on-device database only after the selected backup passes validation."
+                            Style="{StaticResource BodyMuted}"
+                            FontSize="11" />
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="13">
                 <Label Text="APPEARANCE" Style="{StaticResource SectionLabel}" />
                 <Border Style="{StaticResource Card}">
                     <VerticalStackLayout Spacing="14">

@@ -8,6 +8,7 @@ using FinancialTracker.Data;
 using FinancialTracker.Services;
 using FinancialTracker.Helpers;
 using FinancialTracker.Models;
+using Microsoft.Maui.Storage;
 
 public partial class MainPage : ContentPage
 {
@@ -34,6 +35,7 @@ public partial class MainPage : ContentPage
 
     private readonly SettingsViewModel settingsViewModel;
     private readonly LocalDatabase localDatabase;
+    private readonly IBackupFileSaver backupFileSaver;
     private readonly SemaphoreSlim transactionRefreshLock = new(1, 1);
     private readonly SemaphoreSlim dataLoadingOperationLock = new(1, 1);
     private readonly List<string> homeSectionOrder = [];
@@ -67,7 +69,8 @@ public partial class MainPage : ContentPage
 
     public MainPage(
         SettingsViewModel settingsViewModel,
-        LocalDatabase localDatabase)
+        LocalDatabase localDatabase,
+        IBackupFileSaver backupFileSaver)
     {
         InitializeComponent();
         navigationPages = [DashboardView, ExpensesView, SettingsView];
@@ -85,6 +88,7 @@ public partial class MainPage : ContentPage
         UpdateDashboardGreeting();
         this.settingsViewModel = settingsViewModel;
         this.localDatabase = localDatabase;
+        this.backupFileSaver = backupFileSaver;
         LoadHomeSectionOrder();
         ApplyHomeSectionOrder();
         BindingContext = settingsViewModel;
@@ -106,6 +110,8 @@ public partial class MainPage : ContentPage
             OnInvestmentInclusionToggleRequested;
         TransactionSearchView.TransactionSelected += OnTransactionSearchResultSelected;
         SettingsView.DataDrawerVisibilityChanged += OnSettingsDataDrawerVisibilityChanged;
+        SettingsView.DatabaseBackupRequested += OnDatabaseBackupRequested;
+        SettingsView.DatabaseRestoreRequested += OnDatabaseRestoreRequested;
         settingsViewModel.PropertyChanged += OnSettingsPropertyChanged;
         includeInvestmentInTotals = Preferences.Default.Get(
             IncludeInvestmentInTotalsPreferenceKey,
@@ -653,6 +659,120 @@ public partial class MainPage : ContentPage
         // then cover the same space without the dock drawing or handling input.
         BottomNavigationDock.Opacity = isVisible ? 0 : 1;
         BottomNavigationDock.InputTransparent = isVisible;
+    }
+
+    private async Task OnDatabaseBackupRequested()
+    {
+        var backupPath = Path.Combine(
+            FileSystem.CacheDirectory,
+            $"financial-tracker-backup-{DateTime.Now:yyyyMMdd-HHmmss}.db3");
+
+        try
+        {
+            await RunWithDataLoadingSkeletonAsync(
+                () => localDatabase.CreateBackupAsync(backupPath));
+
+            await backupFileSaver.SaveAsync(
+                backupPath,
+                Path.GetFileName(backupPath));
+        }
+        catch
+        {
+            await DisplayAlertAsync(
+                "Backup failed",
+                "Financial Tracker could not create the backup. Your data was not changed.",
+                "OK");
+        }
+        finally
+        {
+            TryDeleteTemporaryFile(backupPath);
+        }
+    }
+
+    private async Task OnDatabaseRestoreRequested()
+    {
+        FileResult? selectedBackup;
+        try
+        {
+            selectedBackup = await FilePicker.Default.PickAsync(new PickOptions
+            {
+                PickerTitle = "Choose a Financial Tracker backup"
+            });
+        }
+        catch
+        {
+            await DisplayAlertAsync(
+                "Cannot open files",
+                "Financial Tracker could not open the system file picker.",
+                "OK");
+            return;
+        }
+
+        if (selectedBackup is null)
+        {
+            return;
+        }
+
+        var shouldRestore = await DisplayAlertAsync(
+            "Restore this backup?",
+            $"{selectedBackup.FileName} will replace the current on-device transactions and settings. The file will be validated first.",
+            "Restore",
+            "Cancel");
+        if (!shouldRestore)
+        {
+            return;
+        }
+
+        var databaseRestored = false;
+        try
+        {
+            await using var backupStream = await selectedBackup.OpenReadAsync();
+            await RunWithDataLoadingSkeletonAsync(async () =>
+            {
+                await localDatabase.RestoreFromBackupAsync(backupStream);
+                databaseRestored = true;
+                await settingsViewModel.ReloadAsync();
+                await RefreshTransactionViewsAsync();
+            });
+
+            await DisplayAlertAsync(
+                "Restore complete",
+                "Your settings and transactions have been restored successfully.",
+                "OK");
+        }
+        catch (InvalidDataException exception)
+        {
+            await DisplayAlertAsync(
+                "Invalid backup",
+                $"{exception.Message} Your existing data was not changed.",
+                "OK");
+        }
+        catch
+        {
+            await DisplayAlertAsync(
+                databaseRestored ? "Refresh required" : "Restore failed",
+                databaseRestored
+                    ? "The backup was restored, but the screen could not refresh. Close and reopen Financial Tracker to load the restored data."
+                    : "Financial Tracker could not restore this backup. Your previous database has been recovered.",
+                "OK");
+        }
+    }
+
+    private static void TryDeleteTemporaryFile(string path)
+    {
+        try
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch (IOException)
+        {
+        }
+        catch (UnauthorizedAccessException)
+        {
+        }
     }
 
     private async void OnTransactionEditRequested(int transactionId)

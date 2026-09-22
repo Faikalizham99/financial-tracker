@@ -187,21 +187,20 @@ public sealed class SettingsViewModel(SettingsService settingsService) : INotify
                 return;
             }
 
-            settings = await settingsService.GetAsync();
-            name = settings.Name;
-            savedName = settings.Name.Trim();
-            selectedCurrency = SupportedCurrencies.FirstOrDefault(
-                option => option.Code.Equals(settings.CurrencyCode, StringComparison.OrdinalIgnoreCase))
-                ?? SupportedCurrencies[0];
-            selectedTheme = AppearanceValueNormalizer.NormalizeTheme(settings.Theme);
-            selectedAccentColorHex = AppearanceValueNormalizer.NormalizeAccentColor(
-                settings.AccentColorHex);
-            customAccentColorHex = selectedAccentColorHex;
-            AppearanceService.ApplyAndCache(
-                selectedTheme,
-                selectedAccentColorHex);
-            isInitialized = true;
-            OnPropertyChanged(string.Empty);
+            await LoadSettingsCoreAsync();
+        }
+        finally
+        {
+            initializationLock.Release();
+        }
+    }
+
+    public async Task ReloadAsync()
+    {
+        await initializationLock.WaitAsync();
+        try
+        {
+            await LoadSettingsCoreAsync();
         }
         finally
         {
@@ -296,6 +295,25 @@ public sealed class SettingsViewModel(SettingsService settingsService) : INotify
         {
             saveLock.Release();
         }
+    }
+
+    private async Task LoadSettingsCoreAsync()
+    {
+        settings = await settingsService.GetAsync();
+        name = settings.Name;
+        savedName = settings.Name.Trim();
+        selectedCurrency = SupportedCurrencies.FirstOrDefault(
+            option => option.Code.Equals(
+                settings.CurrencyCode,
+                StringComparison.OrdinalIgnoreCase))
+            ?? SupportedCurrencies[0];
+        selectedTheme = AppearanceValueNormalizer.NormalizeTheme(settings.Theme);
+        selectedAccentColorHex = AppearanceValueNormalizer.NormalizeAccentColor(
+            settings.AccentColorHex);
+        customAccentColorHex = selectedAccentColorHex;
+        AppearanceService.ApplyAndCache(selectedTheme, selectedAccentColorHex);
+        isInitialized = true;
+        OnPropertyChanged(string.Empty);
     }
 
     private void NotifyCurrencyFormattingChanged()

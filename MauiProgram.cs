@@ -5,6 +5,9 @@ using FinancialTracker.Helpers;
 using FinancialTracker.Services;
 using FinancialTracker.ViewModels;
 using Microsoft.Maui.Handlers;
+#if WINDOWS
+using FinancialTracker.Platforms.Windows;
+#endif
 
 namespace FinancialTracker;
 
@@ -39,6 +42,11 @@ public static class MauiProgram
         builder.Services.AddSingleton<LocalDatabase>();
         builder.Services.AddSingleton<SettingsService>();
         builder.Services.AddSingleton<SettingsViewModel>();
+#if WINDOWS
+        builder.Services.AddSingleton<IBackupFileSaver, WindowsBackupFileSaver>();
+#else
+        builder.Services.AddSingleton<IBackupFileSaver, ShareBackupFileSaver>();
+#endif
         builder.Services.AddSingleton<MainPage>();
 
 #if DEBUG

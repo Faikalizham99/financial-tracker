@@ -22,11 +22,14 @@ public partial class SettingsView : ContentView
     private Task? dataDrawerScrollResetTask;
     private bool isPreservingSettingsScrollPosition;
     private bool isSettingsScrollCorrectionQueued;
+    private bool isDatabaseTransferInProgress;
     private double preservedSettingsScrollY;
     private int settingsScrollPreservationVersion;
     private string selectedCategoryType = "Expense";
 
     public event Action<bool>? DataDrawerVisibilityChanged;
+    public event Func<Task>? DatabaseBackupRequested;
+    public event Func<Task>? DatabaseRestoreRequested;
 
     public SettingsView()
     {
@@ -210,6 +213,63 @@ public partial class SettingsView : ContentView
         ConfigureDataDrawer(showCategories: false);
         await OpenDataDrawerAsync();
         await feedback;
+    }
+
+    private async void OnCreateBackupClicked(object? sender, EventArgs e)
+    {
+        if (isDatabaseTransferInProgress)
+        {
+            return;
+        }
+
+        await RunDatabaseTransferAsync(
+            CreateBackupButton,
+            "Creating…",
+            DatabaseBackupRequested);
+    }
+
+    private async void OnRestoreBackupClicked(object? sender, EventArgs e)
+    {
+        if (isDatabaseTransferInProgress)
+        {
+            return;
+        }
+
+        await RunDatabaseTransferAsync(
+            RestoreBackupButton,
+            "Restoring…",
+            DatabaseRestoreRequested);
+    }
+
+    private async Task RunDatabaseTransferAsync(
+        Button activeButton,
+        string activeButtonText,
+        Func<Task>? operation)
+    {
+        if (operation is null)
+        {
+            return;
+        }
+
+        isDatabaseTransferInProgress = true;
+        CreateBackupButton.IsEnabled = false;
+        RestoreBackupButton.IsEnabled = false;
+
+        var originalText = activeButton.Text;
+        activeButton.Text = activeButtonText;
+
+        try
+        {
+            UnfocusEditableFields();
+            await operation();
+        }
+        finally
+        {
+            activeButton.Text = originalText;
+            CreateBackupButton.IsEnabled = true;
+            RestoreBackupButton.IsEnabled = true;
+            isDatabaseTransferInProgress = false;
+        }
     }
 
     private async void OnDataDrawerCloseTapped(object? sender, TappedEventArgs e)
