@@ -12,6 +12,20 @@ using Microsoft.Maui.Storage;
 
 public partial class MainPage : ContentPage
 {
+    private const string BackupDocumentType =
+        "com.faikalizham.financial-tracker.backup";
+    private static readonly FilePickerFileType BackupFileTypes = new(
+        new Dictionary<DevicePlatform, IEnumerable<string>>
+        {
+            [DevicePlatform.iOS] =
+                [BackupDocumentType, "public.database", "public.data"],
+            [DevicePlatform.MacCatalyst] =
+                [BackupDocumentType, "public.database", "public.data"],
+            [DevicePlatform.Android] =
+                ["application/vnd.sqlite3", "application/x-sqlite3", "application/octet-stream"],
+            [DevicePlatform.WinUI] = [".db3"]
+        });
+
     private const string HomeSectionOrderPreferenceKey = "home_section_order";
     private const string IncludeInvestmentInTotalsPreferenceKey =
         "include_investment_in_summary_totals";
@@ -696,7 +710,8 @@ public partial class MainPage : ContentPage
         {
             selectedBackup = await FilePicker.Default.PickAsync(new PickOptions
             {
-                PickerTitle = "Choose a Financial Tracker backup"
+                PickerTitle = "Choose a Financial Tracker backup",
+                FileTypes = BackupFileTypes
             });
         }
         catch
