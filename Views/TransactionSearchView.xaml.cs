@@ -93,6 +93,16 @@ public partial class TransactionSearchView : ContentView
         }
     }
 
+    public void CloseImmediately()
+    {
+        CancelPendingSearch();
+        SearchEntry.Unfocus();
+        this.CancelAnimations();
+        IsVisible = false;
+        Opacity = 0;
+        isAnimating = false;
+    }
+
     private async void OnCancelTapped(object? sender, TappedEventArgs e)
     {
         if (isSelectingResult)

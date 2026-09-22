@@ -619,14 +619,15 @@ public partial class MainPage : ContentPage
 
     private async Task OnTransactionSearchResultSelected(int transactionId)
     {
+        // Replace the search surface and the transaction skeleton in one UI
+        // frame. Fading the search view over the skeleton causes both layouts
+        // to be composited together, which is especially visible on iOS.
+        TransactionSearchView.CloseImmediately();
         ShowTransactionLoadingSkeleton();
+        await Task.Yield();
 
         try
         {
-            // Fade the search surface onto an already-visible skeleton so the
-            // search and transaction layouts are never shown together.
-            await TransactionSearchView.CloseAsync();
-
             if (selectedSectionIndex != 1)
             {
                 await NavigateToSectionAsync(1);
