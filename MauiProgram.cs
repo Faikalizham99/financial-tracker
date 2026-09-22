@@ -8,6 +8,9 @@ using Microsoft.Maui.Handlers;
 #if WINDOWS
 using FinancialTracker.Platforms.Windows;
 #endif
+#if IOS
+using FinancialTracker.Platforms.iOS;
+#endif
 
 namespace FinancialTracker;
 
@@ -46,6 +49,11 @@ public static class MauiProgram
         builder.Services.AddSingleton<IBackupFileSaver, WindowsBackupFileSaver>();
 #else
         builder.Services.AddSingleton<IBackupFileSaver, ShareBackupFileSaver>();
+#endif
+#if IOS
+        builder.Services.AddSingleton<IBackupFilePicker, IosBackupFilePicker>();
+#else
+        builder.Services.AddSingleton<IBackupFilePicker, MauiBackupFilePicker>();
 #endif
         builder.Services.AddSingleton<MainPage>();
 

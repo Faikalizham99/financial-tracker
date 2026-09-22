@@ -12,20 +12,6 @@ using Microsoft.Maui.Storage;
 
 public partial class MainPage : ContentPage
 {
-    private const string BackupDocumentType =
-        "com.faikalizham.financial-tracker.backup";
-    private static readonly FilePickerFileType BackupFileTypes = new(
-        new Dictionary<DevicePlatform, IEnumerable<string>>
-        {
-            [DevicePlatform.iOS] =
-                [BackupDocumentType, "public.database", "public.data"],
-            [DevicePlatform.MacCatalyst] =
-                [BackupDocumentType, "public.database", "public.data"],
-            [DevicePlatform.Android] =
-                ["application/vnd.sqlite3", "application/x-sqlite3", "application/octet-stream"],
-            [DevicePlatform.WinUI] = [".db3"]
-        });
-
     private const string HomeSectionOrderPreferenceKey = "home_section_order";
     private const string IncludeInvestmentInTotalsPreferenceKey =
         "include_investment_in_summary_totals";
@@ -50,6 +36,7 @@ public partial class MainPage : ContentPage
     private readonly SettingsViewModel settingsViewModel;
     private readonly LocalDatabase localDatabase;
     private readonly IBackupFileSaver backupFileSaver;
+    private readonly IBackupFilePicker backupFilePicker;
     private readonly SemaphoreSlim transactionRefreshLock = new(1, 1);
     private readonly SemaphoreSlim dataLoadingOperationLock = new(1, 1);
     private readonly List<string> homeSectionOrder = [];
@@ -84,7 +71,8 @@ public partial class MainPage : ContentPage
     public MainPage(
         SettingsViewModel settingsViewModel,
         LocalDatabase localDatabase,
-        IBackupFileSaver backupFileSaver)
+        IBackupFileSaver backupFileSaver,
+        IBackupFilePicker backupFilePicker)
     {
         InitializeComponent();
         navigationPages = [DashboardView, ExpensesView, SettingsView];
@@ -103,6 +91,7 @@ public partial class MainPage : ContentPage
         this.settingsViewModel = settingsViewModel;
         this.localDatabase = localDatabase;
         this.backupFileSaver = backupFileSaver;
+        this.backupFilePicker = backupFilePicker;
         LoadHomeSectionOrder();
         ApplyHomeSectionOrder();
         BindingContext = settingsViewModel;
@@ -708,11 +697,7 @@ public partial class MainPage : ContentPage
         FileResult? selectedBackup;
         try
         {
-            selectedBackup = await FilePicker.Default.PickAsync(new PickOptions
-            {
-                PickerTitle = "Choose a Financial Tracker backup",
-                FileTypes = BackupFileTypes
-            });
+            selectedBackup = await backupFilePicker.PickAsync();
         }
         catch
         {
