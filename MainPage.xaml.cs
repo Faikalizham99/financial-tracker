@@ -142,6 +142,7 @@ public partial class MainPage : ContentPage
     private async Task EnsureInitialDataLoadedAsync()
     {
         await initialDataLoadLock.WaitAsync();
+        var completedSuccessfully = false;
         try
         {
             if (hasCompletedInitialDataLoad)
@@ -160,13 +161,17 @@ public partial class MainPage : ContentPage
             cachedTransactionRecords = records;
             ApplyTransactionData(records, settingsViewModel.SelectedCurrency);
             hasCompletedInitialDataLoad = true;
+            completedSuccessfully = true;
         }
         finally
         {
             try
             {
                 isInitialDataLoading = false;
-                await HideLoadingSkeletonAsync();
+                if (completedSuccessfully || hasCompletedInitialDataLoad)
+                {
+                    await HideLoadingSkeletonAsync();
+                }
             }
             finally
             {
@@ -1430,6 +1435,14 @@ public partial class MainPage : ContentPage
             var records = recoverSuspiciousEmptyRead
                 ? await localDatabase.GetTransactionsForStartupAsync()
                 : await localDatabase.GetTransactionsAsync();
+            if (recoverSuspiciousEmptyRead && records.Count > 0)
+            {
+                // The database may have appeared after an early iOS or
+                // LiveContainer read. Reload appearance and currency from the
+                // same recovered file before rendering its transactions.
+                await settingsViewModel.ReloadAsync();
+            }
+
             cachedTransactionRecords = records;
             ApplyTransactionData(records, settingsViewModel.SelectedCurrency);
         }

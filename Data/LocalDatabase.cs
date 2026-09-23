@@ -13,6 +13,15 @@ public sealed class LocalDatabase
         TimeSpan.FromMilliseconds(100),
         TimeSpan.FromMilliseconds(250),
         TimeSpan.FromMilliseconds(500),
+        TimeSpan.FromMilliseconds(1000),
+        TimeSpan.FromMilliseconds(2000),
+        TimeSpan.FromMilliseconds(3000)
+    ];
+    private static readonly TimeSpan[] IosDatabaseDiscoveryRetryDelays =
+    [
+        TimeSpan.FromMilliseconds(100),
+        TimeSpan.FromMilliseconds(250),
+        TimeSpan.FromMilliseconds(500),
         TimeSpan.FromMilliseconds(1000)
     ];
     private readonly SemaphoreSlim databaseLock = new(1, 1);
@@ -91,9 +100,13 @@ public sealed class LocalDatabase
     public async Task<IReadOnlyList<TransactionRecord>> GetTransactionsForStartupAsync(
         CancellationToken cancellationToken = default)
     {
+        await WaitForExistingIosDatabaseAsync(cancellationToken);
+
+        var hasKnownTransactionData = Preferences.Default.Get(
+            KnownTransactionDataPreferenceKey,
+            false);
         var shouldRecoverEmptyRead =
-            File.Exists(DatabasePath) ||
-            Preferences.Default.Get(KnownTransactionDataPreferenceKey, false);
+            File.Exists(DatabasePath) || hasKnownTransactionData;
 
         await databaseLock.WaitAsync(cancellationToken);
         try
@@ -119,9 +132,22 @@ public sealed class LocalDatabase
                 await EnsureInitializedCoreAsync();
                 var records = await QueryTransactionsCoreAsync(Connection);
                 if (records.Count > 0 ||
-                    !shouldRecoverEmptyRead ||
-                    attempt == StartupEmptyReadRetryDelays.Length)
+                    !shouldRecoverEmptyRead)
                 {
+                    return records;
+                }
+
+                if (attempt == StartupEmptyReadRetryDelays.Length)
+                {
+                    if (hasKnownTransactionData)
+                    {
+                        throw new InvalidDataException(
+                            "The saved database is temporarily unavailable. An empty startup result was rejected.");
+                    }
+
+                    // An existing database can legitimately contain no
+                    // transactions. Only accept that after the file has had
+                    // the full availability window to settle.
                     return records;
                 }
 
@@ -328,6 +354,28 @@ public sealed class LocalDatabase
             "ORDER BY TransactionDate DESC, CreatedAtUtc DESC, Id DESC");
         RememberTransactionData(records);
         return records;
+    }
+
+    private static async Task WaitForExistingIosDatabaseAsync(
+        CancellationToken cancellationToken)
+    {
+        if (DeviceInfo.Platform != DevicePlatform.iOS || File.Exists(DatabasePath))
+        {
+            return;
+        }
+
+        // LiveContainer can expose the app data directory shortly after MAUI
+        // starts. Do not create a replacement empty database during that
+        // window. This delay only affects iOS when no database is initially
+        // visible (including a genuine first launch).
+        foreach (var delay in IosDatabaseDiscoveryRetryDelays)
+        {
+            await Task.Delay(delay, cancellationToken);
+            if (File.Exists(DatabasePath))
+            {
+                return;
+            }
+        }
     }
 
     private static void RememberTransactionData(
