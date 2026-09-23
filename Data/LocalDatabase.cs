@@ -6,6 +6,15 @@ namespace FinancialTracker.Data;
 public sealed class LocalDatabase
 {
     private const int CurrentSchemaVersion = 4;
+    private const string KnownTransactionDataPreferenceKey =
+        "database_has_known_transaction_data";
+    private static readonly TimeSpan[] StartupEmptyReadRetryDelays =
+    [
+        TimeSpan.FromMilliseconds(100),
+        TimeSpan.FromMilliseconds(250),
+        TimeSpan.FromMilliseconds(500),
+        TimeSpan.FromMilliseconds(1000)
+    ];
     private readonly SemaphoreSlim databaseLock = new(1, 1);
     private SQLiteAsyncConnection? connection;
     private bool isInitialized;
@@ -18,7 +27,7 @@ public sealed class LocalDatabase
             DatabasePath,
             SQLiteOpenFlags.ReadWrite |
             SQLiteOpenFlags.Create |
-            SQLiteOpenFlags.SharedCache);
+            SQLiteOpenFlags.FullMutex);
 
     public async Task InitializeAsync()
     {
@@ -76,11 +85,59 @@ public sealed class LocalDatabase
         ExecuteWithConnectionAsync(async activeConnection =>
             (TransactionRecord?)await activeConnection.FindAsync<TransactionRecord>(transactionId));
 
-    public async Task<IReadOnlyList<TransactionRecord>> GetTransactionsAsync() =>
-        await ExecuteWithConnectionAsync(activeConnection =>
-            activeConnection.QueryAsync<TransactionRecord>(
-                "SELECT * FROM Transactions " +
-                "ORDER BY TransactionDate DESC, CreatedAtUtc DESC, Id DESC"));
+    public Task<IReadOnlyList<TransactionRecord>> GetTransactionsAsync() =>
+        ExecuteWithConnectionAsync(QueryTransactionsCoreAsync);
+
+    public async Task<IReadOnlyList<TransactionRecord>> GetTransactionsForStartupAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var shouldRecoverEmptyRead =
+            File.Exists(DatabasePath) ||
+            Preferences.Default.Get(KnownTransactionDataPreferenceKey, false);
+
+        await databaseLock.WaitAsync(cancellationToken);
+        try
+        {
+            for (var attempt = 0;
+                 attempt <= StartupEmptyReadRetryDelays.Length;
+                 attempt++)
+            {
+                if (attempt > 0)
+                {
+                    await Task.Delay(
+                        StartupEmptyReadRetryDelays[attempt - 1],
+                        cancellationToken);
+                }
+
+                if (!File.Exists(DatabasePath) &&
+                    shouldRecoverEmptyRead &&
+                    attempt < StartupEmptyReadRetryDelays.Length)
+                {
+                    continue;
+                }
+
+                await EnsureInitializedCoreAsync();
+                var records = await QueryTransactionsCoreAsync(Connection);
+                if (records.Count > 0 ||
+                    !shouldRecoverEmptyRead ||
+                    attempt == StartupEmptyReadRetryDelays.Length)
+                {
+                    return records;
+                }
+
+                // A LiveContainer data directory or externally restored database can
+                // replace the file after SQLite has opened it. Reopening ensures the
+                // next attempt observes the current file instead of the stale handle.
+                await CloseConnectionCoreAsync();
+            }
+
+            return [];
+        }
+        finally
+        {
+            databaseLock.Release();
+        }
+    }
 
     public Task CreateBackupAsync(string destinationPath)
     {
@@ -260,6 +317,25 @@ public sealed class LocalDatabase
         finally
         {
             databaseLock.Release();
+        }
+    }
+
+    private static async Task<IReadOnlyList<TransactionRecord>> QueryTransactionsCoreAsync(
+        SQLiteAsyncConnection activeConnection)
+    {
+        var records = await activeConnection.QueryAsync<TransactionRecord>(
+            "SELECT * FROM Transactions " +
+            "ORDER BY TransactionDate DESC, CreatedAtUtc DESC, Id DESC");
+        RememberTransactionData(records);
+        return records;
+    }
+
+    private static void RememberTransactionData(
+        IReadOnlyCollection<TransactionRecord> records)
+    {
+        if (records.Count > 0)
+        {
+            Preferences.Default.Set(KnownTransactionDataPreferenceKey, true);
         }
     }
 

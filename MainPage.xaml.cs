@@ -37,6 +37,7 @@ public partial class MainPage : ContentPage
     private readonly LocalDatabase localDatabase;
     private readonly IBackupFileSaver backupFileSaver;
     private readonly IBackupFilePicker backupFilePicker;
+    private readonly SemaphoreSlim initialDataLoadLock = new(1, 1);
     private readonly SemaphoreSlim transactionRefreshLock = new(1, 1);
     private readonly SemaphoreSlim dataLoadingOperationLock = new(1, 1);
     private readonly List<string> homeSectionOrder = [];
@@ -62,7 +63,7 @@ public partial class MainPage : ContentPage
     private Point? homeSectionPointerStart;
     private CancellationTokenSource? loadingSkeletonPulseCancellation;
     private CancellationTokenSource? transactionLockToastCancellation;
-    private bool hasStartedInitialDataLoad;
+    private bool hasCompletedInitialDataLoad;
     private bool isInitialDataLoading;
     private bool isDataLoadingSkeletonShown = true;
     private bool isTransactionEditingLocked = true;
@@ -125,28 +126,64 @@ public partial class MainPage : ContentPage
 
     private async void OnLoaded(object? sender, EventArgs e)
     {
-        if (hasStartedInitialDataLoad)
-        {
-            return;
-        }
-
-        hasStartedInitialDataLoad = true;
-        isInitialDataLoading = true;
-        UpdateLoadingSkeletonForSelectedSection();
-        // Give the first-frame loader a chance to render before database work
-        // begins, including on platforms where initialization resumes inline.
-        await Task.Yield();
-
         try
         {
+            await EnsureInitialDataLoadedAsync();
+        }
+        catch
+        {
+            await DisplayAlertAsync(
+                "Data unavailable",
+                "Financial Tracker could not load your saved data. Please try opening the app again.",
+                "OK");
+        }
+    }
+
+    private async Task EnsureInitialDataLoadedAsync()
+    {
+        await initialDataLoadLock.WaitAsync();
+        try
+        {
+            if (hasCompletedInitialDataLoad)
+            {
+                return;
+            }
+
+            isInitialDataLoading = true;
+            UpdateLoadingSkeletonForSelectedSection();
+            // Give the first-frame loader a chance to render before database work
+            // begins, including on platforms where initialization resumes inline.
+            await Task.Yield();
+
+            var records = await localDatabase.GetTransactionsForStartupAsync();
             await settingsViewModel.InitializeAsync();
-            await RefreshTransactionViewsAsync();
+            cachedTransactionRecords = records;
+            ApplyTransactionData(records, settingsViewModel.SelectedCurrency);
+            hasCompletedInitialDataLoad = true;
         }
         finally
         {
-            isInitialDataLoading = false;
-            await HideLoadingSkeletonAsync();
+            try
+            {
+                isInitialDataLoading = false;
+                await HideLoadingSkeletonAsync();
+            }
+            finally
+            {
+                initialDataLoadLock.Release();
+            }
         }
+    }
+
+    internal async Task RefreshAfterResumeAsync()
+    {
+        if (!hasCompletedInitialDataLoad)
+        {
+            await EnsureInitialDataLoadedAsync();
+            return;
+        }
+
+        await RunWithDataLoadingSkeletonAsync(RefreshTransactionViewsAfterResumeAsync);
     }
 
     private Task OnTransactionSavedAsync() => RefreshTransactionViewsAsync();
@@ -1375,10 +1412,24 @@ public partial class MainPage : ContentPage
 
     private async Task RefreshTransactionViewsAsync()
     {
+        await RefreshTransactionViewsCoreAsync(recoverSuspiciousEmptyRead: false);
+    }
+
+    private async Task RefreshTransactionViewsAfterResumeAsync()
+    {
+        await RefreshTransactionViewsCoreAsync(
+            recoverSuspiciousEmptyRead: cachedTransactionRecords?.Count == 0);
+    }
+
+    private async Task RefreshTransactionViewsCoreAsync(
+        bool recoverSuspiciousEmptyRead)
+    {
         await transactionRefreshLock.WaitAsync();
         try
         {
-            var records = await localDatabase.GetTransactionsAsync();
+            var records = recoverSuspiciousEmptyRead
+                ? await localDatabase.GetTransactionsForStartupAsync()
+                : await localDatabase.GetTransactionsAsync();
             cachedTransactionRecords = records;
             ApplyTransactionData(records, settingsViewModel.SelectedCurrency);
         }

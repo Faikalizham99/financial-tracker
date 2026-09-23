@@ -14,6 +14,22 @@ public partial class App : Application
         mainPage = services.GetRequiredService<MainPage>();
     }
 
-    protected override Window CreateWindow(IActivationState? activationState) =>
-        new(mainPage);
+    protected override Window CreateWindow(IActivationState? activationState)
+    {
+        var window = new Window(mainPage);
+        window.Resumed += OnWindowResumed;
+        return window;
+    }
+
+    private async void OnWindowResumed(object? sender, EventArgs e)
+    {
+        try
+        {
+            await mainPage.RefreshAfterResumeAsync();
+        }
+        catch
+        {
+            // The next resume or explicit data operation can retry safely.
+        }
+    }
 }
