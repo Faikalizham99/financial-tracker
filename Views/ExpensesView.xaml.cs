@@ -112,6 +112,12 @@ public partial class ExpensesView : ContentView
     public void SetIncludeInvestmentInTotals(bool includeInvestment) =>
         TransactionsMonthlySummary.IncludeInvestmentInTotals = includeInvestment;
 
+    public void SetBudgetProvider(
+        Func<DateTime, Task<MonthlyBudgetRecord?>> provider) =>
+        TransactionsMonthlySummary.BudgetProvider = provider;
+
+    public void ReloadBudget() => TransactionsMonthlySummary.ReloadBudget();
+
     public async Task FocusTransactionAsync(
         int transactionId,
         Func<Task>? revealTargetAsync = null)

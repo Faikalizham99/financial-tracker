@@ -4,6 +4,9 @@ namespace FinancialTracker.Helpers;
 
 public static class MoneyFormatter
 {
+    public static string FormatMinorValue(long amountMinor) =>
+        (Math.Abs(amountMinor) / 100m).ToString("N2", CultureInfo.InvariantCulture);
+
     public static string FormatMinor(
         long amountMinor,
         string currencySymbol,
@@ -17,7 +20,6 @@ public static class MoneyFormatter
             _ => string.Empty
         };
         var signSpacing = sign.Length > 0 && separateSign ? " " : string.Empty;
-        var amount = Math.Abs(amountMinor) / 100m;
-        return $"{sign}{signSpacing}{currencySymbol} {amount.ToString("N2", CultureInfo.InvariantCulture)}";
+        return $"{sign}{signSpacing}{currencySymbol} {FormatMinorValue(amountMinor)}";
     }
 }

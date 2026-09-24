@@ -59,6 +59,7 @@
 		<MauiImage Remove="Resources\Images\dotnet_bot.png" />
 		<MauiImage Update="Resources\Images\category_*.png" Resize="True" BaseSize="256,256" />
 		<MauiImage Update="Resources\Images\payment_*.png" Resize="True" BaseSize="256,256" />
+		<MauiImage Update="Resources\Images\settings_budget.png" Resize="True" BaseSize="256,256" />
 		
 		<!-- Custom Fonts -->
 		<MauiFont Include="Resources\Fonts\*" />

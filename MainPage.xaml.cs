@@ -71,6 +71,8 @@ public partial class MainPage : ContentPage
 
     public MainPage(
         SettingsViewModel settingsViewModel,
+        BudgetSettingsViewModel budgetSettingsViewModel,
+        MonthlyBudgetService monthlyBudgetService,
         LocalDatabase localDatabase,
         IBackupFileSaver backupFileSaver,
         IBackupFilePicker backupFilePicker)
@@ -96,6 +98,9 @@ public partial class MainPage : ContentPage
         LoadHomeSectionOrder();
         ApplyHomeSectionOrder();
         BindingContext = settingsViewModel;
+        BudgetSettingsOverlay.BindingContext = budgetSettingsViewModel;
+        DashboardMonthlySummary.BudgetProvider = monthlyBudgetService.GetAsync;
+        ExpensesView.SetBudgetProvider(monthlyBudgetService.GetAsync);
         AddTransactionOverlay.TransactionSaved = OnTransactionSavedAsync;
         AddTransactionOverlay.DatePickerRequested = CalendarPicker.PickAsync;
         AddTransactionOverlay.RunWithTransactionLoadingAsync = RunWithDataLoadingSkeletonAsync;
@@ -114,6 +119,9 @@ public partial class MainPage : ContentPage
             OnInvestmentInclusionToggleRequested;
         TransactionSearchView.TransactionSelected += OnTransactionSearchResultSelected;
         SettingsView.DataDrawerVisibilityChanged += OnSettingsDataDrawerVisibilityChanged;
+        SettingsView.BudgetSettingsRequested += OnBudgetSettingsRequested;
+        BudgetSettingsOverlay.VisibilityChanged += OnBudgetSettingsVisibilityChanged;
+        budgetSettingsViewModel.BudgetSaved += OnBudgetSaved;
         SettingsView.DatabaseBackupRequested += OnDatabaseBackupRequested;
         SettingsView.DatabaseRestoreRequested += OnDatabaseRestoreRequested;
         settingsViewModel.PropertyChanged += OnSettingsPropertyChanged;
@@ -137,6 +145,17 @@ public partial class MainPage : ContentPage
                 "Financial Tracker could not load your saved data. Please try opening the app again.",
                 "OK");
         }
+    }
+
+    protected override bool OnBackButtonPressed()
+    {
+        if (BudgetSettingsOverlay.IsOpen)
+        {
+            _ = BudgetSettingsOverlay.HandleBackAsync();
+            return true;
+        }
+
+        return base.OnBackButtonPressed();
     }
 
     private async Task EnsureInitialDataLoadedAsync()
@@ -188,7 +207,11 @@ public partial class MainPage : ContentPage
             return;
         }
 
-        await RunWithDataLoadingSkeletonAsync(RefreshTransactionViewsAfterResumeAsync);
+        await RunWithDataLoadingSkeletonAsync(async () =>
+        {
+            await settingsViewModel.RefreshCurrentBudgetStatusAsync();
+            await RefreshTransactionViewsAfterResumeAsync();
+        });
     }
 
     private Task OnTransactionSavedAsync() => RefreshTransactionViewsAsync();
@@ -706,6 +729,34 @@ public partial class MainPage : ContentPage
         BottomNavigationDock.InputTransparent = isVisible;
     }
 
+    private async void OnBudgetSettingsRequested(DateTime month)
+    {
+        try
+        {
+            await BudgetSettingsOverlay.OpenAsync(month);
+        }
+        catch
+        {
+            await DisplayAlertAsync(
+                "Budget unavailable",
+                "Financial Tracker could not load the budget settings. Please try again.",
+                "OK");
+        }
+    }
+
+    private void OnBudgetSettingsVisibilityChanged(bool isVisible)
+    {
+        BottomNavigationDock.Opacity = isVisible ? 0 : 1;
+        BottomNavigationDock.InputTransparent = isVisible;
+    }
+
+    private async void OnBudgetSaved(object? sender, EventArgs e)
+    {
+        await settingsViewModel.RefreshCurrentBudgetStatusAsync();
+        DashboardMonthlySummary.ReloadBudget();
+        ExpensesView.ReloadBudget();
+    }
+
     private async Task OnDatabaseBackupRequested()
     {
         var backupPath = Path.Combine(
@@ -779,7 +830,7 @@ public partial class MainPage : ContentPage
 
             await DisplayAlertAsync(
                 "Restore complete",
-                "Your settings and transactions have been restored successfully.",
+                "Your settings, budgets and transactions have been restored successfully.",
                 "OK");
         }
         catch (InvalidDataException exception)

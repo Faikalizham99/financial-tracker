@@ -5,7 +5,7 @@ namespace FinancialTracker.Data;
 
 public sealed class LocalDatabase
 {
-    private const int CurrentSchemaVersion = 4;
+    private const int CurrentSchemaVersion = 6;
     private const string KnownTransactionDataPreferenceKey =
         "database_has_known_transaction_data";
     private static readonly TimeSpan[] StartupEmptyReadRetryDelays =
@@ -96,6 +96,25 @@ public sealed class LocalDatabase
 
     public Task<IReadOnlyList<TransactionRecord>> GetTransactionsAsync() =>
         ExecuteWithConnectionAsync(QueryTransactionsCoreAsync);
+
+    public Task<MonthlyBudgetRecord?> GetMonthlyBudgetAsync(int monthKey) =>
+        ExecuteWithConnectionAsync(async activeConnection =>
+            (MonthlyBudgetRecord?)await activeConnection.FindAsync<MonthlyBudgetRecord>(monthKey));
+
+    public Task<IReadOnlyList<MonthlyBudgetRecord>> GetMonthlyBudgetsAsync(
+        int firstMonthKey,
+        int lastMonthKey) =>
+        ExecuteWithConnectionAsync<IReadOnlyList<MonthlyBudgetRecord>>(async activeConnection =>
+            await activeConnection.Table<MonthlyBudgetRecord>()
+                .Where(item =>
+                    item.MonthKey >= firstMonthKey &&
+                    item.MonthKey <= lastMonthKey)
+                .OrderBy(item => item.MonthKey)
+                .ToListAsync());
+
+    public Task SaveMonthlyBudgetAsync(MonthlyBudgetRecord budget) =>
+        ExecuteWithConnectionAsync(
+            activeConnection => activeConnection.InsertOrReplaceAsync(budget));
 
     public async Task<IReadOnlyList<TransactionRecord>> GetTransactionsForStartupAsync(
         CancellationToken cancellationToken = default)
@@ -268,12 +287,52 @@ public sealed class LocalDatabase
                 "ON Transactions (TransactionDate DESC, CreatedAtUtc DESC, Id DESC)");
         }
 
+        if (version < 5)
+        {
+            await Connection.CreateTableAsync<MonthlyBudgetRecord>();
+        }
+        else if (version == 5)
+        {
+            await MigratePrototypeMonthlyBudgetsAsync();
+        }
+
         if (version < CurrentSchemaVersion)
         {
             await Connection.ExecuteAsync($"PRAGMA user_version = {CurrentSchemaVersion}");
         }
 
         isInitialized = true;
+    }
+
+    private async Task MigratePrototypeMonthlyBudgetsAsync()
+    {
+        await Connection.CreateTableAsync<MonthlyBudgetRecord>();
+        var columns = await Connection.GetTableInfoAsync("MonthlyBudgets");
+        var columnNames = columns
+            .Select(column => column.Name)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (!columnNames.Contains(nameof(MonthlyBudgetRecord.BudgetIncludingInvestmentMinor)))
+        {
+            await Connection.ExecuteAsync(
+                "ALTER TABLE MonthlyBudgets ADD COLUMN " +
+                "BudgetIncludingInvestmentMinor INTEGER NOT NULL DEFAULT 0");
+        }
+
+        if (!columnNames.Contains(nameof(MonthlyBudgetRecord.BudgetExcludingInvestmentMinor)))
+        {
+            await Connection.ExecuteAsync(
+                "ALTER TABLE MonthlyBudgets ADD COLUMN " +
+                "BudgetExcludingInvestmentMinor INTEGER NOT NULL DEFAULT 0");
+        }
+
+        if (columnNames.Contains("AmountMinor"))
+        {
+            await Connection.ExecuteAsync(
+                "UPDATE MonthlyBudgets SET " +
+                "BudgetIncludingInvestmentMinor = AmountMinor, " +
+                "BudgetExcludingInvestmentMinor = AmountMinor");
+        }
     }
 
     private async Task ReplaceDatabaseCoreAsync(string stagingPath, string rollbackPath)
@@ -414,6 +473,7 @@ public sealed class LocalDatabase
 
             var hasSettingsTable = TableExists(candidate, "AppSettings");
             var hasTransactionsTable = TableExists(candidate, "Transactions");
+            var hasMonthlyBudgetsTable = TableExists(candidate, "MonthlyBudgets");
             if (!hasSettingsTable && !hasTransactionsTable)
             {
                 throw new InvalidDataException(
@@ -421,7 +481,8 @@ public sealed class LocalDatabase
             }
 
             if ((version >= 1 && !hasSettingsTable) ||
-                (version >= 3 && !hasTransactionsTable))
+                (version >= 3 && !hasTransactionsTable) ||
+                (version >= 5 && !hasMonthlyBudgetsTable))
             {
                 throw new InvalidDataException(
                     "The selected backup is missing required Financial Tracker tables.");

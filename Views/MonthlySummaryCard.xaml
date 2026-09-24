@@ -206,10 +206,11 @@
                     <BoxView Grid.Column="1" WidthRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
 
                     <VerticalStackLayout Grid.Column="2" Spacing="6">
-                        <Label Text="TOTAL EXPENSE" Style="{StaticResource SectionLabel}" FontSize="11" />
-                        <HorizontalStackLayout Spacing="8">
-                            <Label x:Name="SummaryExpenseAmountLabel" Text="RM 0.00" FontFamily="OpenSansSemibold" FontSize="21" FontAutoScalingEnabled="False" VerticalTextAlignment="Center" />
+                        <Label x:Name="SummaryExpenseCaptionLabel" Text="TOTAL EXPENSE" Style="{StaticResource SectionLabel}" FontSize="11" />
+                        <Grid ColumnDefinitions="*,20" ColumnSpacing="7">
+                            <Label x:Name="SummaryExpenseAmountLabel" Text="RM 0.00" FontFamily="OpenSansSemibold" FontSize="21" FontAutoScalingEnabled="False" LineBreakMode="NoWrap" MaxLines="1" HorizontalOptions="Fill" VerticalTextAlignment="Center" />
                             <Path
+                                Grid.Column="1"
                                 WidthRequest="20"
                                 HeightRequest="20"
                                 Data="M 4,4 L 18,18 M 9,18 L 18,18 L 18,9"
@@ -220,7 +221,7 @@
                                 Fill="Transparent"
                                 Aspect="Uniform"
                                 VerticalOptions="Center" />
-                        </HorizontalStackLayout>
+                        </Grid>
                     </VerticalStackLayout>
                 </Grid>
             </VerticalStackLayout>

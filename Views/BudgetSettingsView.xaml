@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+    x:Class="FinancialTracker.Views.BudgetSettingsView"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:helpers="clr-namespace:FinancialTracker.Helpers"
+    xmlns:models="clr-namespace:FinancialTracker.Models"
+    IsVisible="False"
+    BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}">
+
+    <ContentView.Resources>
+        <Style x:Key="BudgetSkeletonLine" TargetType="Border">
+            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}" />
+            <Setter Property="StrokeThickness" Value="0" />
+            <Setter Property="StrokeShape" Value="RoundRectangle 999" />
+        </Style>
+    </ContentView.Resources>
+
+    <Grid>
+        <Grid x:Name="PageContent" Padding="24,30,24,24" RowDefinitions="Auto,Auto,*">
+            <Grid ColumnDefinitions="44,*,44" ColumnSpacing="14">
+                <Label Grid.Column="1" Text="Budget settings" Style="{StaticResource CardTitle}" FontSize="21" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                <Border Grid.Column="2" WidthRequest="42" HeightRequest="42" Padding="10" Style="{StaticResource Pill}" helpers:InteractionAnimations.IsPressFeedbackEnabled="True" SemanticProperties.Description="Back to settings">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnCloseTapped" />
+                    </Border.GestureRecognizers>
+                    <Path Data="M 19,12 L 5,12 M 11,6 L 5,12 L 11,18" Stroke="{DynamicResource Accent}" StrokeThickness="2.2" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" />
+                </Border>
+            </Grid>
+
+            <Grid Grid.Row="1" Margin="0,25,0,0" HorizontalOptions="Center">
+                <Border WidthRequest="250" HeightRequest="46" Padding="3" BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark=#3A3A3D}" Stroke="{AppThemeBinding Light={StaticResource DividerLight}, Dark=#48484C}" StrokeThickness="1.5" StrokeShape="RoundRectangle 14">
+                    <Grid ColumnDefinitions="*,*">
+                        <Border x:Name="SettingTab" Style="{StaticResource SelectedCategorySegmentTab}" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                            <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnTabTapped" CommandParameter="Setting" /></Border.GestureRecognizers>
+                            <Label x:Name="SettingTabLabel" Text="Setting" Style="{StaticResource SelectedCategorySegmentLabel}" />
+                        </Border>
+                        <Border x:Name="HistoryTab" Grid.Column="1" Style="{StaticResource CategorySegmentTab}" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                            <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnTabTapped" CommandParameter="History" /></Border.GestureRecognizers>
+                            <Label x:Name="HistoryTabLabel" Text="History" Style="{StaticResource CategorySegmentLabel}" />
+                        </Border>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <Grid Grid.Row="2" Margin="0,22,0,0">
+                <ScrollView x:Name="SettingScrollView" VerticalScrollBarVisibility="Never">
+                    <VerticalStackLayout Padding="0,0,0,42" Spacing="18" MaximumWidthRequest="900" HorizontalOptions="Fill">
+                        <Grid ColumnDefinitions="46,*,46" ColumnSpacing="8">
+                            <Border WidthRequest="44" HeightRequest="44" Padding="13" Style="{StaticResource Pill}" helpers:InteractionAnimations.IsPressFeedbackEnabled="True" SemanticProperties.Description="Previous month">
+                                <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnPreviousMonthTapped" /></Border.GestureRecognizers>
+                                <Path Data="M 15,4 L 7,12 L 15,20" Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" StrokeThickness="2.3" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" />
+                            </Border>
+                            <Border Grid.Column="1" HeightRequest="44" Padding="12,0" Style="{StaticResource Pill}" helpers:InteractionAnimations.IsPressFeedbackEnabled="True" SemanticProperties.Description="Choose budget month">
+                                <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnChooseMonthTapped" /></Border.GestureRecognizers>
+                                <HorizontalStackLayout Spacing="7" HorizontalOptions="Center" VerticalOptions="Center">
+                                    <Label Text="{Binding SelectedMonthLabel}" FontFamily="OpenSansSemibold" FontSize="15" />
+                                    <Path WidthRequest="12" HeightRequest="12" Data="M 4,7 L 8,11 L 12,7" Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" StrokeThickness="2" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" />
+                                </HorizontalStackLayout>
+                            </Border>
+                            <Border Grid.Column="2" WidthRequest="44" HeightRequest="44" Padding="13" Style="{StaticResource Pill}" helpers:InteractionAnimations.IsPressFeedbackEnabled="True" SemanticProperties.Description="Next month">
+                                <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnNextMonthTapped" /></Border.GestureRecognizers>
+                                <Path Data="M 7,4 L 15,12 L 7,20" Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" StrokeThickness="2.3" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" />
+                            </Border>
+                        </Grid>
+
+                        <Label Text="{Binding SelectedMonthStatus}" Style="{StaticResource BodyMuted}" FontSize="12" HorizontalTextAlignment="Center" />
+
+                        <Border Style="{StaticResource Card}">
+                            <VerticalStackLayout Spacing="13">
+                                <Grid ColumnDefinitions="42,*" ColumnSpacing="12">
+                                    <Border WidthRequest="42" HeightRequest="42" Padding="9" BackgroundColor="{DynamicResource AccentTint}" StrokeThickness="0" StrokeShape="RoundRectangle 14">
+                                        <Path Data="M 4,4 L 4,18 L 20,18 M 7,14 L 11,10 L 14,13 L 20,6 M 15,6 L 20,6 L 20,11" Stroke="{DynamicResource Accent}" StrokeThickness="2" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" />
+                                    </Border>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                        <Label Text="Budget including investment" Style="{StaticResource CardTitle}" FontSize="15" />
+                                        <Label Text="All expenses, including Investment" Style="{StaticResource BodyMuted}" FontSize="12" />
+                                    </VerticalStackLayout>
+                                </Grid>
+                                <Border Padding="14,2" BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}" Stroke="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" StrokeThickness="1" StrokeShape="RoundRectangle 14">
+                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="9">
+                                        <Label Text="{Binding CurrencySymbol}" FontFamily="OpenSansSemibold" FontSize="16" VerticalTextAlignment="Center" />
+                                        <Entry x:Name="IncludingInvestmentEntry" Grid.Column="1" Text="{Binding IncludingInvestmentText, Mode=TwoWay}" Placeholder="0.00" Keyboard="Numeric" ReturnType="Next" BackgroundColor="Transparent" TextColor="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" PlaceholderColor="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" />
+                                    </Grid>
+                                </Border>
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Border Style="{StaticResource Card}">
+                            <VerticalStackLayout Spacing="13">
+                                <Grid ColumnDefinitions="42,*" ColumnSpacing="12">
+                                    <Border WidthRequest="42" HeightRequest="42" Padding="9" BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}" StrokeThickness="0" StrokeShape="RoundRectangle 14">
+                                        <Grid>
+                                            <Path Data="M 4,4 L 4,18 L 20,18 M 7,14 L 11,10 L 14,13 L 20,6 M 15,6 L 20,6 L 20,11" Stroke="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" StrokeThickness="2" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" />
+                                            <Path Data="M 5,4 L 19,20" Stroke="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" StrokeThickness="2.2" StrokeLineCap="Round" Fill="Transparent" Aspect="Uniform" />
+                                        </Grid>
+                                    </Border>
+                                    <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                                        <Label Text="Budget without investment" Style="{StaticResource CardTitle}" FontSize="15" />
+                                        <Label Text="Everyday spending after Investment is excluded" Style="{StaticResource BodyMuted}" FontSize="12" />
+                                    </VerticalStackLayout>
+                                </Grid>
+                                <Border Padding="14,2" BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}" Stroke="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" StrokeThickness="1" StrokeShape="RoundRectangle 14">
+                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="9">
+                                        <Label Text="{Binding CurrencySymbol}" FontFamily="OpenSansSemibold" FontSize="16" VerticalTextAlignment="Center" />
+                                        <Entry x:Name="ExcludingInvestmentEntry" Grid.Column="1" Text="{Binding ExcludingInvestmentText, Mode=TwoWay}" Placeholder="0.00" Keyboard="Numeric" ReturnType="Done" Completed="OnSaveClicked" BackgroundColor="Transparent" TextColor="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" PlaceholderColor="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" />
+                                    </Grid>
+                                </Border>
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Label Text="{Binding ValidationMessage}" IsVisible="{Binding HasValidationError}" TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" FontSize="12" />
+
+                        <Button Text="{Binding SaveButtonText}" IsEnabled="{Binding CanSave}" Clicked="OnSaveClicked" HeightRequest="50" BackgroundColor="{DynamicResource Accent}" TextColor="{DynamicResource AccentForeground}" FontFamily="OpenSansSemibold" FontSize="15" BorderWidth="0" CornerRadius="17" />
+                    </VerticalStackLayout>
+                </ScrollView>
+
+                <Grid x:Name="HistoryPanel" IsVisible="False" RowDefinitions="Auto,*" RowSpacing="16">
+                    <Grid ColumnDefinitions="46,*,46" ColumnSpacing="8" MaximumWidthRequest="900" HorizontalOptions="Fill">
+                        <Border WidthRequest="44" HeightRequest="44" Padding="13" Style="{StaticResource Pill}" helpers:InteractionAnimations.IsPressFeedbackEnabled="True"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnPreviousHistoryYearTapped" /></Border.GestureRecognizers><Path Data="M 15,4 L 7,12 L 15,20" Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" StrokeThickness="2.3" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" /></Border>
+                        <Label Grid.Column="1" Text="{Binding HistoryYearLabel}" FontFamily="OpenSansSemibold" FontSize="18" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                        <Border Grid.Column="2" WidthRequest="44" HeightRequest="44" Padding="13" Style="{StaticResource Pill}" helpers:InteractionAnimations.IsPressFeedbackEnabled="True"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnNextHistoryYearTapped" /></Border.GestureRecognizers><Path Data="M 7,4 L 15,12 L 7,20" Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" StrokeThickness="2.3" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" /></Border>
+                    </Grid>
+
+                    <CollectionView x:Name="HistoryCollection" Grid.Row="1" ItemsSource="{Binding HistoryMonths}" SelectionMode="Single" SelectionChanged="OnHistoryMonthSelected" SizeChanged="OnHistoryCollectionSizeChanged" VerticalScrollBarVisibility="Never">
+                        <CollectionView.ItemsLayout><GridItemsLayout Orientation="Vertical" Span="2" HorizontalItemSpacing="10" VerticalItemSpacing="10" /></CollectionView.ItemsLayout>
+                        <CollectionView.ItemTemplate>
+                            <DataTemplate x:DataType="models:BudgetHistoryMonthItem">
+                                <Border Style="{StaticResource SoftCard}" Padding="14" MinimumHeightRequest="146" Opacity="{Binding ContentOpacity}">
+                                    <Border.Triggers>
+                                        <DataTrigger TargetType="Border" Binding="{Binding IsCurrentMonth}" Value="True">
+                                            <Setter Property="Stroke" Value="{DynamicResource Accent}" />
+                                            <Setter Property="StrokeThickness" Value="2" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+                                    <VerticalStackLayout Spacing="10">
+                                        <Label Text="{Binding MonthName}" Style="{StaticResource CardTitle}" FontSize="17" />
+                                        <Grid ColumnDefinitions="22,*" ColumnSpacing="7">
+                                            <Path WidthRequest="20" HeightRequest="20" Data="M 4,4 L 4,18 L 20,18 M 7,14 L 11,10 L 14,13 L 20,6 M 15,6 L 20,6 L 20,11" Stroke="{DynamicResource Accent}" StrokeThickness="2" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" />
+                                            <Label Grid.Column="1" Text="{Binding IncludingInvestmentText}" FontFamily="OpenSansSemibold" FontSize="12" LineBreakMode="TailTruncation" VerticalTextAlignment="Center" />
+                                        </Grid>
+                                        <Grid ColumnDefinitions="22,*" ColumnSpacing="7">
+                                            <Grid WidthRequest="20" HeightRequest="20"><Path Data="M 4,4 L 4,18 L 20,18 M 7,14 L 11,10 L 14,13 L 20,6 M 15,6 L 20,6 L 20,11" Stroke="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" StrokeThickness="2" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" /><Path Data="M 5,4 L 19,20" Stroke="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" StrokeThickness="2" StrokeLineCap="Round" Fill="Transparent" Aspect="Uniform" /></Grid>
+                                            <Label Grid.Column="1" Text="{Binding ExcludingInvestmentText}" FontFamily="OpenSansSemibold" FontSize="12" LineBreakMode="TailTruncation" VerticalTextAlignment="Center" />
+                                        </Grid>
+                                    </VerticalStackLayout>
+                                </Border>
+                            </DataTemplate>
+                        </CollectionView.ItemTemplate>
+                    </CollectionView>
+                </Grid>
+
+                <Grid IsVisible="{Binding IsLoading}" BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}" ZIndex="10" InputTransparent="False">
+                    <VerticalStackLayout Spacing="14">
+                        <Border Style="{StaticResource BudgetSkeletonLine}" WidthRequest="220" HeightRequest="44" HorizontalOptions="Center" />
+                        <Border Style="{StaticResource BudgetSkeletonLine}" HeightRequest="170" />
+                        <Border Style="{StaticResource BudgetSkeletonLine}" HeightRequest="170" />
+                    </VerticalStackLayout>
+                </Grid>
+            </Grid>
+        </Grid>
+
+        <views:MonthYearPickerSheet xmlns:views="clr-namespace:FinancialTracker.Views" x:Name="MonthPicker" ZIndex="30" />
+    </Grid>
+</ContentView>

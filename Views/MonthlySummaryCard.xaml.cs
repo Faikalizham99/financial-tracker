@@ -42,11 +42,15 @@ public partial class MonthlySummaryCard : ContentView
     private string availableAmountText = "RM 0.00";
     private string incomeAmountText = "RM 0.00";
     private string expenseAmountText = "RM 0.00";
+    private Func<DateTime, Task<MonthlyBudgetRecord?>>? budgetProvider;
     private bool areAmountsVisible = true;
     private IReadOnlyList<TransactionRecord>? cachedRecords;
     private CurrencyOption? cachedCurrency;
+    private MonthlyBudgetRecord? cachedBudget;
+    private DateTime? cachedBudgetMonth;
     private DateTime cachedStartDate;
     private DateTime cachedEndDate;
+    private int budgetLoadVersion;
 
     public MonthlySummaryCard()
     {
@@ -76,19 +80,31 @@ public partial class MonthlySummaryCard : ContentView
         set => SetValue(IncludeInvestmentInTotalsProperty, value);
     }
 
+    public Func<DateTime, Task<MonthlyBudgetRecord?>>? BudgetProvider
+    {
+        get => budgetProvider;
+        set => budgetProvider = value;
+    }
+
     public void Refresh(
         IReadOnlyList<TransactionRecord> records,
         CurrencyOption selectedCurrency,
         DateTime? displayedMonth = null)
     {
         var month = displayedMonth ?? DateTime.Today;
+        var normalizedMonth = new DateTime(month.Year, month.Month, 1);
+        var requestVersion = PrepareBudgetMonth(normalizedMonth);
         RefreshCore(
             records,
             selectedCurrency,
-            new DateTime(month.Year, month.Month, 1),
-            new DateTime(month.Year, month.Month, 1).AddMonths(1).AddDays(-1),
+            normalizedMonth,
+            normalizedMonth.AddMonths(1).AddDays(-1),
             month.ToString("MMMM yyyy", CultureInfo.CurrentCulture),
             $"Available for {month.ToString("MMMM", CultureInfo.CurrentCulture)}");
+        if (requestVersion is int version)
+        {
+            _ = LoadBudgetAsync(normalizedMonth, version);
+        }
     }
 
     public void RefreshRange(
@@ -97,6 +113,7 @@ public partial class MonthlySummaryCard : ContentView
         DateTime startDate,
         DateTime endDate)
     {
+        ClearBudgetContext();
         var normalizedStart = startDate.Date;
         var normalizedEnd = endDate.Date;
         if (normalizedStart > normalizedEnd)
@@ -111,6 +128,17 @@ public partial class MonthlySummaryCard : ContentView
             normalizedEnd,
             FormatRangeTitle(normalizedStart, normalizedEnd),
             "Available for selected range");
+    }
+
+    public void ReloadBudget()
+    {
+        if (cachedBudgetMonth is not DateTime month)
+        {
+            return;
+        }
+
+        var requestVersion = ++budgetLoadVersion;
+        _ = LoadBudgetAsync(month, requestVersion);
     }
 
     private void RefreshCore(
@@ -173,10 +201,70 @@ public partial class MonthlySummaryCard : ContentView
             cachedCurrency.Symbol,
             separateSign: true);
         incomeAmountText = MoneyFormatter.FormatMinor(incomeMinor, cachedCurrency.Symbol);
-        expenseAmountText = MoneyFormatter.FormatMinor(expenseMinor, cachedCurrency.Symbol);
+        var spentText = MoneyFormatter.FormatMinor(expenseMinor, cachedCurrency.Symbol);
+        if (cachedBudget is null)
+        {
+            expenseAmountText = spentText;
+            SummaryExpenseCaptionLabel.Text = "TOTAL EXPENSE";
+        }
+        else
+        {
+            var budgetMinor = IncludeInvestmentInTotals
+                ? cachedBudget.BudgetIncludingInvestmentMinor
+                : cachedBudget.BudgetExcludingInvestmentMinor;
+            expenseAmountText =
+                $"{spentText} / {MoneyFormatter.FormatMinorValue(budgetMinor)}";
+            SummaryExpenseCaptionLabel.Text = "SPENT / BUDGET";
+        }
+
         SummaryTransactionCountLabel.Text = transactionCount.ToString(
             CultureInfo.InvariantCulture);
         UpdateAmountVisibility();
+    }
+
+    private int? PrepareBudgetMonth(DateTime month)
+    {
+        if (cachedBudgetMonth == month)
+        {
+            return null;
+        }
+
+        cachedBudgetMonth = month;
+        cachedBudget = null;
+        return ++budgetLoadVersion;
+    }
+
+    private void ClearBudgetContext()
+    {
+        budgetLoadVersion++;
+        cachedBudgetMonth = null;
+        cachedBudget = null;
+    }
+
+    private async Task LoadBudgetAsync(DateTime month, int requestVersion)
+    {
+        if (BudgetProvider is null)
+        {
+            return;
+        }
+
+        MonthlyBudgetRecord? budget = null;
+        try
+        {
+            budget = await BudgetProvider(month);
+        }
+        catch
+        {
+            // Budget display is supplemental; transaction totals remain usable.
+        }
+
+        if (requestVersion != budgetLoadVersion || cachedBudgetMonth != month)
+        {
+            return;
+        }
+
+        cachedBudget = budget;
+        RefreshCachedSummary();
     }
 
     private static string FormatRangeTitle(DateTime startDate, DateTime endDate)
@@ -317,6 +405,20 @@ public partial class MonthlySummaryCard : ContentView
             (false, _, > 18) => 30,
             (false, _, > 14) => 35,
             _ => 40
+        };
+
+        var expenseLength = SummaryExpenseAmountLabel.Text.Length;
+        SummaryExpenseAmountLabel.FontSize = (isPhone, expenseLength) switch
+        {
+            (true, > 28) => 8.5,
+            (true, > 24) => 9,
+            (true, > 20) => 10,
+            (true, > 16) => 12,
+            (true, _) => 19,
+            (false, > 28) => 14,
+            (false, > 22) => 16,
+            (false, > 18) => 18,
+            _ => 21
         };
     }
 

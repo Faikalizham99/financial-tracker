@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+    x:Class="FinancialTracker.Views.MonthYearPickerSheet"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:helpers="clr-namespace:FinancialTracker.Helpers"
+    IsVisible="False">
+
+    <Grid x:Name="OverlayRoot" Opacity="0">
+        <BoxView BackgroundColor="{StaticResource OverlayScrim}">
+            <BoxView.GestureRecognizers>
+                <TapGestureRecognizer Tapped="OnDismissTapped" />
+            </BoxView.GestureRecognizers>
+        </BoxView>
+
+        <Border
+            x:Name="PickerCard"
+            Margin="18"
+            Padding="20"
+            MaximumWidthRequest="500"
+            HorizontalOptions="Fill"
+            VerticalOptions="Center"
+            BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource CardBackgroundDark}}"
+            Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+            StrokeThickness="2"
+            StrokeShape="RoundRectangle 28">
+            <Border.Shadow>
+                <Shadow Brush="#000000" Offset="0,9" Opacity="0.30" Radius="20" />
+            </Border.Shadow>
+
+            <VerticalStackLayout Spacing="18">
+                <Grid ColumnDefinitions="*,42" ColumnSpacing="12">
+                    <VerticalStackLayout Spacing="3" VerticalOptions="Center">
+                        <Label Text="Choose month" Style="{StaticResource CardTitle}" FontSize="20" />
+                        <Label Text="Switch years, then tap a month." Style="{StaticResource BodyMuted}" FontSize="12" />
+                    </VerticalStackLayout>
+                    <Border Grid.Column="1" WidthRequest="42" HeightRequest="42" Padding="10" Style="{StaticResource Pill}" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnDismissTapped" />
+                        </Border.GestureRecognizers>
+                        <Path Data="M 5,5 L 19,19 M 19,5 L 5,19" Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" StrokeThickness="2.2" StrokeLineCap="Round" Fill="Transparent" Aspect="Uniform" />
+                    </Border>
+                </Grid>
+
+                <Grid ColumnDefinitions="46,*,46" ColumnSpacing="8">
+                    <Border x:Name="PreviousYearButton" WidthRequest="44" HeightRequest="44" Padding="13" Style="{StaticResource Pill}" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnPreviousYearTapped" />
+                        </Border.GestureRecognizers>
+                        <Path Data="M 15,4 L 7,12 L 15,20" Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" StrokeThickness="2.3" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" />
+                    </Border>
+
+                    <Border
+                        Grid.Column="1"
+                        HeightRequest="44"
+                        Padding="16,0"
+                        Style="{StaticResource Pill}"
+                        helpers:InteractionAnimations.IsPressFeedbackEnabled="True"
+                        SemanticProperties.Description="Choose year">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnYearSelectorTapped" />
+                        </Border.GestureRecognizers>
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" InputTransparent="True">
+                            <Label
+                                x:Name="YearLabel"
+                                Text="2026"
+                                FontFamily="OpenSansSemibold"
+                                FontSize="16"
+                                HorizontalTextAlignment="Center"
+                                VerticalTextAlignment="Center" />
+                            <Path
+                                Grid.Column="1"
+                                WidthRequest="12"
+                                HeightRequest="12"
+                                Data="M 4,7 L 8,11 L 12,7"
+                                Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}"
+                                StrokeThickness="2"
+                                StrokeLineCap="Round"
+                                StrokeLineJoin="Round"
+                                Fill="Transparent"
+                                Aspect="Uniform"
+                                VerticalOptions="Center" />
+                        </Grid>
+                    </Border>
+
+                    <Border x:Name="NextYearButton" Grid.Column="2" WidthRequest="44" HeightRequest="44" Padding="13" Style="{StaticResource Pill}" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnNextYearTapped" />
+                        </Border.GestureRecognizers>
+                        <Path Data="M 7,4 L 15,12 L 7,20" Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" StrokeThickness="2.3" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" />
+                    </Border>
+                </Grid>
+
+                <Grid RowDefinitions="64,64,64,64" ColumnDefinitions="*,*,*" RowSpacing="9" ColumnSpacing="9">
+                    <Border x:Name="Month1" Grid.Row="0" Grid.Column="0" Style="{StaticResource SoftCard}" Padding="4" helpers:InteractionAnimations.IsPressFeedbackEnabled="True"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnMonthTapped" CommandParameter="1" /></Border.GestureRecognizers><Label Text="JAN" Style="{StaticResource SectionLabel}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" /></Border>
+                    <Border x:Name="Month2" Grid.Row="0" Grid.Column="1" Style="{StaticResource SoftCard}" Padding="4" helpers:InteractionAnimations.IsPressFeedbackEnabled="True"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnMonthTapped" CommandParameter="2" /></Border.GestureRecognizers><Label Text="FEB" Style="{StaticResource SectionLabel}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" /></Border>
+                    <Border x:Name="Month3" Grid.Row="0" Grid.Column="2" Style="{StaticResource SoftCard}" Padding="4" helpers:InteractionAnimations.IsPressFeedbackEnabled="True"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnMonthTapped" CommandParameter="3" /></Border.GestureRecognizers><Label Text="MAR" Style="{StaticResource SectionLabel}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" /></Border>
+                    <Border x:Name="Month4" Grid.Row="1" Grid.Column="0" Style="{StaticResource SoftCard}" Padding="4" helpers:InteractionAnimations.IsPressFeedbackEnabled="True"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnMonthTapped" CommandParameter="4" /></Border.GestureRecognizers><Label Text="APR" Style="{StaticResource SectionLabel}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" /></Border>
+                    <Border x:Name="Month5" Grid.Row="1" Grid.Column="1" Style="{StaticResource SoftCard}" Padding="4" helpers:InteractionAnimations.IsPressFeedbackEnabled="True"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnMonthTapped" CommandParameter="5" /></Border.GestureRecognizers><Label Text="MAY" Style="{StaticResource SectionLabel}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" /></Border>
+                    <Border x:Name="Month6" Grid.Row="1" Grid.Column="2" Style="{StaticResource SoftCard}" Padding="4" helpers:InteractionAnimations.IsPressFeedbackEnabled="True"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnMonthTapped" CommandParameter="6" /></Border.GestureRecognizers><Label Text="JUN" Style="{StaticResource SectionLabel}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" /></Border>
+                    <Border x:Name="Month7" Grid.Row="2" Grid.Column="0" Style="{StaticResource SoftCard}" Padding="4" helpers:InteractionAnimations.IsPressFeedbackEnabled="True"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnMonthTapped" CommandParameter="7" /></Border.GestureRecognizers><Label Text="JUL" Style="{StaticResource SectionLabel}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" /></Border>
+                    <Border x:Name="Month8" Grid.Row="2" Grid.Column="1" Style="{StaticResource SoftCard}" Padding="4" helpers:InteractionAnimations.IsPressFeedbackEnabled="True"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnMonthTapped" CommandParameter="8" /></Border.GestureRecognizers><Label Text="AUG" Style="{StaticResource SectionLabel}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" /></Border>
+                    <Border x:Name="Month9" Grid.Row="2" Grid.Column="2" Style="{StaticResource SoftCard}" Padding="4" helpers:InteractionAnimations.IsPressFeedbackEnabled="True"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnMonthTapped" CommandParameter="9" /></Border.GestureRecognizers><Label Text="SEP" Style="{StaticResource SectionLabel}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" /></Border>
+                    <Border x:Name="Month10" Grid.Row="3" Grid.Column="0" Style="{StaticResource SoftCard}" Padding="4" helpers:InteractionAnimations.IsPressFeedbackEnabled="True"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnMonthTapped" CommandParameter="10" /></Border.GestureRecognizers><Label Text="OCT" Style="{StaticResource SectionLabel}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" /></Border>
+                    <Border x:Name="Month11" Grid.Row="3" Grid.Column="1" Style="{StaticResource SoftCard}" Padding="4" helpers:InteractionAnimations.IsPressFeedbackEnabled="True"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnMonthTapped" CommandParameter="11" /></Border.GestureRecognizers><Label Text="NOV" Style="{StaticResource SectionLabel}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" /></Border>
+                    <Border x:Name="Month12" Grid.Row="3" Grid.Column="2" Style="{StaticResource SoftCard}" Padding="4" helpers:InteractionAnimations.IsPressFeedbackEnabled="True"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnMonthTapped" CommandParameter="12" /></Border.GestureRecognizers><Label Text="DEC" Style="{StaticResource SectionLabel}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" /></Border>
+                </Grid>
+            </VerticalStackLayout>
+        </Border>
+
+        <Grid x:Name="YearSelectorOverlay" IsVisible="False" Opacity="0" ZIndex="10">
+            <BoxView BackgroundColor="#72000000">
+                <BoxView.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnYearSelectorDismissTapped" />
+                </BoxView.GestureRecognizers>
+            </BoxView>
+
+            <Border
+                x:Name="YearSelectorCard"
+                Margin="24"
+                Padding="14"
+                HeightRequest="326"
+                MaximumWidthRequest="360"
+                HorizontalOptions="Fill"
+                VerticalOptions="Center"
+                BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource CardBackgroundDark}}"
+                Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                StrokeThickness="2"
+                StrokeShape="RoundRectangle 24">
+                <Border.Shadow>
+                    <Shadow Brush="#000000" Offset="0,8" Opacity="0.28" Radius="18" />
+                </Border.Shadow>
+
+                <VerticalStackLayout Spacing="12">
+                    <Grid ColumnDefinitions="42,*,42" ColumnSpacing="8">
+                        <Border x:Name="PreviousYearPageButton" WidthRequest="42" HeightRequest="42" Padding="12" Style="{StaticResource Pill}" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                            <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnPreviousYearPageTapped" /></Border.GestureRecognizers>
+                            <Path Data="M 15,4 L 7,12 L 15,20" Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" StrokeThickness="2.2" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" />
+                        </Border>
+                        <Label x:Name="YearRangeLabel" Grid.Column="1" Text="2020 – 2029" FontFamily="OpenSansSemibold" FontSize="16" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                        <Border x:Name="NextYearPageButton" Grid.Column="2" WidthRequest="42" HeightRequest="42" Padding="12" Style="{StaticResource Pill}" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                            <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnNextYearPageTapped" /></Border.GestureRecognizers>
+                            <Path Data="M 7,4 L 15,12 L 7,20" Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" StrokeThickness="2.2" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" />
+                        </Border>
+                    </Grid>
+
+                    <Grid RowDefinitions="54,54,54,54" ColumnDefinitions="*,*,*" RowSpacing="7" ColumnSpacing="7">
+                        <Border x:Name="YearOption0" Grid.Row="0" Grid.Column="0" Style="{StaticResource SoftCard}" Padding="4" helpers:InteractionAnimations.IsPressFeedbackEnabled="True"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnYearOptionTapped" CommandParameter="0" /></Border.GestureRecognizers><Label x:Name="YearOptionLabel0" FontFamily="OpenSansSemibold" FontSize="13" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" InputTransparent="True" /></Border>
+                        <Border x:Name="YearOption1" Grid.Row="0" Grid.Column="1" Style="{StaticResource SoftCard}" Padding="4" helpers:InteractionAnimations.IsPressFeedbackEnabled="True"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnYearOptionTapped" CommandParameter="1" /></Border.GestureRecognizers><Label x:Name="YearOptionLabel1" FontFamily="OpenSansSemibold" FontSize="13" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" InputTransparent="True" /></Border>
+                        <Border x:Name="YearOption2" Grid.Row="0" Grid.Column="2" Style="{StaticResource SoftCard}" Padding="4" helpers:InteractionAnimations.IsPressFeedbackEnabled="True"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnYearOptionTapped" CommandParameter="2" /></Border.GestureRecognizers><Label x:Name="YearOptionLabel2" FontFamily="OpenSansSemibold" FontSize="13" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" InputTransparent="True" /></Border>
+                        <Border x:Name="YearOption3" Grid.Row="1" Grid.Column="0" Style="{StaticResource SoftCard}" Padding="4" helpers:InteractionAnimations.IsPressFeedbackEnabled="True"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnYearOptionTapped" CommandParameter="3" /></Border.GestureRecognizers><Label x:Name="YearOptionLabel3" FontFamily="OpenSansSemibold" FontSize="13" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" InputTransparent="True" /></Border>
+                        <Border x:Name="YearOption4" Grid.Row="1" Grid.Column="1" Style="{StaticResource SoftCard}" Padding="4" helpers:InteractionAnimations.IsPressFeedbackEnabled="True"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnYearOptionTapped" CommandParameter="4" /></Border.GestureRecognizers><Label x:Name="YearOptionLabel4" FontFamily="OpenSansSemibold" FontSize="13" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" InputTransparent="True" /></Border>
+                        <Border x:Name="YearOption5" Grid.Row="1" Grid.Column="2" Style="{StaticResource SoftCard}" Padding="4" helpers:InteractionAnimations.IsPressFeedbackEnabled="True"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnYearOptionTapped" CommandParameter="5" /></Border.GestureRecognizers><Label x:Name="YearOptionLabel5" FontFamily="OpenSansSemibold" FontSize="13" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" InputTransparent="True" /></Border>
+                        <Border x:Name="YearOption6" Grid.Row="2" Grid.Column="0" Style="{StaticResource SoftCard}" Padding="4" helpers:InteractionAnimations.IsPressFeedbackEnabled="True"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnYearOptionTapped" CommandParameter="6" /></Border.GestureRecognizers><Label x:Name="YearOptionLabel6" FontFamily="OpenSansSemibold" FontSize="13" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" InputTransparent="True" /></Border>
+                        <Border x:Name="YearOption7" Grid.Row="2" Grid.Column="1" Style="{StaticResource SoftCard}" Padding="4" helpers:InteractionAnimations.IsPressFeedbackEnabled="True"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnYearOptionTapped" CommandParameter="7" /></Border.GestureRecognizers><Label x:Name="YearOptionLabel7" FontFamily="OpenSansSemibold" FontSize="13" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" InputTransparent="True" /></Border>
+                        <Border x:Name="YearOption8" Grid.Row="2" Grid.Column="2" Style="{StaticResource SoftCard}" Padding="4" helpers:InteractionAnimations.IsPressFeedbackEnabled="True"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnYearOptionTapped" CommandParameter="8" /></Border.GestureRecognizers><Label x:Name="YearOptionLabel8" FontFamily="OpenSansSemibold" FontSize="13" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" InputTransparent="True" /></Border>
+                        <Border x:Name="YearOption9" Grid.Row="3" Grid.Column="0" Style="{StaticResource SoftCard}" Padding="4" helpers:InteractionAnimations.IsPressFeedbackEnabled="True"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnYearOptionTapped" CommandParameter="9" /></Border.GestureRecognizers><Label x:Name="YearOptionLabel9" FontFamily="OpenSansSemibold" FontSize="13" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" InputTransparent="True" /></Border>
+                        <Border x:Name="YearOption10" Grid.Row="3" Grid.Column="1" Style="{StaticResource SoftCard}" Padding="4" helpers:InteractionAnimations.IsPressFeedbackEnabled="True"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnYearOptionTapped" CommandParameter="10" /></Border.GestureRecognizers><Label x:Name="YearOptionLabel10" FontFamily="OpenSansSemibold" FontSize="13" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" InputTransparent="True" /></Border>
+                        <Border x:Name="YearOption11" Grid.Row="3" Grid.Column="2" Style="{StaticResource SoftCard}" Padding="4" helpers:InteractionAnimations.IsPressFeedbackEnabled="True"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnYearOptionTapped" CommandParameter="11" /></Border.GestureRecognizers><Label x:Name="YearOptionLabel11" FontFamily="OpenSansSemibold" FontSize="13" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" InputTransparent="True" /></Border>
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+    </Grid>
+</ContentView>

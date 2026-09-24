@@ -16,6 +16,28 @@
                 <Label Text="Make Financial Tracker feel like yours." Style="{StaticResource BodyMuted}" />
             </VerticalStackLayout>
 
+            <Border
+                IsVisible="{Binding IsCurrentMonthBudgetMissing}"
+                Padding="16,14"
+                BackgroundColor="{DynamicResource AccentTint}"
+                Stroke="{DynamicResource Accent}"
+                StrokeThickness="1.5"
+                StrokeShape="RoundRectangle 18">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnBudgetSettingsTapped" />
+                </Border.GestureRecognizers>
+                <Grid ColumnDefinitions="36,*,Auto" ColumnSpacing="12">
+                    <Border WidthRequest="36" HeightRequest="36" BackgroundColor="{DynamicResource Accent}" StrokeThickness="0" StrokeShape="RoundRectangle 18">
+                        <Label Text="!" FontFamily="OpenSansSemibold" FontSize="18" TextColor="{DynamicResource AccentForeground}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                    </Border>
+                    <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                        <Label Text="Monthly budget needed" Style="{StaticResource CardTitle}" FontSize="14" />
+                        <Label Text="{Binding CurrentMonthBudgetReminder}" Style="{StaticResource BodyMuted}" FontSize="12" />
+                    </VerticalStackLayout>
+                    <Path Grid.Column="2" WidthRequest="17" HeightRequest="17" Data="M 7,4 L 15,12 L 7,20" Stroke="{DynamicResource Accent}" StrokeThickness="2.2" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" VerticalOptions="Center" />
+                </Grid>
+            </Border>
+
             <VerticalStackLayout Spacing="13">
                 <Label Text="PROFILE" Style="{StaticResource SectionLabel}" />
                 <Border Style="{StaticResource Card}">
@@ -90,6 +112,26 @@
                             </VisualStateManager.VisualStateGroups>
                         </Button>
                     </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="13">
+                <Label Text="PLANNING" Style="{StaticResource SectionLabel}" />
+                <Label Text="Set and review your monthly spending limits." Style="{StaticResource BodyMuted}" FontSize="12" />
+                <Border Style="{StaticResource Card}" Padding="0">
+                    <Grid Padding="18,16" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                        <Grid.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnBudgetSettingsTapped" />
+                        </Grid.GestureRecognizers>
+                        <Border WidthRequest="44" HeightRequest="44" Padding="0" StrokeThickness="0" StrokeShape="RoundRectangle 14">
+                            <Image Source="settings_budget.png" WidthRequest="44" HeightRequest="44" Aspect="AspectFill" />
+                        </Border>
+                        <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                            <Label Text="Budget settings" Style="{StaticResource CardTitle}" FontSize="15" />
+                            <Label Text="Set monthly budgets and view history" Style="{StaticResource BodyMuted}" FontSize="12" />
+                        </VerticalStackLayout>
+                        <Path Grid.Column="2" WidthRequest="18" HeightRequest="18" Data="M 7,4 L 15,12 L 7,20" Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" StrokeThickness="2.2" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Grid>
                 </Border>
             </VerticalStackLayout>
 
@@ -254,7 +296,7 @@
             <VerticalStackLayout Spacing="13">
                 <Label Text="BACKUP &amp; RESTORE" Style="{StaticResource SectionLabel}" />
                 <Label
-                    Text="Keep a portable copy of your settings and transactions."
+                    Text="Keep a portable copy of your settings, budgets and transactions."
                     Style="{StaticResource BodyMuted}"
                     FontSize="12" />
                 <Border Style="{StaticResource Card}">

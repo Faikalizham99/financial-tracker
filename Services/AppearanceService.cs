@@ -14,16 +14,12 @@ public static class AppearanceService
 
     public static void ApplyStartupAppearance(Application application)
     {
-        var cachedTheme = Preferences.Default.ContainsKey(ThemePreferenceKey)
-            ? Preferences.Default.Get(
-                ThemePreferenceKey,
-                AppearanceValueNormalizer.DefaultTheme)
-            : null;
-        var cachedAccent = Preferences.Default.ContainsKey(AccentPreferenceKey)
-            ? Preferences.Default.Get(
-                AccentPreferenceKey,
-                AppearanceValueNormalizer.DefaultAccentColor)
-            : null;
+        var cachedTheme = TryReadCachedValue(
+            ThemePreferenceKey,
+            AppearanceValueNormalizer.DefaultTheme);
+        var cachedAccent = TryReadCachedValue(
+            AccentPreferenceKey,
+            AppearanceValueNormalizer.DefaultAccentColor);
 
         if (cachedTheme is null || cachedAccent is null)
         {
@@ -73,8 +69,32 @@ public static class AppearanceService
 
     private static void Cache(string theme, string accentColorHex)
     {
-        Preferences.Default.Set(ThemePreferenceKey, theme);
-        Preferences.Default.Set(AccentPreferenceKey, accentColorHex);
+        try
+        {
+            Preferences.Default.Set(ThemePreferenceKey, theme);
+            Preferences.Default.Set(AccentPreferenceKey, accentColorHex);
+        }
+        catch (Exception exception)
+            when (exception is IOException or UnauthorizedAccessException)
+        {
+            // The SQLite settings remain authoritative. Preference caching is
+            // only a startup optimization and must never prevent app launch.
+        }
+    }
+
+    private static string? TryReadCachedValue(string key, string fallback)
+    {
+        try
+        {
+            return Preferences.Default.ContainsKey(key)
+                ? Preferences.Default.Get(key, fallback)
+                : null;
+        }
+        catch (Exception exception)
+            when (exception is IOException or UnauthorizedAccessException)
+        {
+            return null;
+        }
     }
 
     private static void Apply(

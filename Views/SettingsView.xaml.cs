@@ -28,6 +28,7 @@ public partial class SettingsView : ContentView
     private string selectedCategoryType = "Expense";
 
     public event Action<bool>? DataDrawerVisibilityChanged;
+    public event Action<DateTime>? BudgetSettingsRequested;
     public event Func<Task>? DatabaseBackupRequested;
     public event Func<Task>? DatabaseRestoreRequested;
 
@@ -58,6 +59,14 @@ public partial class SettingsView : ContentView
         ];
         AccentColorWheel.Drawable = accentColorWheelDrawable;
         SynchronizeColorWheel(AppearanceValueNormalizer.DefaultAccentColor);
+    }
+
+    private async void OnBudgetSettingsTapped(object? sender, TappedEventArgs e)
+    {
+        var feedback = InteractionAnimations.PulseAsync(sender);
+        UnfocusEditableFields();
+        BudgetSettingsRequested?.Invoke(DateTime.Today);
+        await feedback;
     }
 
     protected override void OnBindingContextChanged()

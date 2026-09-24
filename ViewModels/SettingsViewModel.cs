@@ -7,7 +7,9 @@ using FinancialTracker.Services;
 
 namespace FinancialTracker.ViewModels;
 
-public sealed class SettingsViewModel(SettingsService settingsService) : INotifyPropertyChanged
+public sealed class SettingsViewModel(
+    SettingsService settingsService,
+    MonthlyBudgetService monthlyBudgetService) : INotifyPropertyChanged
 {
     private readonly SemaphoreSlim initializationLock = new(1, 1);
     private readonly SemaphoreSlim saveLock = new(1, 1);
@@ -19,6 +21,7 @@ public sealed class SettingsViewModel(SettingsService settingsService) : INotify
     private string selectedTheme = AppearanceValueNormalizer.DefaultTheme;
     private string selectedAccentColorHex = AppearanceValueNormalizer.DefaultAccentColor;
     private string customAccentColorHex = AppearanceValueNormalizer.DefaultAccentColor;
+    private bool isCurrentMonthBudgetMissing;
 
     public static IReadOnlyList<CurrencyOption> SupportedCurrencies { get; } =
     [
@@ -84,6 +87,15 @@ public sealed class SettingsViewModel(SettingsService settingsService) : INotify
 
     public string SelectedCurrencySymbol =>
         $"Shown as {SelectedCurrency.Symbol}";
+
+    public bool IsCurrentMonthBudgetMissing
+    {
+        get => isCurrentMonthBudgetMissing;
+        private set => SetProperty(ref isCurrentMonthBudgetMissing, value);
+    }
+
+    public string CurrentMonthBudgetReminder =>
+        $"Set both budgets for {DateTime.Today:MMMM yyyy}.";
 
     public string SelectedTheme
     {
@@ -282,6 +294,13 @@ public sealed class SettingsViewModel(SettingsService settingsService) : INotify
             ? SelectAccentColorAsync(normalized)
             : Task.CompletedTask;
 
+    public async Task RefreshCurrentBudgetStatusAsync()
+    {
+        var budget = await monthlyBudgetService.GetAsync(DateTime.Today);
+        IsCurrentMonthBudgetMissing = budget is null;
+        OnPropertyChanged(nameof(CurrentMonthBudgetReminder));
+    }
+
     private async Task SaveAsync()
     {
         await InitializeAsync();
@@ -311,6 +330,8 @@ public sealed class SettingsViewModel(SettingsService settingsService) : INotify
         selectedAccentColorHex = AppearanceValueNormalizer.NormalizeAccentColor(
             settings.AccentColorHex);
         customAccentColorHex = selectedAccentColorHex;
+        var currentBudget = await monthlyBudgetService.GetAsync(DateTime.Today);
+        isCurrentMonthBudgetMissing = currentBudget is null;
         AppearanceService.ApplyAndCache(selectedTheme, selectedAccentColorHex);
         isInitialized = true;
         OnPropertyChanged(string.Empty);
