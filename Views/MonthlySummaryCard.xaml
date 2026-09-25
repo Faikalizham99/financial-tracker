@@ -206,11 +206,10 @@
                     <BoxView Grid.Column="1" WidthRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
 
                     <VerticalStackLayout Grid.Column="2" Spacing="6">
-                        <Label x:Name="SummaryExpenseCaptionLabel" Text="TOTAL EXPENSE" Style="{StaticResource SectionLabel}" FontSize="11" />
-                        <Grid ColumnDefinitions="*,20" ColumnSpacing="7">
-                            <Label x:Name="SummaryExpenseAmountLabel" Text="RM 0.00" FontFamily="OpenSansSemibold" FontSize="21" FontAutoScalingEnabled="False" LineBreakMode="NoWrap" MaxLines="1" HorizontalOptions="Fill" VerticalTextAlignment="Center" />
+                        <Label Text="TOTAL EXPENSE" Style="{StaticResource SectionLabel}" FontSize="11" />
+                        <HorizontalStackLayout Spacing="8">
+                            <Label x:Name="SummaryExpenseAmountLabel" Text="RM 0.00" FontFamily="OpenSansSemibold" FontSize="21" FontAutoScalingEnabled="False" VerticalTextAlignment="Center" />
                             <Path
-                                Grid.Column="1"
                                 WidthRequest="20"
                                 HeightRequest="20"
                                 Data="M 4,4 L 18,18 M 9,18 L 18,18 L 18,9"
@@ -221,9 +220,64 @@
                                 Fill="Transparent"
                                 Aspect="Uniform"
                                 VerticalOptions="Center" />
-                        </Grid>
+                        </HorizontalStackLayout>
                     </VerticalStackLayout>
                 </Grid>
+
+                <VerticalStackLayout x:Name="BudgetProgressSection" IsVisible="False" Spacing="10">
+                    <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <Label Text="NET SPENDING / BUDGET" Style="{StaticResource SectionLabel}" FontSize="10" LineBreakMode="TailTruncation" MaxLines="1" VerticalTextAlignment="Center" />
+                        <Label x:Name="BudgetUsagePercentageLabel" Grid.Column="1" Text="0% USED" FontFamily="OpenSansSemibold" FontSize="11" TextColor="{DynamicResource Accent}" HorizontalTextAlignment="End" VerticalTextAlignment="Center" />
+                    </Grid>
+                    <Label x:Name="BudgetUsageAmountLabel" Text="RM 0.00 / RM 0.00" FontFamily="OpenSansSemibold" FontSize="22" FontAutoScalingEnabled="False" LineBreakMode="NoWrap" MaxLines="1" />
+                    <ProgressBar
+                        x:Name="BudgetUsageProgress"
+                        HeightRequest="8"
+                        Progress="0"
+                        ProgressColor="{DynamicResource Accent}"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}" />
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                        <HorizontalStackLayout
+                            x:Name="BudgetSurplusPanel"
+                            IsVisible="False"
+                            Spacing="6"
+                            VerticalOptions="Center">
+                            <Border
+                                WidthRequest="17"
+                                HeightRequest="17"
+                                Padding="0"
+                                BackgroundColor="Transparent"
+                                Stroke="{AppThemeBinding Light={StaticResource PositiveLight}, Dark={StaticResource PositiveDark}}"
+                                StrokeThickness="1.5"
+                                StrokeShape="RoundRectangle 9">
+                                <Label
+                                    Text="+"
+                                    FontFamily="OpenSansSemibold"
+                                    FontSize="12"
+                                    FontAutoScalingEnabled="False"
+                                    TextColor="{AppThemeBinding Light={StaticResource PositiveLight}, Dark={StaticResource PositiveDark}}"
+                                    HorizontalTextAlignment="Center"
+                                    VerticalTextAlignment="Center" />
+                            </Border>
+                            <Label
+                                x:Name="BudgetSurplusLabel"
+                                Text="RM 0.00 surplus"
+                                FontFamily="OpenSansSemibold"
+                                FontSize="12"
+                                TextColor="{AppThemeBinding Light={StaticResource PositiveLight}, Dark={StaticResource PositiveDark}}"
+                                VerticalTextAlignment="Center" />
+                        </HorizontalStackLayout>
+                        <Label
+                            x:Name="BudgetUsageRemainingLabel"
+                            Grid.Column="1"
+                            Text="RM 0.00 left"
+                            Style="{StaticResource BodyMuted}"
+                            FontSize="12"
+                            HorizontalTextAlignment="End"
+                            VerticalTextAlignment="Center" />
+                    </Grid>
+                </VerticalStackLayout>
             </VerticalStackLayout>
         </Border>
     </Grid>

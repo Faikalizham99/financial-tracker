@@ -42,6 +42,11 @@ public partial class MonthlySummaryCard : ContentView
     private string availableAmountText = "RM 0.00";
     private string incomeAmountText = "RM 0.00";
     private string expenseAmountText = "RM 0.00";
+    private string budgetUsageAmountText = "RM 0.00 / RM 0.00";
+    private string budgetUsagePercentageText = "0% USED";
+    private string budgetUsageRemainingText = "RM 0.00 left";
+    private string budgetSurplusText = string.Empty;
+    private bool hasBudgetSurplus;
     private Func<DateTime, Task<MonthlyBudgetRecord?>>? budgetProvider;
     private bool areAmountsVisible = true;
     private IReadOnlyList<TransactionRecord>? cachedRecords;
@@ -166,6 +171,7 @@ public partial class MonthlySummaryCard : ContentView
         }
 
         long incomeMinor = 0;
+        long budgetIncomeMinor = 0;
         long expenseMinor = 0;
         var transactionCount = 0;
 
@@ -189,6 +195,10 @@ public partial class MonthlySummaryCard : ContentView
             if (record.Type.Equals("Income", StringComparison.OrdinalIgnoreCase))
             {
                 incomeMinor += record.AmountMinor;
+                if (!TransactionCatalog.IsIncomeExcludedFromBudgetUsage(record.Category))
+                {
+                    budgetIncomeMinor += record.AmountMinor;
+                }
             }
             else
             {
@@ -201,25 +211,79 @@ public partial class MonthlySummaryCard : ContentView
             cachedCurrency.Symbol,
             separateSign: true);
         incomeAmountText = MoneyFormatter.FormatMinor(incomeMinor, cachedCurrency.Symbol);
-        var spentText = MoneyFormatter.FormatMinor(expenseMinor, cachedCurrency.Symbol);
-        if (cachedBudget is null)
-        {
-            expenseAmountText = spentText;
-            SummaryExpenseCaptionLabel.Text = "TOTAL EXPENSE";
-        }
-        else
-        {
-            var budgetMinor = IncludeInvestmentInTotals
-                ? cachedBudget.BudgetIncludingInvestmentMinor
-                : cachedBudget.BudgetExcludingInvestmentMinor;
-            expenseAmountText =
-                $"{spentText} / {MoneyFormatter.FormatMinorValue(budgetMinor)}";
-            SummaryExpenseCaptionLabel.Text = "SPENT / BUDGET";
-        }
+        expenseAmountText = MoneyFormatter.FormatMinor(
+            expenseMinor,
+            cachedCurrency.Symbol);
+        UpdateBudgetProgress(expenseMinor, budgetIncomeMinor, cachedCurrency.Symbol);
 
         SummaryTransactionCountLabel.Text = transactionCount.ToString(
             CultureInfo.InvariantCulture);
         UpdateAmountVisibility();
+    }
+
+    private void UpdateBudgetProgress(
+        long expenseMinor,
+        long offsetIncomeMinor,
+        string currencySymbol)
+    {
+        if (cachedBudget is null)
+        {
+            BudgetProgressSection.IsVisible = false;
+            return;
+        }
+
+        var budgetMinor = IncludeInvestmentInTotals
+            ? cachedBudget.BudgetIncludingInvestmentMinor
+            : cachedBudget.BudgetExcludingInvestmentMinor;
+        if (budgetMinor <= 0)
+        {
+            BudgetProgressSection.IsVisible = false;
+            return;
+        }
+
+        var netSpendingMinor = Math.Max(expenseMinor - offsetIncomeMinor, 0);
+        var surplusMinor = Math.Max(offsetIncomeMinor - expenseMinor, 0);
+        var usageRatio = (double)netSpendingMinor / budgetMinor;
+        var remainingMinor = budgetMinor - netSpendingMinor;
+        budgetUsageAmountText =
+            $"{MoneyFormatter.FormatMinor(netSpendingMinor, currencySymbol)} / " +
+            MoneyFormatter.FormatMinor(budgetMinor, currencySymbol);
+        budgetUsagePercentageText =
+            $"{Math.Max(0, usageRatio * 100):0.#}% USED";
+        hasBudgetSurplus = surplusMinor > 0;
+        budgetSurplusText = hasBudgetSurplus
+            ? $"{MoneyFormatter.FormatMinor(surplusMinor, currencySymbol)} surplus"
+            : string.Empty;
+        budgetUsageRemainingText = remainingMinor >= 0
+            ? $"{MoneyFormatter.FormatMinor(remainingMinor, currencySymbol)} left"
+            : $"{MoneyFormatter.FormatMinor(-remainingMinor, currencySymbol)} over budget";
+        BudgetUsageProgress.Progress = Math.Clamp(usageRatio, 0, 1);
+        BudgetProgressSection.IsVisible = true;
+
+        if (usageRatio > 1)
+        {
+            ThemeResourceBindings.SetColor(
+                BudgetUsageProgress,
+                ProgressBar.ProgressColorProperty,
+                "NegativeLight",
+                "NegativeDark");
+            ThemeResourceBindings.SetColor(
+                BudgetUsagePercentageLabel,
+                Label.TextColorProperty,
+                "NegativeLight",
+                "NegativeDark");
+        }
+        else
+        {
+            ThemeResourceBindings.SetDynamic(
+                BudgetUsageProgress,
+                ProgressBar.ProgressColorProperty,
+                "Accent");
+            ThemeResourceBindings.SetDynamic(
+                BudgetUsagePercentageLabel,
+                Label.TextColorProperty,
+                "Accent");
+        }
     }
 
     private int? PrepareBudgetMonth(DateTime month)
@@ -384,6 +448,20 @@ public partial class MonthlySummaryCard : ContentView
         SummaryExpenseAmountLabel.Text = areAmountsVisible
             ? expenseAmountText
             : "••••••";
+        BudgetUsageAmountLabel.Text = areAmountsVisible
+            ? budgetUsageAmountText
+            : new string('\u2022', 6);
+        BudgetUsagePercentageLabel.Text = areAmountsVisible
+            ? budgetUsagePercentageText
+            : new string('\u2022', 2);
+        BudgetSurplusLabel.Text = areAmountsVisible
+            ? budgetSurplusText
+            : new string('\u2022', 4);
+        BudgetSurplusPanel.IsVisible = hasBudgetSurplus && areAmountsVisible;
+        BudgetUsageRemainingLabel.Text = areAmountsVisible
+            ? budgetUsageRemainingText
+            : new string('\u2022', 6);
+        BudgetUsageProgress.IsVisible = areAmountsVisible;
         UpdateAmountFontSizes();
         OpenEyeIcon.IsVisible = areAmountsVisible;
         ClosedEyeIcon.IsVisible = !areAmountsVisible;
@@ -407,18 +485,17 @@ public partial class MonthlySummaryCard : ContentView
             _ => 40
         };
 
-        var expenseLength = SummaryExpenseAmountLabel.Text.Length;
-        SummaryExpenseAmountLabel.FontSize = (isPhone, expenseLength) switch
+        SummaryExpenseAmountLabel.FontSize = 21;
+        var budgetLength = BudgetUsageAmountLabel.Text.Length;
+        BudgetUsageAmountLabel.FontSize = (isPhone, budgetLength) switch
         {
-            (true, > 28) => 8.5,
-            (true, > 24) => 9,
-            (true, > 20) => 10,
-            (true, > 16) => 12,
-            (true, _) => 19,
-            (false, > 28) => 14,
-            (false, > 22) => 16,
-            (false, > 18) => 18,
-            _ => 21
+            (true, > 32) => 13,
+            (true, > 26) => 15,
+            (true, > 20) => 17,
+            (true, _) => 21,
+            (false, > 38) => 16,
+            (false, > 30) => 18,
+            _ => 22
         };
     }
 
