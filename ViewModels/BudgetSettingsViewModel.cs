@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using FinancialTracker.Helpers;
 using FinancialTracker.Models;
 using FinancialTracker.Services;
 
@@ -11,8 +12,8 @@ public sealed class BudgetSettingsViewModel(
     MonthlyBudgetService monthlyBudgetService,
     SettingsViewModel settingsViewModel) : INotifyPropertyChanged
 {
-    public const int MinimumBudgetYear = 2000;
-    public static int MaximumBudgetYear => DateTime.Today.Year + 10;
+    public const int MinimumBudgetYear = DateRangeLimits.MinimumYear;
+    public static int MaximumBudgetYear => DateRangeLimits.MaximumYear;
     private readonly SemaphoreSlim operationLock = new(1, 1);
     private DateTime selectedMonth = StartOfMonth(DateTime.Today);
     private int historyYear = DateTime.Today.Year;

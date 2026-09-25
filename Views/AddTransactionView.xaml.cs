@@ -164,7 +164,7 @@ public partial class AddTransactionView : ContentView
     {
         HideDescriptionSuggestions();
         var feedback = InteractionAnimations.PulseAsync(sender);
-        var categories = selectedType.Key == "Income"
+        var categories = selectedType.Key == TransactionCatalog.IncomeTypeKey
             ? TransactionCatalog.IncomeCategories
             : TransactionCatalog.ExpenseCategories;
         await OpenSelectorAsync(SelectorKind.Category, "Choose category", categories);
@@ -223,10 +223,10 @@ public partial class AddTransactionView : ContentView
                 TypeArrowIcon.FadeToAsync(0, 90, Easing.CubicIn),
                 TypeLabel.FadeToAsync(0.35, 90, Easing.CubicIn));
 
-            selectedType = selectedType.Key == "Expense"
+            selectedType = selectedType.Key == TransactionCatalog.ExpenseTypeKey
                 ? TransactionCatalog.TransactionTypes[1]
                 : TransactionCatalog.TransactionTypes[0];
-            selectedCategory = selectedType.Key == "Income"
+            selectedCategory = selectedType.Key == TransactionCatalog.IncomeTypeKey
                 ? TransactionCatalog.IncomeCategories[^1]
                 : TransactionCatalog.ExpenseCategories[^1];
             UpdateTypeAndCategory();
@@ -503,8 +503,8 @@ public partial class AddTransactionView : ContentView
             ? null
             : await DatePickerRequested(
                 transactionDate,
-                new DateTime(2000, 1, 1),
-                DateTime.Today.AddYears(10));
+                DateRangeLimits.MinimumDate,
+                DateRangeLimits.MaximumDate);
         if (selectedDate is not null)
         {
             transactionDate = selectedDate.Value.Date;
@@ -598,7 +598,7 @@ public partial class AddTransactionView : ContentView
         TransactionRecord record)
     {
         var transactionType = TransactionCatalog.GetTransactionType(record.Type);
-        var isIncome = transactionType.Key.Equals("Income", StringComparison.OrdinalIgnoreCase);
+        var isIncome = TransactionCatalog.IsIncomeType(transactionType.Key);
         return new TransactionHistorySuggestion(
             record.Description.Trim(),
             transactionType,
@@ -707,7 +707,7 @@ public partial class AddTransactionView : ContentView
             : TransactionCatalog.PaymentMethods.FirstOrDefault(item =>
                 item.Key.Equals(transaction.PaymentMethod, StringComparison.OrdinalIgnoreCase))
               ?? TransactionCatalog.DefaultPaymentMethod;
-        var categories = selectedType.Key == "Income"
+        var categories = selectedType.Key == TransactionCatalog.IncomeTypeKey
             ? TransactionCatalog.IncomeCategories
             : TransactionCatalog.ExpenseCategories;
         selectedCategory = transaction is null
@@ -745,7 +745,7 @@ public partial class AddTransactionView : ContentView
     private void UpdateTypeAndCategory()
     {
         TypeLabel.Text = selectedType.Title;
-        var isIncome = selectedType.Key == "Income";
+        var isIncome = selectedType.Key == TransactionCatalog.IncomeTypeKey;
         IncomeArrowPath.IsVisible = isIncome;
         ExpenseArrowPath.IsVisible = !isIncome;
         UpdateCategory();

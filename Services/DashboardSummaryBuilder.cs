@@ -19,26 +19,37 @@ public static class DashboardSummaryBuilder
             DateTime.DaysInMonth(previousMonth.Year, previousMonth.Month));
         var expenseRecords = new List<TransactionRecord>();
         var incomeRecords = new List<TransactionRecord>();
+        long totalExpenseMinor = 0;
+        long totalIncomeMinor = 0;
+        long expenseThroughTodayMinor = 0;
+        long spentTodayMinor = 0;
         long previousExpenseMinor = 0;
 
         foreach (var record in records)
         {
-            var transactionDate = record.TransactionDate;
-            var isExpense = record.Type.Equals(
-                "Expense",
-                StringComparison.OrdinalIgnoreCase);
+            var transactionDate = record.TransactionDate.Date;
+            var isExpense = TransactionCatalog.IsExpenseType(record.Type);
             if (transactionDate.Year == today.Year &&
                 transactionDate.Month == today.Month)
             {
                 if (isExpense)
                 {
                     expenseRecords.Add(record);
+                    totalExpenseMinor += record.AmountMinor;
+                    if (transactionDate <= today)
+                    {
+                        expenseThroughTodayMinor += record.AmountMinor;
+                    }
+
+                    if (transactionDate == today)
+                    {
+                        spentTodayMinor += record.AmountMinor;
+                    }
                 }
-                else if (record.Type.Equals(
-                             "Income",
-                             StringComparison.OrdinalIgnoreCase))
+                else if (TransactionCatalog.IsIncomeType(record.Type))
                 {
                     incomeRecords.Add(record);
+                    totalIncomeMinor += record.AmountMinor;
                 }
             }
             else if (isExpense &&
@@ -50,25 +61,19 @@ public static class DashboardSummaryBuilder
             }
         }
 
-        var totalExpenseMinor = expenseRecords.Sum(record => record.AmountMinor);
-        var totalIncomeMinor = incomeRecords.Sum(record => record.AmountMinor);
-        var expenseThroughTodayMinor = expenseRecords
-            .Where(record => record.TransactionDate.Date <= today)
-            .Sum(record => record.AmountMinor);
-        var spentTodayMinor = expenseRecords
-            .Where(record => record.TransactionDate.Date == today)
-            .Sum(record => record.AmountMinor);
         var dailyAverageMinor = (long)Math.Round(
             expenseThroughTodayMinor / (double)today.Day);
 
-        var recentRecords = records.Take(3).ToList();
-        var recentActivity = recentRecords
-            .Select((record, index) => TransactionActivityItem.FromRecord(
-                record,
+        var recentCount = Math.Min(records.Count, 3);
+        var recentActivity = new List<TransactionActivityItem>(recentCount);
+        for (var index = 0; index < recentCount; index++)
+        {
+            recentActivity.Add(TransactionActivityItem.FromRecord(
+                records[index],
                 selectedCurrency.Symbol,
-                index < recentRecords.Count - 1,
-                canModifyTransaction: canModifyTransactions))
-            .ToList();
+                index < recentCount - 1,
+                canModifyTransaction: canModifyTransactions));
+        }
 
         return new DashboardSummary(
             MoneyFormatter.FormatMinor(spentTodayMinor, selectedCurrency.Symbol),
@@ -81,7 +86,8 @@ public static class DashboardSummaryBuilder
                 expenseRecords,
                 incomeRecords,
                 expenseThroughTodayMinor,
-                previousExpenseMinor),
+                previousExpenseMinor,
+                totalExpenseMinor),
             BuildCategorySummary(
                 TransactionCatalog.ExpenseCategories,
                 expenseRecords,
@@ -130,7 +136,8 @@ public static class DashboardSummaryBuilder
         IReadOnlyList<TransactionRecord> expenseRecords,
         IReadOnlyList<TransactionRecord> incomeRecords,
         long expenseThroughTodayMinor,
-        long previousExpenseMinor)
+        long previousExpenseMinor,
+        long totalExpenseMinor)
     {
         if (previousExpenseMinor > 0)
         {
@@ -158,7 +165,6 @@ public static class DashboardSummaryBuilder
                 })
                 .OrderByDescending(item => item.AmountMinor)
                 .First();
-            var totalExpenseMinor = expenseRecords.Sum(record => record.AmountMinor);
             var share = totalExpenseMinor > 0
                 ? topCategory.AmountMinor / (double)totalExpenseMinor
                 : 0;

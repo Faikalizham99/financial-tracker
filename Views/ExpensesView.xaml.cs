@@ -1,15 +1,12 @@
-namespace FinancialTracker.Views;
-
 using System.Globalization;
 using FinancialTracker.Helpers;
 using FinancialTracker.Models;
 using FinancialTracker.Services;
-using Microsoft.Maui;
+
+namespace FinancialTracker.Views;
 
 public partial class ExpensesView : ContentView
 {
-    private static readonly DateTime MinimumSupportedDate = new(2000, 1, 1);
-
     public event Action<int>? EditTransactionRequested;
     public event Action<int>? DeleteTransactionRequested;
     public event Action? SearchRequested;
@@ -116,7 +113,7 @@ public partial class ExpensesView : ContentView
         Func<DateTime, Task<MonthlyBudgetRecord?>> provider) =>
         TransactionsMonthlySummary.BudgetProvider = provider;
 
-    public void ReloadBudget() => TransactionsMonthlySummary.ReloadBudget();
+    public Task ReloadBudgetAsync() => TransactionsMonthlySummary.ReloadBudgetAsync();
 
     public async Task FocusTransactionAsync(
         int transactionId,
@@ -129,13 +126,18 @@ public partial class ExpensesView : ContentView
         var transaction = transactionRecords.FirstOrDefault(record => record.Id == transactionId);
         if (transaction is null)
         {
-            if (revealTargetAsync is not null)
+            try
             {
-                await revealTargetAsync();
+                if (revealTargetAsync is not null)
+                {
+                    await revealTargetAsync();
+                }
+            }
+            finally
+            {
+                ReleaseTransactionFocusCancellation(focusCancellation);
             }
 
-            transactionFocusCancellation = null;
-            focusCancellation.Dispose();
             return;
         }
 
@@ -156,6 +158,7 @@ public partial class ExpensesView : ContentView
             await Task.Delay(50);
             if (cancellationToken.IsCancellationRequested)
             {
+                ReleaseTransactionFocusCancellation(focusCancellation);
                 return;
             }
 
@@ -170,17 +173,17 @@ public partial class ExpensesView : ContentView
 
         if (highlight is null)
         {
-            if (revealTargetAsync is not null)
+            try
             {
-                await revealTargetAsync();
+                if (revealTargetAsync is not null)
+                {
+                    await revealTargetAsync();
+                }
             }
-
-            if (ReferenceEquals(transactionFocusCancellation, focusCancellation))
+            finally
             {
-                transactionFocusCancellation = null;
+                ReleaseTransactionFocusCancellation(focusCancellation);
             }
-
-            focusCancellation.Dispose();
 
             return;
         }
@@ -251,13 +254,19 @@ public partial class ExpensesView : ContentView
         {
             highlight.CancelAnimations();
             highlight.Opacity = 0;
-            if (ReferenceEquals(transactionFocusCancellation, focusCancellation))
-            {
-                transactionFocusCancellation = null;
-            }
-
-            focusCancellation.Dispose();
+            ReleaseTransactionFocusCancellation(focusCancellation);
         }
+    }
+
+    private void ReleaseTransactionFocusCancellation(
+        CancellationTokenSource cancellation)
+    {
+        if (ReferenceEquals(transactionFocusCancellation, cancellation))
+        {
+            transactionFocusCancellation = null;
+        }
+
+        cancellation.Dispose();
     }
 
     private async void OnPreviousMonthTapped(object? sender, TappedEventArgs e) =>
@@ -634,8 +643,8 @@ public partial class ExpensesView : ContentView
             ? null
             : await DatePickerRequested(
                 dateRangeStartDraft,
-                MinimumSupportedDate,
-                DateTime.Today.AddYears(10));
+                DateRangeLimits.MinimumDate,
+                DateRangeLimits.MaximumDate);
         if (selectedDate is not null)
         {
             dateRangeStartDraft = selectedDate.Value.Date;
@@ -657,8 +666,8 @@ public partial class ExpensesView : ContentView
             ? null
             : await DatePickerRequested(
                 dateRangeEndDraft,
-                MinimumSupportedDate,
-                DateTime.Today.AddYears(10));
+                DateRangeLimits.MinimumDate,
+                DateRangeLimits.MaximumDate);
         if (selectedDate is not null)
         {
             dateRangeEndDraft = selectedDate.Value.Date;
@@ -1082,7 +1091,7 @@ public partial class ExpensesView : ContentView
                         canModifyTransaction: !isTransactionEditingLocked))
                     .ToList();
                 var netAmountMinor = groupRecords.Sum(record =>
-                    record.Type.Equals("Income", StringComparison.OrdinalIgnoreCase)
+                    TransactionCatalog.IsIncomeType(record.Type)
                         ? record.AmountMinor
                         : -record.AmountMinor);
 

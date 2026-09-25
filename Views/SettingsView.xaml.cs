@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using FinancialTracker.Controls;
 using FinancialTracker.Helpers;
+using FinancialTracker.Services;
 using FinancialTracker.ViewModels;
 using Microsoft.Maui.Graphics;
 
@@ -25,7 +26,7 @@ public partial class SettingsView : ContentView
     private bool isDatabaseTransferInProgress;
     private double preservedSettingsScrollY;
     private int settingsScrollPreservationVersion;
-    private string selectedCategoryType = "Expense";
+    private string selectedCategoryType = TransactionCatalog.ExpenseTypeKey;
 
     public event Action<bool>? DataDrawerVisibilityChanged;
     public event Action<DateTime>? BudgetSettingsRequested;
@@ -435,7 +436,7 @@ public partial class SettingsView : ContentView
 
         if (showCategories)
         {
-            selectedCategoryType = "Expense";
+            selectedCategoryType = TransactionCatalog.ExpenseTypeKey;
             ExpenseCategoriesPanel.IsVisible = true;
             IncomeCategoriesPanel.IsVisible = false;
             UpdateCategoryTypeVisuals();
@@ -527,16 +528,17 @@ public partial class SettingsView : ContentView
     {
         if (isCategoryTypeAnimating ||
             categoryType == selectedCategoryType ||
-            categoryType is not ("Expense" or "Income"))
+            (!TransactionCatalog.IsExpenseType(categoryType) &&
+             !TransactionCatalog.IsIncomeType(categoryType)))
         {
             return;
         }
 
         isCategoryTypeAnimating = true;
-        var outgoingPanel = selectedCategoryType == "Expense"
+        var outgoingPanel = selectedCategoryType == TransactionCatalog.ExpenseTypeKey
             ? ExpenseCategoriesPanel
             : IncomeCategoriesPanel;
-        var incomingPanel = categoryType == "Expense"
+        var incomingPanel = categoryType == TransactionCatalog.ExpenseTypeKey
             ? ExpenseCategoriesPanel
             : IncomeCategoriesPanel;
 
@@ -568,7 +570,7 @@ public partial class SettingsView : ContentView
 
     private void UpdateCategoryTypeVisuals()
     {
-        var expenseSelected = selectedCategoryType == "Expense";
+        var expenseSelected = selectedCategoryType == TransactionCatalog.ExpenseTypeKey;
         ExpenseCategoryTab.Style = GetResourceStyle(
             expenseSelected ? "SelectedCategorySegmentTab" : "CategorySegmentTab");
         IncomeCategoryTab.Style = GetResourceStyle(

@@ -1,14 +1,14 @@
-namespace FinancialTracker;
-
 using System.ComponentModel;
 using System.Globalization;
-using FinancialTracker.ViewModels;
 using FinancialTracker.Controls;
 using FinancialTracker.Data;
-using FinancialTracker.Services;
 using FinancialTracker.Helpers;
 using FinancialTracker.Models;
+using FinancialTracker.Services;
+using FinancialTracker.ViewModels;
 using Microsoft.Maui.Storage;
+
+namespace FinancialTracker;
 
 public partial class MainPage : ContentPage
 {
@@ -34,6 +34,7 @@ public partial class MainPage : ContentPage
         };
 
     private readonly SettingsViewModel settingsViewModel;
+    private readonly MonthlyBudgetService monthlyBudgetService;
     private readonly LocalDatabase localDatabase;
     private readonly IBackupFileSaver backupFileSaver;
     private readonly IBackupFilePicker backupFilePicker;
@@ -92,6 +93,7 @@ public partial class MainPage : ContentPage
 #endif
         UpdateDashboardGreeting();
         this.settingsViewModel = settingsViewModel;
+        this.monthlyBudgetService = monthlyBudgetService;
         this.localDatabase = localDatabase;
         this.backupFileSaver = backupFileSaver;
         this.backupFilePicker = backupFilePicker;
@@ -209,8 +211,10 @@ public partial class MainPage : ContentPage
 
         await RunWithDataLoadingSkeletonAsync(async () =>
         {
+            monthlyBudgetService.InvalidateCache();
             await settingsViewModel.RefreshCurrentBudgetStatusAsync();
             await RefreshTransactionViewsAfterResumeAsync();
+            await ReloadMonthlyBudgetCardsAsync();
         });
     }
 
@@ -753,9 +757,12 @@ public partial class MainPage : ContentPage
     private async void OnBudgetSaved(object? sender, EventArgs e)
     {
         await settingsViewModel.RefreshCurrentBudgetStatusAsync();
-        DashboardMonthlySummary.ReloadBudget();
-        ExpensesView.ReloadBudget();
+        await ReloadMonthlyBudgetCardsAsync();
     }
+
+    private Task ReloadMonthlyBudgetCardsAsync() => Task.WhenAll(
+        DashboardMonthlySummary.ReloadBudgetAsync(),
+        ExpensesView.ReloadBudgetAsync());
 
     private async Task OnDatabaseBackupRequested()
     {
@@ -824,8 +831,10 @@ public partial class MainPage : ContentPage
             {
                 await localDatabase.RestoreFromBackupAsync(backupStream);
                 databaseRestored = true;
+                monthlyBudgetService.InvalidateCache();
                 await settingsViewModel.ReloadAsync();
                 await RefreshTransactionViewsAsync();
+                await ReloadMonthlyBudgetCardsAsync();
             });
 
             await DisplayAlertAsync(

@@ -44,7 +44,7 @@ public sealed class TransactionActivityItem : INotifyPropertyChanged
         bool isDescriptionExpanded = false,
         bool canModifyTransaction = false)
     {
-        var isIncome = record.Type.Equals("Income", StringComparison.OrdinalIgnoreCase);
+        var isIncome = TransactionCatalog.IsIncomeType(record.Type);
         var category = TransactionCatalog.GetCategory(record.Category, isIncome);
         var paymentMethod = TransactionCatalog.GetPaymentMethod(record.PaymentMethod);
         var dateText = record.TransactionDate.Date switch

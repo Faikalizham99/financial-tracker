@@ -136,15 +136,15 @@ public partial class MonthlySummaryCard : ContentView
             "Available for selected range");
     }
 
-    public void ReloadBudget()
+    public Task ReloadBudgetAsync()
     {
         if (cachedBudgetMonth is not DateTime month)
         {
-            return;
+            return Task.CompletedTask;
         }
 
         var requestVersion = ++budgetLoadVersion;
-        _ = LoadBudgetAsync(month, requestVersion);
+        return LoadBudgetAsync(month, requestVersion);
     }
 
     private void RefreshCore(
@@ -193,7 +193,7 @@ public partial class MonthlySummaryCard : ContentView
                 continue;
             }
 
-            if (record.Type.Equals("Income", StringComparison.OrdinalIgnoreCase))
+            if (TransactionCatalog.IsIncomeType(record.Type))
             {
                 incomeMinor += record.AmountMinor;
                 if (!TransactionCatalog.IsIncomeExcludedFromBudgetUsage(record.Category))

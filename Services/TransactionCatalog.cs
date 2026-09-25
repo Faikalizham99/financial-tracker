@@ -4,14 +4,16 @@ namespace FinancialTracker.Services;
 
 public static class TransactionCatalog
 {
+    public const string ExpenseTypeKey = "Expense";
+    public const string IncomeTypeKey = "Income";
     public const string InvestmentCategoryKey = "Investment";
     public const string BonusCategoryKey = "Bonus";
     public const string SalaryCategoryKey = "Salary";
 
     public static IReadOnlyList<TransactionOption> TransactionTypes { get; } =
     [
-        new("Expense", "Expenses", "category_expense_others.png"),
-        new("Income", "Income", "category_salary.png")
+        new(ExpenseTypeKey, "Expenses", "category_expense_others.png"),
+        new(IncomeTypeKey, "Income", "category_salary.png")
     ];
 
     public static IReadOnlyList<TransactionOption> ExpenseCategories { get; } =
@@ -42,6 +44,12 @@ public static class TransactionCatalog
     public static bool IsIncomeExcludedFromBudgetUsage(string categoryKey) =>
         categoryKey.Equals(BonusCategoryKey, StringComparison.OrdinalIgnoreCase) ||
         categoryKey.Equals(SalaryCategoryKey, StringComparison.OrdinalIgnoreCase);
+
+    public static bool IsIncomeType(string typeKey) =>
+        typeKey.Equals(IncomeTypeKey, StringComparison.OrdinalIgnoreCase);
+
+    public static bool IsExpenseType(string typeKey) =>
+        typeKey.Equals(ExpenseTypeKey, StringComparison.OrdinalIgnoreCase);
 
     public static IReadOnlyList<TransactionOption> PaymentMethods { get; } =
     [
