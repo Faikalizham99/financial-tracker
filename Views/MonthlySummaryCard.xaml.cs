@@ -49,6 +49,7 @@ public partial class MonthlySummaryCard : ContentView
     private bool hasBudgetSurplus;
     private Func<DateTime, Task<MonthlyBudgetRecord?>>? budgetProvider;
     private bool areAmountsVisible = true;
+    private bool isBudgetExplanationVisible;
     private IReadOnlyList<TransactionRecord>? cachedRecords;
     private CurrencyOption? cachedCurrency;
     private MonthlyBudgetRecord? cachedBudget;
@@ -351,6 +352,32 @@ public partial class MonthlySummaryCard : ContentView
         await feedback;
     }
 
+    private async void OnBudgetExplanationTapped(object? sender, TappedEventArgs e)
+    {
+        var feedback = InteractionAnimations.PulseAsync(BudgetExplanationButton);
+        isBudgetExplanationVisible = !isBudgetExplanationVisible;
+
+        BudgetExplanationPanel.CancelAnimations();
+        if (isBudgetExplanationVisible)
+        {
+            BudgetExplanationPanel.Opacity = 0;
+            BudgetExplanationPanel.IsVisible = true;
+            await BudgetExplanationPanel.FadeToAsync(1, 140, Easing.CubicOut);
+        }
+        else
+        {
+            await BudgetExplanationPanel.FadeToAsync(0, 110, Easing.CubicIn);
+            BudgetExplanationPanel.IsVisible = false;
+        }
+
+        SemanticProperties.SetDescription(
+            BudgetExplanationButton,
+            isBudgetExplanationVisible
+                ? "Hide how net spending is calculated"
+                : "Show how net spending is calculated");
+        await feedback;
+    }
+
     private async void OnTransactionLockTapped(object? sender, TappedEventArgs e)
     {
         var feedback = InteractionAnimations.PulseAsync(TransactionLockButton);
@@ -367,6 +394,8 @@ public partial class MonthlySummaryCard : ContentView
 
     private void UpdateInvestmentToggleVisuals(bool animate)
     {
+        InvestmentExclusionSlash.IsVisible = !IncludeInvestmentInTotals;
+
         if (IncludeInvestmentInTotals)
         {
             ThemeResourceBindings.SetDynamic(
