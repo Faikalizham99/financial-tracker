@@ -19,17 +19,9 @@ public partial class AddTransactionView : ContentView
         Category
     }
 
+    private readonly TransactionEntryViewModel viewModel = new();
     private LocalDatabase? database;
-    private CurrencyOption currency = SettingsViewModel.SupportedCurrencies[0];
-    private TransactionOption selectedType = TransactionCatalog.TransactionTypes[0];
-    private TransactionOption selectedPayment = TransactionCatalog.DefaultPaymentMethod;
-    private TransactionOption selectedCategory = TransactionCatalog.ExpenseCategories[^1];
     private SelectorKind selectorKind;
-    private string currentInput = "0";
-    private decimal accumulator;
-    private DateTime transactionDate = DateTime.Today;
-    private string? pendingOperator;
-    private bool startNewInput = true;
     private bool isOpen;
     private bool isAnimating;
     private bool isSelectorOpen;
@@ -37,8 +29,6 @@ public partial class AddTransactionView : ContentView
     private bool isTypeAnimating;
     private bool isSaving;
     private bool isApplyingDescriptionSuggestion;
-    private IReadOnlyList<TransactionHistorySuggestion> descriptionHistory = [];
-    private TransactionRecord? editingTransaction;
     private IReadOnlyList<SelectableTransactionOption> selectorOptions = [];
 
     public AddTransactionView()
@@ -58,9 +48,9 @@ public partial class AddTransactionView : ContentView
         }
 
         database = localDatabase;
-        editingTransaction = transactionToEdit;
-        currency = selectedCurrency;
-        var descriptionHistoryTask = LoadDescriptionHistoryAsync(transactionHistory);
+        viewModel.Initialize(selectedCurrency, transactionToEdit);
+        var descriptionHistoryTask = viewModel.LoadDescriptionHistoryAsync(
+            transactionHistory);
         ResetForm();
         isOpen = true;
         isAnimating = true;
@@ -84,7 +74,7 @@ public partial class AddTransactionView : ContentView
         }
 
         await descriptionHistoryTask;
-        if (editingTransaction is null)
+        if (!viewModel.IsEditing)
         {
             UpdateDescriptionSuggestions(DescriptionEntry.Text);
         }
@@ -164,9 +154,7 @@ public partial class AddTransactionView : ContentView
     {
         HideDescriptionSuggestions();
         var feedback = InteractionAnimations.PulseAsync(sender);
-        var categories = selectedType.Key == TransactionCatalog.IncomeTypeKey
-            ? TransactionCatalog.IncomeCategories
-            : TransactionCatalog.ExpenseCategories;
+        var categories = viewModel.GetCategoriesForSelectedType();
         await OpenSelectorAsync(SelectorKind.Category, "Choose category", categories);
         await feedback;
     }
@@ -197,11 +185,11 @@ public partial class AddTransactionView : ContentView
         switch (selectorKind)
         {
             case SelectorKind.PaymentMethod:
-                selectedPayment = selectedOption.Option;
+                viewModel.SelectPayment(selectedOption.Option);
                 UpdatePaymentMethod();
                 break;
             case SelectorKind.Category:
-                selectedCategory = selectedOption.Option;
+                viewModel.SelectCategory(selectedOption.Option);
                 UpdateCategory();
                 break;
         }
@@ -223,12 +211,7 @@ public partial class AddTransactionView : ContentView
                 TypeArrowIcon.FadeToAsync(0, 90, Easing.CubicIn),
                 TypeLabel.FadeToAsync(0.35, 90, Easing.CubicIn));
 
-            selectedType = selectedType.Key == TransactionCatalog.ExpenseTypeKey
-                ? TransactionCatalog.TransactionTypes[1]
-                : TransactionCatalog.TransactionTypes[0];
-            selectedCategory = selectedType.Key == TransactionCatalog.IncomeTypeKey
-                ? TransactionCatalog.IncomeCategories[^1]
-                : TransactionCatalog.ExpenseCategories[^1];
+            viewModel.ToggleTransactionType();
             UpdateTypeAndCategory();
             TypeArrowIcon.TranslationY = 10;
 
@@ -259,8 +242,8 @@ public partial class AddTransactionView : ContentView
         selectorKind = kind;
         SelectorTitle.Text = title;
         var selectedKey = kind == SelectorKind.PaymentMethod
-            ? selectedPayment.Key
-            : selectedCategory.Key;
+            ? viewModel.SelectedPayment.Key
+            : viewModel.SelectedCategory.Key;
         selectorOptions = options
             .Select(option => new SelectableTransactionOption(
                 option,
@@ -358,141 +341,10 @@ public partial class AddTransactionView : ContentView
 
         var feedback = InteractionAnimations.PulseAsync(sender);
 
-        if (key == "back")
-        {
-            RemoveLastCharacter();
-        }
-        else if (key is "+" or "-" or "*" or "/")
-        {
-            SelectOperator(key);
-        }
-        else
-        {
-            AppendInput(key);
-        }
-
+        viewModel.ApplyKey(key);
         UpdateAmountAndSaveState();
         await feedback;
     }
-
-    private void AppendInput(string key)
-    {
-        if (startNewInput)
-        {
-            currentInput = key == "." ? "0." : key;
-            startNewInput = false;
-            return;
-        }
-
-        if (key == ".")
-        {
-            if (!currentInput.Contains('.'))
-            {
-                currentInput += ".";
-            }
-
-            return;
-        }
-
-        var decimalIndex = currentInput.IndexOf('.');
-        if (decimalIndex >= 0 && currentInput.Length - decimalIndex > 2)
-        {
-            return;
-        }
-
-        if (currentInput.Replace(".", string.Empty, StringComparison.Ordinal).Length >= 10)
-        {
-            return;
-        }
-
-        currentInput = currentInput == "0" ? key : currentInput + key;
-    }
-
-    private void RemoveLastCharacter()
-    {
-        if (pendingOperator is not null && startNewInput)
-        {
-            currentInput = FormatAmount(accumulator);
-            accumulator = 0;
-            pendingOperator = null;
-            startNewInput = false;
-            return;
-        }
-
-        if (startNewInput)
-        {
-            currentInput = "0";
-            startNewInput = false;
-            return;
-        }
-
-        currentInput = currentInput.Length <= 1
-            ? "0"
-            : currentInput[..^1];
-    }
-
-    private void SelectOperator(string operation)
-    {
-        var currentValue = ParseCurrentInput();
-        if (pendingOperator is not null && !startNewInput)
-        {
-            accumulator = Calculate(accumulator, currentValue, pendingOperator);
-            currentInput = FormatAmount(accumulator);
-        }
-        else
-        {
-            accumulator = currentValue;
-        }
-
-        pendingOperator = operation;
-        startNewInput = true;
-    }
-
-    private decimal GetEffectiveAmount()
-    {
-        if (pendingOperator is null || startNewInput)
-        {
-            return ParseCurrentInput();
-        }
-
-        return Calculate(accumulator, ParseCurrentInput(), pendingOperator);
-    }
-
-    private void CompleteCalculation()
-    {
-        if (pendingOperator is null || startNewInput)
-        {
-            return;
-        }
-
-        currentInput = FormatAmount(
-            Calculate(accumulator, ParseCurrentInput(), pendingOperator));
-        accumulator = 0;
-        pendingOperator = null;
-        startNewInput = false;
-    }
-
-    private static decimal Calculate(decimal left, decimal right, string operation) =>
-        operation switch
-        {
-            "+" => left + right,
-            "-" => left - right,
-            "*" => left * right,
-            "/" when right != 0 => left / right,
-            _ => left
-        };
-
-    private decimal ParseCurrentInput() =>
-        decimal.TryParse(
-            currentInput.TrimEnd('.'),
-            NumberStyles.Number,
-            CultureInfo.InvariantCulture,
-            out var amount)
-            ? amount
-            : 0;
-
-    private static string FormatAmount(decimal amount) =>
-        amount.ToString("0.##", CultureInfo.InvariantCulture);
 
     private async void OnDateChipTapped(object? sender, TappedEventArgs e)
     {
@@ -502,13 +354,13 @@ public partial class AddTransactionView : ContentView
         var selectedDate = DatePickerRequested is null
             ? null
             : await DatePickerRequested(
-                transactionDate,
+                viewModel.TransactionDate,
                 DateRangeLimits.MinimumDate,
                 DateRangeLimits.MaximumDate);
         if (selectedDate is not null)
         {
-            transactionDate = selectedDate.Value.Date;
-            UpdateDateLabel(transactionDate);
+            viewModel.SetTransactionDate(selectedDate.Value);
+            UpdateDateLabel(viewModel.TransactionDate);
         }
 
         await feedback;
@@ -533,9 +385,7 @@ public partial class AddTransactionView : ContentView
         isApplyingDescriptionSuggestion = true;
         DescriptionEntry.Text = suggestion.Description;
         DescriptionEntry.CursorPosition = suggestion.Description.Length;
-        selectedType = suggestion.TransactionType;
-        selectedCategory = suggestion.Category;
-        selectedPayment = suggestion.PaymentMethod;
+        viewModel.ApplySuggestion(suggestion);
         UpdateTypeAndCategory();
         UpdatePaymentMethod();
         isApplyingDescriptionSuggestion = false;
@@ -543,43 +393,15 @@ public partial class AddTransactionView : ContentView
         DescriptionEntry.Focus();
     }
 
-    private async Task LoadDescriptionHistoryAsync(
-        IReadOnlyList<TransactionRecord> records)
-    {
-        try
-        {
-            descriptionHistory = await Task.Run(() => records
-                .Where(record => !string.IsNullOrWhiteSpace(record.Description))
-                .GroupBy(
-                    record => record.Description.Trim(),
-                    StringComparer.OrdinalIgnoreCase)
-                .Select(group => CreateHistorySuggestion(group.First()))
-                .ToList());
-        }
-        catch
-        {
-            descriptionHistory = [];
-        }
-    }
-
     private void UpdateDescriptionSuggestions(string? input)
     {
-        var query = input?.Trim();
-        if (string.IsNullOrWhiteSpace(query))
+        if (string.IsNullOrWhiteSpace(input))
         {
             HideDescriptionSuggestions();
             return;
         }
 
-        var matches = descriptionHistory
-            .Where(suggestion => suggestion.Description.Contains(
-                query,
-                StringComparison.OrdinalIgnoreCase))
-            .OrderByDescending(suggestion => suggestion.Description.StartsWith(
-                query,
-                StringComparison.OrdinalIgnoreCase))
-            .Take(4)
-            .ToList();
+        var matches = viewModel.FindDescriptionSuggestions(input);
 
         DescriptionSuggestionsView.ItemsSource = matches;
         DescriptionSuggestionsPanel.HeightRequest = matches.Count * 54 + 8;
@@ -594,37 +416,25 @@ public partial class AddTransactionView : ContentView
         DescriptionSuggestionsPanel.HeightRequest = 0;
     }
 
-    private static TransactionHistorySuggestion CreateHistorySuggestion(
-        TransactionRecord record)
-    {
-        var transactionType = TransactionCatalog.GetTransactionType(record.Type);
-        var isIncome = TransactionCatalog.IsIncomeType(transactionType.Key);
-        return new TransactionHistorySuggestion(
-            record.Description.Trim(),
-            transactionType,
-            TransactionCatalog.GetCategory(record.Category, isIncome),
-            TransactionCatalog.GetPaymentMethod(record.PaymentMethod));
-    }
-
     private async void OnSaveTapped(object? sender, TappedEventArgs e)
     {
         HideDescriptionSuggestions();
 
-        if (pendingOperator is not null)
+        if (viewModel.HasPendingCalculation)
         {
-            if (isSaving || startNewInput)
+            if (isSaving || !viewModel.CanCompleteCalculation)
             {
                 return;
             }
 
             var equalsFeedback = InteractionAnimations.PulseAsync(sender);
-            CompleteCalculation();
+            viewModel.CompleteCalculation();
             UpdateAmountAndSaveState();
             await equalsFeedback;
             return;
         }
 
-        var amount = GetEffectiveAmount();
+        var amount = viewModel.EffectiveAmount;
         if (isSaving ||
             amount <= 0 ||
             string.IsNullOrWhiteSpace(DescriptionEntry.Text) ||
@@ -639,22 +449,12 @@ public partial class AddTransactionView : ContentView
 
         try
         {
-            var transaction = new TransactionRecord
-            {
-                Id = editingTransaction?.Id ?? 0,
-                Type = selectedType.Key,
-                Category = selectedCategory.Key,
-                PaymentMethod = selectedPayment.Key,
-                Description = DescriptionEntry.Text?.Trim() ?? string.Empty,
-                AmountMinor = decimal.ToInt64(decimal.Round(amount * 100, 0, MidpointRounding.AwayFromZero)),
-                CurrencyCode = editingTransaction?.CurrencyCode ?? currency.Code,
-                TransactionDate = transactionDate,
-                CreatedAtUtc = editingTransaction?.CreatedAtUtc ?? DateTime.UtcNow
-            };
+            var transaction = viewModel.CreateTransaction(
+                DescriptionEntry.Text ?? string.Empty);
 
             async Task SaveAndRefreshAsync()
             {
-                if (editingTransaction is null)
+                if (!viewModel.IsEditing)
                 {
                     await database.SaveTransactionAsync(transaction);
                 }
@@ -663,7 +463,7 @@ public partial class AddTransactionView : ContentView
                     await database.UpdateTransactionAsync(transaction);
                 }
 
-                SaveLabel.Text = editingTransaction is null ? "Saved" : "Updated";
+                SaveLabel.Text = viewModel.IsEditing ? "Updated" : "Saved";
                 await CloseAsync();
 
                 var transactionSaved = TransactionSaved;
@@ -698,38 +498,15 @@ public partial class AddTransactionView : ContentView
 
     private void ResetForm()
     {
-        var transaction = editingTransaction;
-        selectedType = transaction is null
-            ? TransactionCatalog.TransactionTypes[0]
-            : TransactionCatalog.GetTransactionType(transaction.Type);
-        selectedPayment = transaction is null
-            ? TransactionCatalog.DefaultPaymentMethod
-            : TransactionCatalog.PaymentMethods.FirstOrDefault(item =>
-                item.Key.Equals(transaction.PaymentMethod, StringComparison.OrdinalIgnoreCase))
-              ?? TransactionCatalog.DefaultPaymentMethod;
-        var categories = selectedType.Key == TransactionCatalog.IncomeTypeKey
-            ? TransactionCatalog.IncomeCategories
-            : TransactionCatalog.ExpenseCategories;
-        selectedCategory = transaction is null
-            ? categories[^1]
-            : categories.FirstOrDefault(item =>
-                item.Key.Equals(transaction.Category, StringComparison.OrdinalIgnoreCase))
-              ?? categories[^1];
-        currentInput = transaction is null
-            ? "0"
-            : FormatAmount(transaction.AmountMinor / 100m);
-        accumulator = 0;
-        pendingOperator = null;
-        startNewInput = true;
+        var transaction = viewModel.EditingTransaction;
         isSaving = false;
         isApplyingDescriptionSuggestion = false;
         HideDescriptionSuggestions();
         isApplyingDescriptionSuggestion = true;
         DescriptionEntry.Text = transaction?.Description ?? string.Empty;
         isApplyingDescriptionSuggestion = false;
-        transactionDate = transaction?.TransactionDate.Date ?? DateTime.Today;
-        CurrencySymbolLabel.Text = currency.Symbol;
-        UpdateDateLabel(transactionDate);
+        CurrencySymbolLabel.Text = viewModel.Currency.Symbol;
+        UpdateDateLabel(viewModel.TransactionDate);
         UpdateTypeAndCategory();
         UpdatePaymentMethod();
         UpdateAmountAndSaveState();
@@ -744,8 +521,8 @@ public partial class AddTransactionView : ContentView
 
     private void UpdateTypeAndCategory()
     {
-        TypeLabel.Text = selectedType.Title;
-        var isIncome = selectedType.Key == TransactionCatalog.IncomeTypeKey;
+        TypeLabel.Text = viewModel.SelectedType.Title;
+        var isIncome = TransactionCatalog.IsIncomeType(viewModel.SelectedType.Key);
         IncomeArrowPath.IsVisible = isIncome;
         ExpenseArrowPath.IsVisible = !isIncome;
         UpdateCategory();
@@ -753,19 +530,19 @@ public partial class AddTransactionView : ContentView
 
     private void UpdatePaymentMethod()
     {
-        PaymentLabel.Text = selectedPayment.Title;
-        PaymentIcon.Source = selectedPayment.IconAsset;
+        PaymentLabel.Text = viewModel.SelectedPayment.Title;
+        PaymentIcon.Source = viewModel.SelectedPayment.IconAsset;
     }
 
     private void UpdateCategory()
     {
-        CategoryLabel.Text = selectedCategory.Title;
-        CategoryIcon.Source = selectedCategory.IconAsset;
+        CategoryLabel.Text = viewModel.SelectedCategory.Title;
+        CategoryIcon.Source = viewModel.SelectedCategory.IconAsset;
     }
 
     private void UpdateAmountAndSaveState()
     {
-        var amountText = GetAmountDisplayText();
+        var amountText = viewModel.AmountDisplayText;
         AmountLabel.Text = amountText;
         AmountLabel.FontSize = amountText.Length switch
         {
@@ -778,32 +555,12 @@ public partial class AddTransactionView : ContentView
         UpdateSaveButton();
     }
 
-    private string GetAmountDisplayText()
-    {
-        if (pendingOperator is null)
-        {
-            return currentInput;
-        }
-
-        var operation = pendingOperator switch
-        {
-            "*" => "×",
-            "/" => "÷",
-            "-" => "−",
-            _ => "+"
-        };
-        var left = FormatAmount(accumulator);
-        return startNewInput
-            ? $"{left} {operation}"
-            : $"{left} {operation} {currentInput}";
-    }
-
     private void UpdateSaveButton()
     {
-        var isEqualsAction = pendingOperator is not null;
+        var isEqualsAction = viewModel.HasPendingCalculation;
         var hasDescription = !string.IsNullOrWhiteSpace(DescriptionEntry.Text);
-        var canSave = GetEffectiveAmount() > 0 && hasDescription;
-        var canCalculate = isEqualsAction && !startNewInput;
+        var canSave = viewModel.EffectiveAmount > 0 && hasDescription;
+        var canCalculate = viewModel.CanCompleteCalculation;
         var isActionEnabled = !isSaving &&
             (isEqualsAction ? canCalculate : canSave);
         SaveButton.IsEnabled = isActionEnabled;
@@ -842,7 +599,7 @@ public partial class AddTransactionView : ContentView
         }
         SaveLabel.Text = isSaving
             ? "Saving…"
-            : isEqualsAction ? "=" : editingTransaction is null ? "Save" : "Update";
+            : isEqualsAction ? "=" : viewModel.IsEditing ? "Update" : "Save";
         SaveLabel.FontSize = isEqualsAction ? 23 : 14;
         SaveButton.Opacity = isSaving ? 0.7 : 1;
     }

@@ -2,6 +2,7 @@ using System.Globalization;
 using FinancialTracker.Helpers;
 using FinancialTracker.Models;
 using FinancialTracker.Services;
+using FinancialTracker.ViewModels;
 
 namespace FinancialTracker.Views;
 
@@ -38,6 +39,7 @@ public partial class ExpensesView : ContentView
             .ThenBy(option => option.Title, StringComparer.OrdinalIgnoreCase)
     ];
 
+    private readonly ExpensesViewModel viewModel = new();
     private DateTime displayedMonth = new(
         DateTime.Today.Year,
         DateTime.Today.Month,
@@ -1050,71 +1052,24 @@ public partial class ExpensesView : ContentView
             return;
         }
 
-        var hasDateRange = selectedStartDate is not null && selectedEndDate is not null;
-        var recordsInPeriod = hasDateRange
-            ? transactionRecords
-            : transactionRecords.Where(record =>
-                record.TransactionDate.Year == displayedMonth.Year &&
-                record.TransactionDate.Month == displayedMonth.Month);
-        var filteredRecords = recordsInPeriod
-            .Where(record =>
-                selectedPaymentFilter is null ||
-                record.PaymentMethod.Equals(
-                    selectedPaymentFilter.Key,
-                    StringComparison.OrdinalIgnoreCase))
-            .Where(record =>
-                selectedCategoryFilter is null ||
-                record.Category.Equals(
-                    selectedCategoryFilter.Key,
-                    StringComparison.OrdinalIgnoreCase))
-            .Where(record =>
-                selectedStartDate is null ||
-                record.TransactionDate.Date >= selectedStartDate.Value)
-            .Where(record =>
-                selectedEndDate is null ||
-                record.TransactionDate.Date <= selectedEndDate.Value)
-            .OrderByDescending(record => record.TransactionDate)
-            .ThenByDescending(record => record.Id)
-            .ToList();
-        var groups = filteredRecords
-            .GroupBy(record => record.TransactionDate.Date)
-            .OrderByDescending(group => group.Key)
-            .Select(group =>
-            {
-                var groupRecords = group.ToList();
-                var items = groupRecords
-                    .Select((record, index) => TransactionActivityItem.FromRecord(
-                        record,
-                        selectedCurrency.Symbol,
-                        index < groupRecords.Count - 1,
-                        expandedTransactionDescriptionIds.Contains(record.Id),
-                        canModifyTransaction: !isTransactionEditingLocked))
-                    .ToList();
-                var netAmountMinor = groupRecords.Sum(record =>
-                    TransactionCatalog.IsIncomeType(record.Type)
-                        ? record.AmountMinor
-                        : -record.AmountMinor);
-
-                return new TransactionActivityGroup(
-                    group.Key,
-                    GetDateGroupTitle(group.Key),
-                    items,
-                    netAmountMinor,
-                    selectedCurrency.Symbol,
-                    !collapsedActivityGroupDates.Contains(group.Key));
-            })
-            .ToList();
+        var presentation = viewModel.BuildPresentation(
+            transactionRecords,
+            selectedCurrency,
+            displayedMonth,
+            selectedPaymentFilter,
+            selectedCategoryFilter,
+            selectedStartDate,
+            selectedEndDate,
+            expandedTransactionDescriptionIds,
+            collapsedActivityGroupDates,
+            canModifyTransactions: !isTransactionEditingLocked);
 
         HideStickyActivityHeader();
-        BindableLayout.SetItemsSource(ActivityGroupsLayout, groups);
-        ActivityGroupsLayout.IsVisible = groups.Count > 0;
-        EmptyActivityState.IsVisible = groups.Count == 0;
-        EmptyActivityTitle.Text = selectedPaymentFilter is not null ||
-            selectedCategoryFilter is not null ||
-            selectedStartDate is not null
-            ? "No transactions match these filters"
-            : $"No transactions in {displayedMonth.ToString("MMMM yyyy", CultureInfo.CurrentCulture)}";
-        if (hasDateRange)
+        BindableLayout.SetItemsSource(ActivityGroupsLayout, presentation.Groups);
+        ActivityGroupsLayout.IsVisible = presentation.Groups.Count > 0;
+        EmptyActivityState.IsVisible = presentation.Groups.Count == 0;
+        EmptyActivityTitle.Text = presentation.EmptyTitle;
+        if (presentation.HasDateRange)
         {
             TransactionsMonthlySummary.RefreshRange(
                 transactionRecords,
@@ -1129,7 +1084,7 @@ public partial class ExpensesView : ContentView
                 selectedCurrency,
                 displayedMonth);
         }
-        UpdateMonthSwitcherLabel();
+        MonthSwitcherLabel.Text = presentation.PeriodLabel;
         UpdateFilterChips();
         ScheduleDescriptionMeasurements();
         Dispatcher.Dispatch(UpdateStickyActivityHeader);
@@ -1248,16 +1203,4 @@ public partial class ExpensesView : ContentView
         return $"{startDate.ToString("d MMM yyyy", CultureInfo.CurrentCulture)} – {endDate.ToString("d MMM yyyy", CultureInfo.CurrentCulture)}";
     }
 
-    private static string GetDateGroupTitle(DateTime date)
-    {
-        var dayLabel = date.Date switch
-        {
-            var value when value == DateTime.Today => "TODAY",
-            var value when value == DateTime.Today.AddDays(-1) => "YESTERDAY",
-            _ => date.ToString("dddd", CultureInfo.CurrentCulture).ToUpperInvariant()
-        };
-
-        var dateLabel = date.ToString("d MMM yyyy", CultureInfo.CurrentCulture).ToUpperInvariant();
-        return $"{dayLabel} · {dateLabel}";
-    }
 }

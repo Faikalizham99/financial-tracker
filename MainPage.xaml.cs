@@ -35,11 +35,11 @@ public partial class MainPage : ContentPage
 
     private readonly SettingsViewModel settingsViewModel;
     private readonly MonthlyBudgetService monthlyBudgetService;
+    private readonly TransactionDataStore transactionDataStore;
     private readonly LocalDatabase localDatabase;
     private readonly IBackupFileSaver backupFileSaver;
     private readonly IBackupFilePicker backupFilePicker;
     private readonly SemaphoreSlim initialDataLoadLock = new(1, 1);
-    private readonly SemaphoreSlim transactionRefreshLock = new(1, 1);
     private readonly SemaphoreSlim dataLoadingOperationLock = new(1, 1);
     private readonly List<string> homeSectionOrder = [];
     private readonly List<string> draftHomeSectionOrder = [];
@@ -47,7 +47,6 @@ public partial class MainPage : ContentPage
     private readonly VisualElement[] navigationIcons;
     private readonly Border[] navigationTabs;
     private readonly Label[] navigationLabels;
-    private IReadOnlyList<TransactionRecord>? cachedTransactionRecords;
     private int selectedSectionIndex = 1;
     private int navigationTransitionVersion;
     private TransactionRecord? pendingDeleteTransaction;
@@ -74,6 +73,7 @@ public partial class MainPage : ContentPage
         SettingsViewModel settingsViewModel,
         BudgetSettingsViewModel budgetSettingsViewModel,
         MonthlyBudgetService monthlyBudgetService,
+        TransactionDataStore transactionDataStore,
         LocalDatabase localDatabase,
         IBackupFileSaver backupFileSaver,
         IBackupFilePicker backupFilePicker)
@@ -94,6 +94,7 @@ public partial class MainPage : ContentPage
         UpdateDashboardGreeting();
         this.settingsViewModel = settingsViewModel;
         this.monthlyBudgetService = monthlyBudgetService;
+        this.transactionDataStore = transactionDataStore;
         this.localDatabase = localDatabase;
         this.backupFileSaver = backupFileSaver;
         this.backupFilePicker = backupFilePicker;
@@ -177,9 +178,8 @@ public partial class MainPage : ContentPage
             // begins, including on platforms where initialization resumes inline.
             await Task.Yield();
 
-            var records = await localDatabase.GetTransactionsForStartupAsync();
+            var records = await transactionDataStore.LoadStartupAsync();
             await settingsViewModel.InitializeAsync();
-            cachedTransactionRecords = records;
             ApplyTransactionData(records, settingsViewModel.SelectedCurrency);
             hasCompletedInitialDataLoad = true;
             completedSuccessfully = true;
@@ -231,12 +231,12 @@ public partial class MainPage : ContentPage
                 return;
             }
 
-            if (cachedTransactionRecords is not null)
+            if (transactionDataStore.IsLoaded)
             {
                 await RunWithDataLoadingSkeletonAsync(() =>
                 {
                     ApplyTransactionData(
-                        cachedTransactionRecords,
+                        transactionDataStore.Records,
                         settingsViewModel.SelectedCurrency);
                     return Task.CompletedTask;
                 });
@@ -688,7 +688,7 @@ public partial class MainPage : ContentPage
         await AddTransactionOverlay.OpenAsync(
             localDatabase,
             settingsViewModel.SelectedCurrency,
-            cachedTransactionRecords ?? []);
+            transactionDataStore.Records);
         await feedback;
     }
 
@@ -922,10 +922,10 @@ public partial class MainPage : ContentPage
         DashboardMonthlySummary.IsTransactionEditingLocked = isLocked;
         ExpensesView.SetTransactionEditingLocked(isLocked);
 
-        if (cachedTransactionRecords is not null)
+        if (transactionDataStore.IsLoaded)
         {
             RefreshDashboard(
-                cachedTransactionRecords,
+                transactionDataStore.Records,
                 settingsViewModel.SelectedCurrency);
             Dispatcher.Dispatch(UpdateDashboardTransactionContextMenus);
         }
@@ -1071,8 +1071,7 @@ public partial class MainPage : ContentPage
 
     private async Task<TransactionRecord?> FindTransactionAsync(int transactionId)
     {
-        var cachedTransaction = cachedTransactionRecords?
-            .FirstOrDefault(transaction => transaction.Id == transactionId);
+        var cachedTransaction = transactionDataStore.FindCached(transactionId);
         if (cachedTransaction is not null)
         {
             return cachedTransaction;
@@ -1081,7 +1080,7 @@ public partial class MainPage : ContentPage
         TransactionRecord? storedTransaction = null;
         await RunWithDataLoadingSkeletonAsync(async () =>
         {
-            storedTransaction = await localDatabase.GetTransactionAsync(transactionId);
+            storedTransaction = await transactionDataStore.FindStoredAsync(transactionId);
             if (storedTransaction is null)
             {
                 await RefreshTransactionViewsAsync();
@@ -1107,7 +1106,7 @@ public partial class MainPage : ContentPage
         await AddTransactionOverlay.OpenAsync(
             localDatabase,
             settingsViewModel.SelectedCurrency,
-            cachedTransactionRecords ?? [],
+            transactionDataStore.Records,
             transaction);
     }
 
@@ -1483,33 +1482,24 @@ public partial class MainPage : ContentPage
     private async Task RefreshTransactionViewsAfterResumeAsync()
     {
         await RefreshTransactionViewsCoreAsync(
-            recoverSuspiciousEmptyRead: cachedTransactionRecords?.Count == 0);
+            recoverSuspiciousEmptyRead:
+                transactionDataStore.IsLoaded && transactionDataStore.Records.Count == 0);
     }
 
     private async Task RefreshTransactionViewsCoreAsync(
         bool recoverSuspiciousEmptyRead)
     {
-        await transactionRefreshLock.WaitAsync();
-        try
+        var records = await transactionDataStore.RefreshAsync(
+            useStartupRecovery: recoverSuspiciousEmptyRead);
+        if (recoverSuspiciousEmptyRead && records.Count > 0)
         {
-            var records = recoverSuspiciousEmptyRead
-                ? await localDatabase.GetTransactionsForStartupAsync()
-                : await localDatabase.GetTransactionsAsync();
-            if (recoverSuspiciousEmptyRead && records.Count > 0)
-            {
-                // The database may have appeared after an early iOS or
-                // LiveContainer read. Reload appearance and currency from the
-                // same recovered file before rendering its transactions.
-                await settingsViewModel.ReloadAsync();
-            }
+            // The database may have appeared after an early iOS or
+            // LiveContainer read. Reload appearance and currency from the
+            // same recovered file before rendering its transactions.
+            await settingsViewModel.ReloadAsync();
+        }
 
-            cachedTransactionRecords = records;
-            ApplyTransactionData(records, settingsViewModel.SelectedCurrency);
-        }
-        finally
-        {
-            transactionRefreshLock.Release();
-        }
+        ApplyTransactionData(records, settingsViewModel.SelectedCurrency);
     }
 
     private void ApplyTransactionData(
