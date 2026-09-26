@@ -33,11 +33,19 @@ public static class AssetCatalog
             IsAccessible: true,
             IsActive: true),
         new(
+            "cash",
+            "Cash",
+            "payment_cash.png",
+            "Cash",
+            3,
+            IsAccessible: true,
+            IsActive: true),
+        new(
             "cimb",
             "CIMB",
             "asset_cimb.jpeg",
             "Bank",
-            3,
+            4,
             IsAccessible: true,
             IsActive: true),
         new(
@@ -45,7 +53,7 @@ public static class AssetCatalog
             "GXBank",
             "asset_gxbank.jpeg",
             "Bank",
-            4,
+            5,
             IsAccessible: true,
             IsActive: true),
         new(
@@ -53,7 +61,7 @@ public static class AssetCatalog
             "KWSP",
             "asset_kwsp.jpeg",
             "Retirement",
-            5,
+            6,
             IsAccessible: false,
             IsActive: true),
         new(
@@ -61,7 +69,7 @@ public static class AssetCatalog
             "Luno",
             "asset_luno.jpeg",
             "Cryptocurrency",
-            6,
+            7,
             IsAccessible: true,
             IsActive: true),
         new(
@@ -69,7 +77,7 @@ public static class AssetCatalog
             "Maybank",
             "asset_maybank.png",
             "Bank",
-            7,
+            8,
             IsAccessible: true,
             IsActive: true),
         new(
@@ -77,7 +85,7 @@ public static class AssetCatalog
             "Moomoo",
             "asset_moomoo.jpeg",
             "Investment",
-            8,
+            9,
             IsAccessible: true,
             IsActive: true),
         new(
@@ -85,7 +93,7 @@ public static class AssetCatalog
             "Ryt Bank",
             "asset_ryt_bank.jpeg",
             "Bank",
-            9,
+            10,
             IsAccessible: true,
             IsActive: true),
         new(
@@ -93,7 +101,7 @@ public static class AssetCatalog
             "Standard Chartered",
             "asset_standard_chartered.png",
             "Bank",
-            10,
+            11,
             IsAccessible: true,
             IsActive: true),
         new(
@@ -101,7 +109,7 @@ public static class AssetCatalog
             "Touch N Go eWallet",
             "asset_touch_n_go_ewallet.jpeg",
             "E-wallet",
-            11,
+            12,
             IsAccessible: true,
             IsActive: true),
         new(
@@ -109,7 +117,7 @@ public static class AssetCatalog
             "Versa",
             "asset_versa.jpeg",
             "Investment",
-            12,
+            13,
             IsAccessible: true,
             IsActive: true),
         new(
@@ -117,7 +125,7 @@ public static class AssetCatalog
             "Wahed",
             "asset_wahed.jpeg",
             "Investment",
-            13,
+            14,
             IsAccessible: true,
             IsActive: true)
     ];
