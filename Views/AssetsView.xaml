@@ -114,6 +114,17 @@
                                     <Label x:Name="AccessibleChangeLabel" Style="{StaticResource CardTitle}" FontSize="21" />
                                 </VerticalStackLayout>
                             </Grid>
+                            <VerticalStackLayout Spacing="7">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                    <Label Text="ACCESSIBLE SHARE" Style="{StaticResource SectionLabel}" VerticalTextAlignment="Center" />
+                                    <Label x:Name="AccessibleShareLabel" Grid.Column="1" Style="{StaticResource BodyMuted}" FontFamily="OpenSansSemibold" FontSize="12" VerticalTextAlignment="Center" />
+                                </Grid>
+                                <GraphicsView
+                                    x:Name="AccessibleShareChart"
+                                    HeightRequest="10"
+                                    InputTransparent="True"
+                                    SemanticProperties.Description="Accessible assets as a share of the displayed portfolio." />
+                            </VerticalStackLayout>
                         </VerticalStackLayout>
                     </Border>
 
@@ -178,7 +189,11 @@
                         <Border Style="{StaticResource SoftCard}">
                             <VerticalStackLayout Spacing="8">
                                 <Label Text="TREND" Style="{StaticResource SectionLabel}" />
-                                <Grid x:Name="TrendChart" HeightRequest="82" ColumnSpacing="5" />
+                                <GraphicsView
+                                    x:Name="TrendChart"
+                                    HeightRequest="82"
+                                    InputTransparent="True"
+                                    SemanticProperties.Description="Portfolio value trend for up to six months." />
                                 <Label x:Name="TrendLabel" Style="{StaticResource BodyMuted}" />
                             </VerticalStackLayout>
                         </Border>

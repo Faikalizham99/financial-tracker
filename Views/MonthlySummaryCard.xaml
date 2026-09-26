@@ -286,12 +286,11 @@
                         </VerticalStackLayout>
                     </Border>
                     <Label x:Name="BudgetUsageAmountLabel" Text="RM 0.00 / RM 0.00" FontFamily="OpenSansSemibold" FontSize="22" FontAutoScalingEnabled="False" LineBreakMode="NoWrap" MaxLines="1" />
-                    <ProgressBar
+                    <GraphicsView
                         x:Name="BudgetUsageProgress"
                         HeightRequest="8"
-                        Progress="0"
-                        ProgressColor="{DynamicResource Accent}"
-                        BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}" />
+                        InputTransparent="True"
+                        SemanticProperties.Description="Net spending as a share of the monthly budget." />
                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
                         <HorizontalStackLayout
                             x:Name="BudgetSurplusPanel"

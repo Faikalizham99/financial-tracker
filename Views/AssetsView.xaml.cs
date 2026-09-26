@@ -2,11 +2,16 @@ using System.Globalization;
 using FinancialTracker.Helpers;
 using FinancialTracker.Models;
 using FinancialTracker.Services;
+using FinancialTracker.Views.Drawables;
 
 namespace FinancialTracker.Views;
 
 public partial class AssetsView : ContentView
 {
+    private const string TrendAnimationName = "AssetTrendAnimation";
+    private const string ProgressAnimationName = "AssetProgressAnimation";
+    private const uint ChartAnimationLength = 500;
+
     private enum AssetSortMode
     {
         Alphabetical,
@@ -15,6 +20,8 @@ public partial class AssetsView : ContentView
     }
 
     private readonly Dictionary<string, Entry> amountEntries = new(StringComparer.Ordinal);
+    private readonly AssetTrendChartDrawable trendChartDrawable = new();
+    private readonly AnimatedProgressBarDrawable accessibleShareDrawable = new();
     private AssetPortfolioService? portfolioService;
     private Func<CurrencyOption>? currencyProvider;
     private DateTime selectedMonth = new(DateTime.Today.Year, DateTime.Today.Month, 1);
@@ -32,6 +39,8 @@ public partial class AssetsView : ContentView
     public AssetsView()
     {
         InitializeComponent();
+        TrendChart.Drawable = trendChartDrawable;
+        AccessibleShareChart.Drawable = accessibleShareDrawable;
     }
 
     public Func<DateTime, DateTime, DateTime, Task<DateTime?>>? DatePickerRequested { get; set; }
@@ -85,7 +94,7 @@ public partial class AssetsView : ContentView
         {
             MonthLabel.Text = selectedMonth.ToString("MMMM yyyy", CultureInfo.CurrentCulture);
             portfolio = await portfolioService.GetPortfolioAsync(selectedMonth, currencyProvider());
-            RenderPortfolio(portfolio);
+            RenderPortfolio(portfolio, animateCharts: true);
             hasLoaded = true;
         }
         catch
@@ -101,7 +110,7 @@ public partial class AssetsView : ContentView
         }
     }
 
-    private void RenderPortfolio(AssetPortfolio value)
+    private void RenderPortfolio(AssetPortfolio value, bool animateCharts)
     {
         EditActionLabel.Text = value.HasSnapshot ? "Edit snapshot" : "Add snapshot";
         EmptyCard.IsVisible = !value.HasSnapshot;
@@ -149,6 +158,10 @@ public partial class AssetsView : ContentView
         AccessibleLabel.Text = MoneyFormatter.FormatMinor(value.AccessibleTotalMinor, value.CurrencySymbol);
         AccessibleChangeLabel.Text = FormatChange(value.AccessibleChangeMinor, null, value.CurrencySymbol);
         AccessibleChangeLabel.TextColor = GetChangeColor(value.AccessibleChangeMinor);
+        var accessibleShare = total > 0
+            ? Math.Clamp((double)value.AccessibleTotalMinor / total, 0d, 1d)
+            : 0d;
+        AccessibleShareLabel.Text = $"{accessibleShare:P0}";
         BindingContext = new
         {
             Comparisons = comparisons.Select(item => new
@@ -172,7 +185,7 @@ public partial class AssetsView : ContentView
             _ => $"{trend[0].Month:MMM yyyy} → {trend[^1].Month:MMM yyyy}\n" +
                 $"{MoneyFormatter.FormatMinor(trend[0].TotalMinor, value.CurrencySymbol)} → {MoneyFormatter.FormatMinor(trend[^1].TotalMinor, value.CurrencySymbol)}"
         };
-        RenderTrend(trend);
+        RenderCharts(trend, accessibleShare, animateCharts);
         InsightLabel.Text = includeKwsp ? value.InsightText : value.InsightWithoutKwspText;
     }
 
@@ -202,7 +215,7 @@ public partial class AssetsView : ContentView
 
         if (portfolio is not null)
         {
-            RenderPortfolio(portfolio);
+            RenderPortfolio(portfolio, animateCharts: false);
         }
 
         await feedback;
@@ -214,7 +227,7 @@ public partial class AssetsView : ContentView
         UpdateKwspToggleVisuals();
         if (portfolio is not null)
         {
-            RenderPortfolio(portfolio);
+            RenderPortfolio(portfolio, animateCharts: true);
         }
     }
 
@@ -249,46 +262,66 @@ public partial class AssetsView : ContentView
                 : "KWSP excluded from portfolio totals. Tap to include it.");
     }
 
-    private void RenderTrend(IReadOnlyList<AssetTrendPoint> points)
+    private void RenderCharts(
+        IReadOnlyList<AssetTrendPoint> points,
+        double accessibleShare,
+        bool animate)
     {
-        TrendChart.Children.Clear();
-        TrendChart.ColumnDefinitions.Clear();
-        var visiblePoints = points.TakeLast(6).ToList();
-        for (var index = 0; index < visiblePoints.Count; index++)
+        TrendChart.AbortAnimation(TrendAnimationName);
+        AccessibleShareChart.AbortAnimation(ProgressAnimationName);
+
+        var accent = GetResourceColor("Accent", "#5044E4");
+        var isDarkTheme = Application.Current?.RequestedTheme == AppTheme.Dark;
+        trendChartDrawable.BarColor = accent;
+        trendChartDrawable.LabelColor = GetResourceColor(
+            isDarkTheme ? "SecondaryTextDark" : "SecondaryTextLight",
+            isDarkTheme ? "#BBB4C7" : "#686273");
+        accessibleShareDrawable.ProgressColor = accent;
+        accessibleShareDrawable.TrackColor = GetResourceColor(
+            isDarkTheme ? "DividerDark" : "DividerLight",
+            isDarkTheme ? "#29292D" : "#E9E3DB");
+
+        trendChartDrawable.SetPoints(points, animate);
+        var animateAccessibleShare = accessibleShareDrawable.SetProgress(accessibleShare, animate);
+
+        if (!animate)
         {
-            var point = visiblePoints[index];
-            TrendChart.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
-            var column = new Grid
+            TrendChart.Invalidate();
+            AccessibleShareChart.Invalidate();
+            return;
+        }
+
+        TrendChart.Animate(
+            TrendAnimationName,
+            progress =>
             {
-                RowDefinitions =
+                trendChartDrawable.AnimationProgress = (float)progress;
+                TrendChart.Invalidate();
+            },
+            length: ChartAnimationLength,
+            easing: Easing.CubicOut);
+        if (animateAccessibleShare)
+        {
+            AccessibleShareChart.Animate(
+                ProgressAnimationName,
+                progress =>
                 {
-                    new RowDefinition(GridLength.Star),
-                    new RowDefinition(new GridLength(18))
-                }
-            };
-            var bar = new Border
-            {
-                HeightRequest = Math.Max(7, 58 * point.RelativeHeight),
-                MinimumWidthRequest = 5,
-                HorizontalOptions = LayoutOptions.Fill,
-                VerticalOptions = LayoutOptions.End,
-                BackgroundColor = Application.Current?.Resources["Accent"] as Color,
-                StrokeThickness = 0,
-                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 5 }
-            };
-            var month = new Label
-            {
-                Text = point.Month.ToString("MMM", CultureInfo.CurrentCulture),
-                FontSize = 10,
-                FontFamily = "OpenSansSemibold",
-                HorizontalTextAlignment = TextAlignment.Center,
-                VerticalTextAlignment = TextAlignment.End
-            };
-            column.Add(bar, 0, 0);
-            column.Add(month, 0, 1);
-            TrendChart.Add(column, index, 0);
+                    accessibleShareDrawable.AnimationProgress = (float)progress;
+                    AccessibleShareChart.Invalidate();
+                },
+                length: ChartAnimationLength,
+                easing: Easing.CubicOut);
+        }
+        else
+        {
+            AccessibleShareChart.Invalidate();
         }
     }
+
+    private static Color GetResourceColor(string key, string fallback) =>
+        Application.Current?.Resources.TryGetValue(key, out var value) == true && value is Color color
+            ? color
+            : Color.FromArgb(fallback);
 
     private async void OnPreviousMonthTapped(object? sender, TappedEventArgs e)
     {

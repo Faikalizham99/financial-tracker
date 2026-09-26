@@ -2,12 +2,16 @@ using System.Globalization;
 using FinancialTracker.Helpers;
 using FinancialTracker.Models;
 using FinancialTracker.Services;
+using FinancialTracker.Views.Drawables;
 using Microsoft.Maui.Controls.Shapes;
 
 namespace FinancialTracker.Views;
 
 public partial class MonthlySummaryCard : ContentView
 {
+    private const string BudgetProgressAnimationName = "BudgetProgressAnimation";
+    private const uint BudgetProgressAnimationLength = 500;
+
     public static readonly BindableProperty ShowTransactionCountProperty =
         BindableProperty.Create(
             nameof(ShowTransactionCount),
@@ -40,6 +44,7 @@ public partial class MonthlySummaryCard : ContentView
             });
 
     private string availableAmountText = "RM 0.00";
+    private readonly AnimatedProgressBarDrawable budgetProgressDrawable = new();
     private string incomeAmountText = "RM 0.00";
     private string expenseAmountText = "RM 0.00";
     private string budgetUsageAmountText = "RM 0.00 / RM 0.00";
@@ -61,6 +66,7 @@ public partial class MonthlySummaryCard : ContentView
     public MonthlySummaryCard()
     {
         InitializeComponent();
+        BudgetUsageProgress.Drawable = budgetProgressDrawable;
         UpdateTransactionLockVisuals();
         UpdateInvestmentToggleVisuals(animate: false);
     }
@@ -258,16 +264,14 @@ public partial class MonthlySummaryCard : ContentView
         budgetUsageRemainingText = remainingMinor >= 0
             ? $"{MoneyFormatter.FormatMinor(remainingMinor, currencySymbol)} left"
             : $"{MoneyFormatter.FormatMinor(-remainingMinor, currencySymbol)} over budget";
-        BudgetUsageProgress.Progress = Math.Clamp(usageRatio, 0, 1);
         BudgetProgressSection.IsVisible = true;
 
         if (usageRatio > 1)
         {
-            ThemeResourceBindings.SetColor(
-                BudgetUsageProgress,
-                ProgressBar.ProgressColorProperty,
+            budgetProgressDrawable.ProgressColor = GetThemeResourceColor(
                 "NegativeLight",
-                "NegativeDark");
+                "NegativeDark",
+                "#C2415A");
             ThemeResourceBindings.SetColor(
                 BudgetUsagePercentageLabel,
                 Label.TextColorProperty,
@@ -276,16 +280,56 @@ public partial class MonthlySummaryCard : ContentView
         }
         else
         {
-            ThemeResourceBindings.SetDynamic(
-                BudgetUsageProgress,
-                ProgressBar.ProgressColorProperty,
-                "Accent");
+            budgetProgressDrawable.ProgressColor = GetResourceColor("Accent", "#5044E4");
             ThemeResourceBindings.SetDynamic(
                 BudgetUsagePercentageLabel,
                 Label.TextColorProperty,
                 "Accent");
         }
+
+        budgetProgressDrawable.TrackColor = GetThemeResourceColor(
+            "SurfaceMutedLight",
+            "SurfaceMutedDark",
+            "#F1EDE7");
+        AnimateBudgetProgress(Math.Clamp(usageRatio, 0, 1));
     }
+
+    private void AnimateBudgetProgress(double targetProgress)
+    {
+        BudgetUsageProgress.AbortAnimation(BudgetProgressAnimationName);
+        var shouldAnimate = budgetProgressDrawable.SetProgress(targetProgress, animate: true);
+        if (!shouldAnimate)
+        {
+            BudgetUsageProgress.Invalidate();
+            return;
+        }
+
+        BudgetUsageProgress.Animate(
+            BudgetProgressAnimationName,
+            progress =>
+            {
+                budgetProgressDrawable.AnimationProgress = (float)progress;
+                BudgetUsageProgress.Invalidate();
+            },
+            length: BudgetProgressAnimationLength,
+            easing: Easing.CubicOut);
+    }
+
+    private static Color GetThemeResourceColor(
+        string lightKey,
+        string darkKey,
+        string fallback)
+    {
+        var key = Application.Current?.RequestedTheme == AppTheme.Dark
+            ? darkKey
+            : lightKey;
+        return GetResourceColor(key, fallback);
+    }
+
+    private static Color GetResourceColor(string key, string fallback) =>
+        Application.Current?.Resources.TryGetValue(key, out var value) == true && value is Color color
+            ? color
+            : Color.FromArgb(fallback);
 
     private int? PrepareBudgetMonth(DateTime month)
     {
