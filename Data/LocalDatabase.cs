@@ -5,7 +5,7 @@ namespace FinancialTracker.Data;
 
 public sealed class LocalDatabase
 {
-    private const int CurrentSchemaVersion = 6;
+    private const int CurrentSchemaVersion = 7;
     private const string KnownTransactionDataPreferenceKey =
         "database_has_known_transaction_data";
     private static readonly TimeSpan[] StartupEmptyReadRetryDelays =
@@ -139,6 +139,83 @@ public sealed class LocalDatabase
         ExecuteWithConnectionAsync(
             activeConnection => activeConnection.InsertOrReplaceAsync(budget));
 
+    public Task<AssetSnapshotData?> GetAssetSnapshotAsync(int monthKey) =>
+        ExecuteWithConnectionAsync(async activeConnection =>
+        {
+            var snapshot = await activeConnection.Table<AssetSnapshotRecord>()
+                .Where(item => item.MonthKey == monthKey)
+                .FirstOrDefaultAsync();
+            if (snapshot is null)
+            {
+                return null;
+            }
+
+            var values = await activeConnection.Table<AssetSnapshotValueRecord>()
+                .Where(item => item.SnapshotId == snapshot.Id)
+                .ToListAsync();
+            return new AssetSnapshotData(snapshot, values);
+        });
+
+    public Task<IReadOnlyList<AssetSnapshotData>> GetAssetSnapshotsThroughAsync(
+        int lastMonthKey,
+        int limit) =>
+        ExecuteWithConnectionAsync<IReadOnlyList<AssetSnapshotData>>(async activeConnection =>
+        {
+            var snapshots = await activeConnection.Table<AssetSnapshotRecord>()
+                .Where(item => item.MonthKey <= lastMonthKey)
+                .OrderByDescending(item => item.MonthKey)
+                .Take(Math.Max(1, limit))
+                .ToListAsync();
+            if (snapshots.Count == 0)
+            {
+                return [];
+            }
+
+            var snapshotIds = string.Join(",", snapshots.Select(item => item.Id));
+            var values = await activeConnection.QueryAsync<AssetSnapshotValueRecord>(
+                $"SELECT * FROM AssetSnapshotValues WHERE SnapshotId IN ({snapshotIds})");
+            var valuesBySnapshot = values.ToLookup(item => item.SnapshotId);
+            return snapshots
+                .Select(snapshot => new AssetSnapshotData(
+                    snapshot,
+                    valuesBySnapshot[snapshot.Id].ToList()))
+                .ToList();
+        });
+
+    public Task SaveAssetSnapshotAsync(
+        AssetSnapshotRecord snapshot,
+        IReadOnlyList<AssetSnapshotValueRecord> values) =>
+        ExecuteWithConnectionAsync(activeConnection =>
+            activeConnection.RunInTransactionAsync(transaction =>
+            {
+                var now = DateTime.UtcNow;
+                var existing = transaction.Table<AssetSnapshotRecord>()
+                    .FirstOrDefault(item => item.MonthKey == snapshot.MonthKey);
+                if (existing is null)
+                {
+                    snapshot.CreatedAtUtc = now;
+                    snapshot.UpdatedAtUtc = now;
+                    transaction.Insert(snapshot);
+                }
+                else
+                {
+                    snapshot.Id = existing.Id;
+                    snapshot.CreatedAtUtc = existing.CreatedAtUtc;
+                    snapshot.UpdatedAtUtc = now;
+                    transaction.Update(snapshot);
+                    transaction.Execute(
+                        "DELETE FROM AssetSnapshotValues WHERE SnapshotId = ?",
+                        snapshot.Id);
+                }
+
+                foreach (var value in values)
+                {
+                    value.Id = 0;
+                    value.SnapshotId = snapshot.Id;
+                    transaction.Insert(value);
+                }
+            }));
+
     public Task<TransactionDataSnapshot> GetTransactionSnapshotForStartupAsync(
         DateTime month,
         CancellationToken cancellationToken = default) =>
@@ -259,6 +336,18 @@ public sealed class LocalDatabase
         else if (version == 5)
         {
             await MigratePrototypeMonthlyBudgetsAsync();
+        }
+
+        if (version < 7)
+        {
+            await Connection.CreateTableAsync<AssetSnapshotRecord>();
+            await Connection.CreateTableAsync<AssetSnapshotValueRecord>();
+            await Connection.ExecuteAsync(
+                "CREATE UNIQUE INDEX IF NOT EXISTS IX_AssetSnapshots_MonthKey " +
+                "ON AssetSnapshots (MonthKey)");
+            await Connection.ExecuteAsync(
+                "CREATE UNIQUE INDEX IF NOT EXISTS IX_AssetSnapshotValues_Snapshot_Asset " +
+                "ON AssetSnapshotValues (SnapshotId, AssetKey)");
         }
 
         if (version < CurrentSchemaVersion)
@@ -552,6 +641,8 @@ public sealed class LocalDatabase
             var hasSettingsTable = TableExists(candidate, "AppSettings");
             var hasTransactionsTable = TableExists(candidate, "Transactions");
             var hasMonthlyBudgetsTable = TableExists(candidate, "MonthlyBudgets");
+            var hasAssetSnapshotsTable = TableExists(candidate, "AssetSnapshots");
+            var hasAssetSnapshotValuesTable = TableExists(candidate, "AssetSnapshotValues");
             if (!hasSettingsTable && !hasTransactionsTable)
             {
                 throw new InvalidDataException(
@@ -560,7 +651,9 @@ public sealed class LocalDatabase
 
             if ((version >= 1 && !hasSettingsTable) ||
                 (version >= 3 && !hasTransactionsTable) ||
-                (version >= 5 && !hasMonthlyBudgetsTable))
+                (version >= 5 && !hasMonthlyBudgetsTable) ||
+                (version >= 7 &&
+                    (!hasAssetSnapshotsTable || !hasAssetSnapshotValuesTable)))
             {
                 throw new InvalidDataException(
                     "The selected backup is missing required Financial Tracker tables.");

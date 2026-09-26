@@ -49,9 +49,14 @@ The Assets page contains:
    Snapshot when it does.
 3. A portfolio overview showing:
    - Total assets
+   - A With KWSP / Without KWSP display switch
    - Total change in currency and percentage
    - Previous and current snapshot dates
    - Accessible assets and their change
+
+KWSP is included in Total Assets by default but excluded from Accessible
+Assets. Switching to Without KWSP updates the displayed total, change,
+comparison list, trend, and insight without changing the saved snapshot.
 4. An asset comparison list showing:
    - Asset name and icon
    - Previous value

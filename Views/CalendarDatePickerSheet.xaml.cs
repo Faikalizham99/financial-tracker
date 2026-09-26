@@ -45,6 +45,8 @@ public partial class CalendarDatePickerSheet : ContentView
         CreateMonthOptions();
     }
 
+    public bool IsOpen => isOpen;
+
     public async Task<DateTime?> PickAsync(
         DateTime initialDate,
         DateTime minimumDate,

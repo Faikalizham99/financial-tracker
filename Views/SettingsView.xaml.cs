@@ -94,9 +94,9 @@ public partial class SettingsView : ContentView
         if (BindingContext is SettingsViewModel viewModel &&
             e.Parameter is string currencyCode)
         {
+            await SetCurrencySelectorExpandedAsync(false);
             await viewModel.SelectCurrencyAsync(currencyCode);
             UpdateSelectionVisuals();
-            await SetCurrencySelectorExpandedAsync(false);
         }
 
         await feedback;
@@ -599,73 +599,24 @@ public partial class SettingsView : ContentView
             if (isExpanded)
             {
                 CurrencyOptionsPanel.IsVisible = true;
-                CurrencyOptionsPanel.Opacity = 0;
-                CurrencyOptionsPanel.TranslationY = -8;
                 CurrencyOptionsPanel.HeightRequest = -1;
-
-                var widthConstraint = CurrencyOptionsPanel.Width > 0
-                    ? CurrencyOptionsPanel.Width
-                    : Math.Max(Width - 80, 320);
-                var targetHeight = CurrencyOptionsPanel
-                    .Measure(widthConstraint, double.PositiveInfinity)
-                    .Height;
-
-                CurrencyOptionsPanel.HeightRequest = 0;
-                await Task.WhenAll(
-                    AnimateHeightAsync(CurrencyOptionsPanel, 0, targetHeight, 240, Easing.CubicOut),
-                    CurrencyOptionsPanel.FadeToAsync(1, 190, Easing.CubicOut),
-                    CurrencyOptionsPanel.TranslateToAsync(0, 0, 220, Easing.CubicOut),
-                    CurrencyChevron.RotateToAsync(180, 220, Easing.CubicOut));
-
-                CurrencyOptionsPanel.HeightRequest = -1;
+                CurrencyOptionsPanel.Opacity = 1;
+                CurrencyOptionsPanel.TranslationY = 0;
+                await CurrencyChevron.RotateToAsync(180, 140, Easing.CubicOut);
             }
             else
             {
-                var startHeight = CurrencyOptionsPanel.Height > 0
-                    ? CurrencyOptionsPanel.Height
-                    : CurrencyOptionsPanel.DesiredSize.Height;
-                CurrencyOptionsPanel.HeightRequest = startHeight;
-
-                await Task.WhenAll(
-                    AnimateHeightAsync(CurrencyOptionsPanel, startHeight, 0, 190, Easing.CubicIn),
-                    CurrencyOptionsPanel.FadeToAsync(0, 140, Easing.CubicIn),
-                    CurrencyOptionsPanel.TranslateToAsync(0, -6, 170, Easing.CubicIn),
-                    CurrencyChevron.RotateToAsync(0, 190, Easing.CubicIn));
-
                 CurrencyOptionsPanel.IsVisible = false;
                 CurrencyOptionsPanel.HeightRequest = -1;
                 CurrencyOptionsPanel.Opacity = 1;
                 CurrencyOptionsPanel.TranslationY = 0;
+                await CurrencyChevron.RotateToAsync(0, 140, Easing.CubicOut);
             }
         }
         finally
         {
             isCurrencySelectorAnimating = false;
         }
-    }
-
-    private static Task AnimateHeightAsync(
-        VisualElement element,
-        double startHeight,
-        double endHeight,
-        uint duration,
-        Easing easing)
-    {
-        var completion = new TaskCompletionSource<bool>(
-            TaskCreationOptions.RunContinuationsAsynchronously);
-        var animation = new Animation(
-            value => element.HeightRequest = value,
-            startHeight,
-            endHeight,
-            easing);
-
-        animation.Commit(
-            element,
-            "CurrencySelectorHeight",
-            length: duration,
-            finished: (_, _) => completion.TrySetResult(true));
-
-        return completion.Task;
     }
 
     private void SynchronizeColorWheel(string colorHex)

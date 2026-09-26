@@ -254,6 +254,8 @@
         <!-- Expenses is the initial screen. -->
         <views:ExpensesView x:Name="ExpensesView" />
 
+        <views:AssetsView x:Name="AssetsView" IsVisible="False" />
+
         <views:SettingsView x:Name="SettingsView" IsVisible="False" />
 
         <!-- Displayed only when the app has no cached transaction data yet. -->
@@ -359,7 +361,7 @@
                 </Border.Shadow>
                 <Grid
                     x:Name="NavigationTabsGrid"
-                    ColumnDefinitions="*,*,*"
+                    ColumnDefinitions="*,*,*,*"
                     ColumnSpacing="4"
                     SizeChanged="OnNavigationTabsSizeChanged">
                     <Border
@@ -394,7 +396,19 @@
                             <Label x:Name="ExpensesLabel" Text="Transactions" Style="{StaticResource SelectedNavLabel}" />
                         </VerticalStackLayout>
                     </Border>
-                    <Border x:Name="SettingsTab" Grid.Column="2" ZIndex="1" Style="{StaticResource NavTab}">
+                    <Border x:Name="AssetsTab" Grid.Column="2" ZIndex="1" Style="{StaticResource NavTab}">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnAssetsTapped" />
+                        </Border.GestureRecognizers>
+                        <VerticalStackLayout Spacing="0">
+                            <Path
+                                x:Name="AssetsIcon"
+                                Data="M 4,19 L 20,19 L 20,21 L 4,21 Z M 6,10 L 10,10 L 10,18 L 6,18 Z M 11,7 L 15,7 L 15,18 L 11,18 Z M 16,4 L 20,4 L 20,18 L 16,18 Z M 3,10 L 12,2 L 21,10 L 19.5,11.5 L 12,5 L 4.5,11.5 Z"
+                                Style="{StaticResource NavIcon}" />
+                            <Label x:Name="AssetsLabel" Text="Assets" Style="{StaticResource NavLabel}" />
+                        </VerticalStackLayout>
+                    </Border>
+                    <Border x:Name="SettingsTab" Grid.Column="3" ZIndex="1" Style="{StaticResource NavTab}">
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnSettingsTapped" />
                         </Border.GestureRecognizers>

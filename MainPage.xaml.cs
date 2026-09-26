@@ -73,16 +73,17 @@ public partial class MainPage : ContentPage
         SettingsViewModel settingsViewModel,
         BudgetSettingsViewModel budgetSettingsViewModel,
         MonthlyBudgetService monthlyBudgetService,
+        AssetPortfolioService assetPortfolioService,
         TransactionDataStore transactionDataStore,
         LocalDatabase localDatabase,
         IBackupFileSaver backupFileSaver,
         IBackupFilePicker backupFilePicker)
     {
         InitializeComponent();
-        navigationPages = [DashboardView, ExpensesView, SettingsView];
-        navigationIcons = [DashboardIcon, ExpensesIcon, SettingsIcon];
-        navigationTabs = [DashboardTab, ExpensesTab, SettingsTab];
-        navigationLabels = [DashboardLabel, ExpensesLabel, SettingsLabel];
+        navigationPages = [DashboardView, ExpensesView, AssetsView, SettingsView];
+        navigationIcons = [DashboardIcon, ExpensesIcon, AssetsIcon, SettingsIcon];
+        navigationTabs = [DashboardTab, ExpensesTab, AssetsTab, SettingsTab];
+        navigationLabels = [DashboardLabel, ExpensesLabel, AssetsLabel, SettingsLabel];
 #if WINDOWS
         var arrangeHomePointerGesture = new PointerGestureRecognizer();
         arrangeHomePointerGesture.PointerPressed += OnHomeSectionPointerPressed;
@@ -104,10 +105,12 @@ public partial class MainPage : ContentPage
         BudgetSettingsOverlay.BindingContext = budgetSettingsViewModel;
         DashboardMonthlySummary.BudgetProvider = monthlyBudgetService.GetAsync;
         ExpensesView.SetBudgetProvider(monthlyBudgetService.GetAsync);
+        AssetsView.Configure(assetPortfolioService, () => settingsViewModel.SelectedCurrency);
         AddTransactionOverlay.TransactionSaved = OnTransactionSavedAsync;
         AddTransactionOverlay.DatePickerRequested = CalendarPicker.PickAsync;
         AddTransactionOverlay.RunWithTransactionLoadingAsync = RunWithDataLoadingSkeletonAsync;
         ExpensesView.DatePickerRequested = CalendarPicker.PickAsync;
+        AssetsView.DatePickerRequested = CalendarPicker.PickAsync;
         ExpensesView.RunWithTransactionLoadingAsync = RunWithDataLoadingSkeletonAsync;
         ExpensesView.TransactionsRequested = transactionDataStore.GetPeriodAsync;
         ExpensesView.EditTransactionRequested += OnTransactionEditRequested;
@@ -124,6 +127,7 @@ public partial class MainPage : ContentPage
         TransactionSearchView.SearchPageRequested = transactionDataStore.SearchAsync;
         TransactionSearchView.TransactionSelected += OnTransactionSearchResultSelected;
         SettingsView.DataDrawerVisibilityChanged += OnSettingsDataDrawerVisibilityChanged;
+        AssetsView.EditorVisibilityChanged += OnAssetsEditorVisibilityChanged;
         SettingsView.BudgetSettingsRequested += OnBudgetSettingsRequested;
         BudgetSettingsOverlay.VisibilityChanged += OnBudgetSettingsVisibilityChanged;
         budgetSettingsViewModel.BudgetSaved += OnBudgetSaved;
@@ -154,6 +158,18 @@ public partial class MainPage : ContentPage
 
     protected override bool OnBackButtonPressed()
     {
+        if (CalendarPicker.IsOpen)
+        {
+            _ = CalendarPicker.DismissAsync();
+            return true;
+        }
+
+        if (AssetsView.HasOpenOverlay)
+        {
+            _ = AssetsView.HandleBackAsync();
+            return true;
+        }
+
         if (BudgetSettingsOverlay.IsOpen)
         {
             _ = BudgetSettingsOverlay.HandleBackAsync();
@@ -235,20 +251,18 @@ public partial class MainPage : ContentPage
 
             if (transactionDataStore.IsLoaded)
             {
-                await RunWithDataLoadingSkeletonAsync(() =>
-                {
-                    var currency = settingsViewModel.SelectedCurrency;
-                    ExpensesView.SetCurrency(currency);
-                    TransactionSearchView.SetCurrency(currency);
-                    RefreshDashboard(
-                        transactionDataStore.DashboardRecords,
-                        currency);
-                    return Task.CompletedTask;
-                });
+                var currency = settingsViewModel.SelectedCurrency;
+                ExpensesView.SetCurrency(currency);
+                TransactionSearchView.SetCurrency(currency);
+                RefreshDashboard(
+                    transactionDataStore.DashboardRecords,
+                    currency);
+                AssetsView.InvalidateCurrency();
                 return;
             }
 
-            await RunWithDataLoadingSkeletonAsync(RefreshTransactionViewsAsync);
+            await RefreshTransactionViewsAsync();
+            AssetsView.InvalidateCurrency();
         }
     }
 
@@ -258,7 +272,7 @@ public partial class MainPage : ContentPage
     private async void OnProfileTapped(object? sender, TappedEventArgs e)
     {
         var feedback = InteractionAnimations.PulseAsync(sender);
-        await NavigateToSectionAsync(2);
+        await NavigateToSectionAsync(3);
         await feedback;
     }
 
@@ -685,6 +699,9 @@ public partial class MainPage : ContentPage
         => await NavigateToSectionAsync(1);
 
     private async void OnSettingsTapped(object? sender, TappedEventArgs e)
+        => await NavigateToSectionAsync(3);
+
+    private async void OnAssetsTapped(object? sender, TappedEventArgs e)
         => await NavigateToSectionAsync(2);
 
     private async void OnAddTapped(object? sender, TappedEventArgs e)
@@ -739,6 +756,13 @@ public partial class MainPage : ContentPage
         // then cover the same space without the dock drawing or handling input.
         BottomNavigationDock.Opacity = isVisible ? 0 : 1;
         BottomNavigationDock.InputTransparent = isVisible;
+    }
+
+    private void OnAssetsEditorVisibilityChanged(bool isVisible)
+    {
+        BottomNavigationDock.InputTransparent = isVisible;
+        BottomNavigationDock.Opacity = isVisible ? 0 : 1;
+        BottomNavigationDock.IsVisible = !isVisible;
     }
 
     private async void OnBudgetSettingsRequested(DateTime month)
@@ -843,6 +867,7 @@ public partial class MainPage : ContentPage
                 await settingsViewModel.ReloadAsync();
                 await RefreshTransactionViewsAsync();
                 await ReloadMonthlyBudgetCardsAsync();
+                await AssetsView.RefreshAsync();
             });
 
             await DisplayAlertAsync(
@@ -1311,6 +1336,10 @@ public partial class MainPage : ContentPage
         selectedPage.IsVisible = true;
         selectedPage.Opacity = 1;
         selectedPage.TranslationY = 0;
+        if (selectedIndex == 2)
+        {
+            await AssetsView.EnsureLoadedAsync();
+        }
         UpdateNavigationStyles(selectedIndex);
         UpdateLoadingSkeletonForSelectedSection();
 
