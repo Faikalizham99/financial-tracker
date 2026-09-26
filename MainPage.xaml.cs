@@ -109,6 +109,7 @@ public partial class MainPage : ContentPage
         AddTransactionOverlay.RunWithTransactionLoadingAsync = RunWithDataLoadingSkeletonAsync;
         ExpensesView.DatePickerRequested = CalendarPicker.PickAsync;
         ExpensesView.RunWithTransactionLoadingAsync = RunWithDataLoadingSkeletonAsync;
+        ExpensesView.TransactionsRequested = transactionDataStore.GetPeriodAsync;
         ExpensesView.EditTransactionRequested += OnTransactionEditRequested;
         ExpensesView.DeleteTransactionRequested += OnTransactionDeleteRequested;
         ExpensesView.SearchRequested += OnTransactionSearchRequested;
@@ -120,6 +121,7 @@ public partial class MainPage : ContentPage
             OnInvestmentInclusionToggleRequested;
         ExpensesView.InvestmentInclusionToggleRequested +=
             OnInvestmentInclusionToggleRequested;
+        TransactionSearchView.SearchPageRequested = transactionDataStore.SearchAsync;
         TransactionSearchView.TransactionSelected += OnTransactionSearchResultSelected;
         SettingsView.DataDrawerVisibilityChanged += OnSettingsDataDrawerVisibilityChanged;
         SettingsView.BudgetSettingsRequested += OnBudgetSettingsRequested;
@@ -178,9 +180,9 @@ public partial class MainPage : ContentPage
             // begins, including on platforms where initialization resumes inline.
             await Task.Yield();
 
-            var records = await transactionDataStore.LoadStartupAsync();
+            var snapshot = await transactionDataStore.LoadStartupAsync(DateTime.Today);
             await settingsViewModel.InitializeAsync();
-            ApplyTransactionData(records, settingsViewModel.SelectedCurrency);
+            ApplyTransactionData(snapshot, settingsViewModel.SelectedCurrency);
             hasCompletedInitialDataLoad = true;
             completedSuccessfully = true;
         }
@@ -235,9 +237,12 @@ public partial class MainPage : ContentPage
             {
                 await RunWithDataLoadingSkeletonAsync(() =>
                 {
-                    ApplyTransactionData(
-                        transactionDataStore.Records,
-                        settingsViewModel.SelectedCurrency);
+                    var currency = settingsViewModel.SelectedCurrency;
+                    ExpensesView.SetCurrency(currency);
+                    TransactionSearchView.SetCurrency(currency);
+                    RefreshDashboard(
+                        transactionDataStore.DashboardRecords,
+                        currency);
                     return Task.CompletedTask;
                 });
                 return;
@@ -688,14 +693,16 @@ public partial class MainPage : ContentPage
         await AddTransactionOverlay.OpenAsync(
             localDatabase,
             settingsViewModel.SelectedCurrency,
-            transactionDataStore.Records);
+            transactionDataStore.DescriptionHistoryRecords);
         await feedback;
     }
 
     private async void OnTransactionSearchRequested() =>
         await TransactionSearchView.OpenAsync();
 
-    private async Task OnTransactionSearchResultSelected(int transactionId)
+    private async Task OnTransactionSearchResultSelected(
+        int transactionId,
+        DateTime transactionDate)
     {
         // Replace the search surface and the transaction skeleton in one UI
         // frame. Fading the search view over the skeleton causes both layouts
@@ -713,6 +720,7 @@ public partial class MainPage : ContentPage
 
             await ExpensesView.FocusTransactionAsync(
                 transactionId,
+                transactionDate,
                 HideLoadingSkeletonAsync);
         }
         finally
@@ -925,7 +933,7 @@ public partial class MainPage : ContentPage
         if (transactionDataStore.IsLoaded)
         {
             RefreshDashboard(
-                transactionDataStore.Records,
+                transactionDataStore.DashboardRecords,
                 settingsViewModel.SelectedCurrency);
             Dispatcher.Dispatch(UpdateDashboardTransactionContextMenus);
         }
@@ -1106,7 +1114,7 @@ public partial class MainPage : ContentPage
         await AddTransactionOverlay.OpenAsync(
             localDatabase,
             settingsViewModel.SelectedCurrency,
-            transactionDataStore.Records,
+            transactionDataStore.DescriptionHistoryRecords,
             transaction);
     }
 
@@ -1483,15 +1491,17 @@ public partial class MainPage : ContentPage
     {
         await RefreshTransactionViewsCoreAsync(
             recoverSuspiciousEmptyRead:
-                transactionDataStore.IsLoaded && transactionDataStore.Records.Count == 0);
+                transactionDataStore.IsLoaded &&
+                transactionDataStore.DashboardRecords.Count == 0);
     }
 
     private async Task RefreshTransactionViewsCoreAsync(
         bool recoverSuspiciousEmptyRead)
     {
-        var records = await transactionDataStore.RefreshAsync(
+        var snapshot = await transactionDataStore.RefreshAsync(
+            DateTime.Today,
             useStartupRecovery: recoverSuspiciousEmptyRead);
-        if (recoverSuspiciousEmptyRead && records.Count > 0)
+        if (recoverSuspiciousEmptyRead && snapshot.DashboardRecords.Count > 0)
         {
             // The database may have appeared after an early iOS or
             // LiveContainer read. Reload appearance and currency from the
@@ -1499,16 +1509,22 @@ public partial class MainPage : ContentPage
             await settingsViewModel.ReloadAsync();
         }
 
-        ApplyTransactionData(records, settingsViewModel.SelectedCurrency);
+        var currency = settingsViewModel.SelectedCurrency;
+        TransactionSearchView.SetCurrency(currency);
+        RefreshDashboard(snapshot.DashboardRecords, currency);
+        await ExpensesView.RefreshTransactionsAsync(
+            snapshot.PeriodRecords,
+            DateTime.Today,
+            currency);
     }
 
     private void ApplyTransactionData(
-        IReadOnlyList<TransactionRecord> records,
+        TransactionDataSnapshot snapshot,
         CurrencyOption currency)
     {
-        ExpensesView.Refresh(records, currency);
-        TransactionSearchView.SetTransactions(records, currency);
-        RefreshDashboard(records, currency);
+        ExpensesView.Refresh(snapshot.PeriodRecords, currency);
+        TransactionSearchView.SetCurrency(currency);
+        RefreshDashboard(snapshot.DashboardRecords, currency);
     }
 
     private void RefreshDashboard(

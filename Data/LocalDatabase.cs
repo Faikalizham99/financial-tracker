@@ -94,8 +94,31 @@ public sealed class LocalDatabase
         ExecuteWithConnectionAsync(async activeConnection =>
             (TransactionRecord?)await activeConnection.FindAsync<TransactionRecord>(transactionId));
 
-    public Task<IReadOnlyList<TransactionRecord>> GetTransactionsAsync() =>
-        ExecuteWithConnectionAsync(QueryTransactionsCoreAsync);
+    public Task<IReadOnlyList<TransactionRecord>> GetTransactionsAsync(
+        DateTime startDateInclusive,
+        DateTime endDateExclusive) =>
+        ExecuteWithConnectionAsync<IReadOnlyList<TransactionRecord>>(
+            activeConnection => QueryTransactionsCoreAsync(
+                activeConnection,
+                startDateInclusive.Date,
+                endDateExclusive.Date));
+
+    public Task<IReadOnlyList<TransactionRecord>> GetTransactionPageAsync(
+        int offset,
+        int limit) =>
+        ExecuteWithConnectionAsync<IReadOnlyList<TransactionRecord>>(async activeConnection =>
+            await activeConnection.QueryAsync<TransactionRecord>(
+                "SELECT * FROM Transactions " +
+                "ORDER BY TransactionDate DESC, CreatedAtUtc DESC, Id DESC " +
+                "LIMIT ? OFFSET ?",
+                Math.Max(1, limit),
+                Math.Max(0, offset)));
+
+    public Task<TransactionDataSnapshot> GetTransactionSnapshotAsync(DateTime month) =>
+        ExecuteWithConnectionAsync(
+            activeConnection => QueryTransactionSnapshotCoreAsync(
+                activeConnection,
+                month));
 
     public Task<MonthlyBudgetRecord?> GetMonthlyBudgetAsync(int monthKey) =>
         ExecuteWithConnectionAsync(async activeConnection =>
@@ -116,73 +139,15 @@ public sealed class LocalDatabase
         ExecuteWithConnectionAsync(
             activeConnection => activeConnection.InsertOrReplaceAsync(budget));
 
-    public async Task<IReadOnlyList<TransactionRecord>> GetTransactionsForStartupAsync(
-        CancellationToken cancellationToken = default)
-    {
-        await WaitForExistingIosDatabaseAsync(cancellationToken);
-
-        var hasKnownTransactionData = Preferences.Default.Get(
-            KnownTransactionDataPreferenceKey,
-            false);
-        var shouldRecoverEmptyRead =
-            File.Exists(DatabasePath) || hasKnownTransactionData;
-
-        await databaseLock.WaitAsync(cancellationToken);
-        try
-        {
-            for (var attempt = 0;
-                 attempt <= StartupEmptyReadRetryDelays.Length;
-                 attempt++)
-            {
-                if (attempt > 0)
-                {
-                    await Task.Delay(
-                        StartupEmptyReadRetryDelays[attempt - 1],
-                        cancellationToken);
-                }
-
-                if (!File.Exists(DatabasePath) &&
-                    shouldRecoverEmptyRead &&
-                    attempt < StartupEmptyReadRetryDelays.Length)
-                {
-                    continue;
-                }
-
-                await EnsureInitializedCoreAsync();
-                var records = await QueryTransactionsCoreAsync(Connection);
-                if (records.Count > 0 ||
-                    !shouldRecoverEmptyRead)
-                {
-                    return records;
-                }
-
-                if (attempt == StartupEmptyReadRetryDelays.Length)
-                {
-                    if (hasKnownTransactionData)
-                    {
-                        throw new InvalidDataException(
-                            "The saved database is temporarily unavailable. An empty startup result was rejected.");
-                    }
-
-                    // An existing database can legitimately contain no
-                    // transactions. Only accept that after the file has had
-                    // the full availability window to settle.
-                    return records;
-                }
-
-                // A LiveContainer data directory or externally restored database can
-                // replace the file after SQLite has opened it. Reopening ensures the
-                // next attempt observes the current file instead of the stale handle.
-                await CloseConnectionCoreAsync();
-            }
-
-            return [];
-        }
-        finally
-        {
-            databaseLock.Release();
-        }
-    }
+    public Task<TransactionDataSnapshot> GetTransactionSnapshotForStartupAsync(
+        DateTime month,
+        CancellationToken cancellationToken = default) =>
+        ExecuteStartupReadAsync(
+            activeConnection => QueryTransactionSnapshotCoreAsync(
+                activeConnection,
+                month),
+            static snapshot => snapshot.DashboardRecords.Count > 0,
+            cancellationToken);
 
     public Task CreateBackupAsync(string destinationPath)
     {
@@ -405,14 +370,127 @@ public sealed class LocalDatabase
         }
     }
 
+    private async Task<T> ExecuteStartupReadAsync<T>(
+        Func<SQLiteAsyncConnection, Task<T>> query,
+        Func<T, bool> containsTransactions,
+        CancellationToken cancellationToken)
+    {
+        await WaitForExistingIosDatabaseAsync(cancellationToken);
+
+        var hasKnownTransactionData = Preferences.Default.Get(
+            KnownTransactionDataPreferenceKey,
+            false);
+        var shouldRecoverEmptyRead =
+            File.Exists(DatabasePath) || hasKnownTransactionData;
+
+        await databaseLock.WaitAsync(cancellationToken);
+        try
+        {
+            for (var attempt = 0;
+                 attempt <= StartupEmptyReadRetryDelays.Length;
+                 attempt++)
+            {
+                if (attempt > 0)
+                {
+                    await Task.Delay(
+                        StartupEmptyReadRetryDelays[attempt - 1],
+                        cancellationToken);
+                }
+
+                if (!File.Exists(DatabasePath) &&
+                    shouldRecoverEmptyRead &&
+                    attempt < StartupEmptyReadRetryDelays.Length)
+                {
+                    continue;
+                }
+
+                await EnsureInitializedCoreAsync();
+                var result = await query(Connection);
+                if (containsTransactions(result) || !shouldRecoverEmptyRead)
+                {
+                    return result;
+                }
+
+                if (attempt == StartupEmptyReadRetryDelays.Length)
+                {
+                    if (hasKnownTransactionData)
+                    {
+                        throw new InvalidDataException(
+                            "The saved database is temporarily unavailable. An empty startup result was rejected.");
+                    }
+
+                    // An existing database can legitimately contain no
+                    // transactions. Only accept that after the file has had
+                    // the full availability window to settle.
+                    return result;
+                }
+
+                // A LiveContainer data directory or externally restored database can
+                // replace the file after SQLite has opened it. Reopening ensures the
+                // next attempt observes the current file instead of the stale handle.
+                await CloseConnectionCoreAsync();
+            }
+
+            throw new InvalidOperationException("The startup database read did not complete.");
+        }
+        finally
+        {
+            databaseLock.Release();
+        }
+    }
+
     private static async Task<IReadOnlyList<TransactionRecord>> QueryTransactionsCoreAsync(
-        SQLiteAsyncConnection activeConnection)
+        SQLiteAsyncConnection activeConnection,
+        DateTime startDateInclusive,
+        DateTime endDateExclusive)
     {
         var records = await activeConnection.QueryAsync<TransactionRecord>(
             "SELECT * FROM Transactions " +
-            "ORDER BY TransactionDate DESC, CreatedAtUtc DESC, Id DESC");
+            "WHERE TransactionDate >= ? AND TransactionDate < ? " +
+            "ORDER BY TransactionDate DESC, CreatedAtUtc DESC, Id DESC",
+            startDateInclusive,
+            endDateExclusive);
         RememberTransactionData(records);
         return records;
+    }
+
+    private static async Task<TransactionDataSnapshot> QueryTransactionSnapshotCoreAsync(
+        SQLiteAsyncConnection activeConnection,
+        DateTime month)
+    {
+        var monthStart = new DateTime(month.Year, month.Month, 1);
+        var previousMonthStart = monthStart.AddMonths(-1);
+        var nextMonthStart = monthStart.AddMonths(1);
+        var comparisonRecords = await QueryTransactionsCoreAsync(
+            activeConnection,
+            previousMonthStart,
+            nextMonthStart);
+        var recentRecords = await activeConnection.QueryAsync<TransactionRecord>(
+            "SELECT * FROM Transactions " +
+            "ORDER BY TransactionDate DESC, CreatedAtUtc DESC, Id DESC LIMIT 3");
+        var descriptionHistoryRecords = await activeConnection.QueryAsync<TransactionRecord>(
+            "SELECT * FROM Transactions " +
+            "WHERE Description <> '' " +
+            "ORDER BY TransactionDate DESC, CreatedAtUtc DESC, Id DESC LIMIT 250");
+
+        var dashboardRecords = comparisonRecords
+            .Concat(recentRecords)
+            .DistinctBy(record => record.Id)
+            .OrderByDescending(record => record.TransactionDate)
+            .ThenByDescending(record => record.CreatedAtUtc)
+            .ThenByDescending(record => record.Id)
+            .ToList();
+        var periodRecords = comparisonRecords
+            .Where(record =>
+                record.TransactionDate >= monthStart &&
+                record.TransactionDate < nextMonthStart)
+            .ToList();
+        RememberTransactionData(dashboardRecords);
+
+        return new TransactionDataSnapshot(
+            dashboardRecords,
+            periodRecords,
+            descriptionHistoryRecords);
     }
 
     private static async Task WaitForExistingIosDatabaseAsync(

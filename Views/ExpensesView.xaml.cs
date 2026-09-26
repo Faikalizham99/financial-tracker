@@ -15,6 +15,9 @@ public partial class ExpensesView : ContentView
     public event EventHandler? InvestmentInclusionToggleRequested;
     public Func<DateTime, DateTime, DateTime, Task<DateTime?>>? DatePickerRequested { get; set; }
     public Func<Func<Task>, Task>? RunWithTransactionLoadingAsync { get; set; }
+    public Func<DateTime, DateTime, Task<IReadOnlyList<TransactionRecord>>>?
+        TransactionsRequested
+    { get; set; }
 
     private enum FilterSelectorKind
     {
@@ -89,6 +92,12 @@ public partial class ExpensesView : ContentView
         RenderDisplayedMonth();
     }
 
+    public void SetCurrency(CurrencyOption currency)
+    {
+        selectedCurrency = currency;
+        RenderDisplayedMonth();
+    }
+
     public void SetTransactionEditingLocked(bool isLocked)
     {
         if (isTransactionEditingLocked == isLocked)
@@ -117,42 +126,60 @@ public partial class ExpensesView : ContentView
 
     public Task ReloadBudgetAsync() => TransactionsMonthlySummary.ReloadBudgetAsync();
 
+    public Task ReloadTransactionsAsync() => LoadDisplayedPeriodAsync();
+
+    public Task RefreshTransactionsAsync(
+        IReadOnlyList<TransactionRecord> currentMonthRecords,
+        DateTime currentMonth,
+        CurrencyOption currency)
+    {
+        selectedCurrency = currency;
+        if (selectedStartDate is null &&
+            selectedEndDate is null &&
+            displayedMonth.Year == currentMonth.Year &&
+            displayedMonth.Month == currentMonth.Month)
+        {
+            Refresh(currentMonthRecords, currency);
+
+            return Task.CompletedTask;
+        }
+
+        return LoadDisplayedPeriodAsync();
+    }
+
     public async Task FocusTransactionAsync(
         int transactionId,
+        DateTime transactionDate,
         Func<Task>? revealTargetAsync = null)
     {
         CancelTransactionFocusAnimation();
         var focusCancellation = new CancellationTokenSource();
         transactionFocusCancellation = focusCancellation;
         var cancellationToken = focusCancellation.Token;
-        var transaction = transactionRecords.FirstOrDefault(record => record.Id == transactionId);
-        if (transaction is null)
-        {
-            try
-            {
-                if (revealTargetAsync is not null)
-                {
-                    await revealTargetAsync();
-                }
-            }
-            finally
-            {
-                ReleaseTransactionFocusCancellation(focusCancellation);
-            }
-
-            return;
-        }
-
         displayedMonth = new DateTime(
-            transaction.TransactionDate.Year,
-            transaction.TransactionDate.Month,
+            transactionDate.Year,
+            transactionDate.Month,
             1);
         selectedPaymentFilter = null;
         selectedCategoryFilter = null;
         selectedStartDate = null;
         selectedEndDate = null;
-        collapsedActivityGroupDates.Remove(transaction.TransactionDate.Date);
-        RenderDisplayedMonth(cancelPendingFocus: false);
+        collapsedActivityGroupDates.Remove(transactionDate.Date);
+        try
+        {
+            await LoadDisplayedPeriodAsync(cancelPendingFocus: false);
+        }
+        catch
+        {
+            ReleaseTransactionFocusCancellation(focusCancellation);
+            throw;
+        }
+
+        if (cancellationToken.IsCancellationRequested)
+        {
+            ReleaseTransactionFocusCancellation(focusCancellation);
+            return;
+        }
 
         BoxView? highlight = null;
         for (var attempt = 0; attempt < 20 && highlight is null; attempt++)
@@ -575,7 +602,7 @@ public partial class ExpensesView : ContentView
         displayedMonth = displayedMonth.AddMonths(monthOffset);
         selectedStartDate = null;
         selectedEndDate = null;
-        await RenderDisplayedMonthWithLoadingAsync();
+        await ReloadDisplayedPeriodWithLoadingAsync();
         await feedback;
     }
 
@@ -586,7 +613,7 @@ public partial class ExpensesView : ContentView
         selectedCategoryFilter = null;
         selectedStartDate = null;
         selectedEndDate = null;
-        await RenderDisplayedMonthWithLoadingAsync();
+        await ReloadDisplayedPeriodWithLoadingAsync();
         await feedback;
     }
 
@@ -700,7 +727,7 @@ public partial class ExpensesView : ContentView
         selectedStartDate = dateRangeStartDraft;
         selectedEndDate = dateRangeEndDraft;
         await CloseDateRangeFilterAsync();
-        await RenderDisplayedMonthWithLoadingAsync();
+        await ReloadDisplayedPeriodWithLoadingAsync();
         await feedback;
     }
 
@@ -710,7 +737,7 @@ public partial class ExpensesView : ContentView
         selectedStartDate = null;
         selectedEndDate = null;
         await CloseDateRangeFilterAsync();
-        await RenderDisplayedMonthWithLoadingAsync();
+        await ReloadDisplayedPeriodWithLoadingAsync();
         await feedback;
     }
 
@@ -934,6 +961,35 @@ public partial class ExpensesView : ContentView
             RenderDisplayedMonth();
             return Task.CompletedTask;
         });
+    }
+
+    private Task ReloadDisplayedPeriodWithLoadingAsync()
+    {
+        var loadingHandler = RunWithTransactionLoadingAsync;
+        return loadingHandler is null
+            ? LoadDisplayedPeriodAsync()
+            : loadingHandler(() => LoadDisplayedPeriodAsync());
+    }
+
+    private async Task LoadDisplayedPeriodAsync(bool cancelPendingFocus = true)
+    {
+        var provider = TransactionsRequested;
+        if (provider is null)
+        {
+            RenderDisplayedMonth(cancelPendingFocus);
+            return;
+        }
+
+        var startDate = selectedStartDate?.Date ?? displayedMonth.Date;
+        var endDateExclusive = selectedEndDate?.Date.AddDays(1) ??
+            displayedMonth.AddMonths(1).Date;
+        transactionRecords = await provider(startDate, endDateExclusive);
+        var validTransactionIds = transactionRecords
+            .Select(record => record.Id)
+            .ToHashSet();
+        expandedTransactionDescriptionIds.RemoveWhere(
+            id => !validTransactionIds.Contains(id));
+        RenderDisplayedMonth(cancelPendingFocus);
     }
 
     private async Task OpenFilterSelectorAsync(

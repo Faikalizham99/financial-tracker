@@ -172,6 +172,8 @@
                             x:Name="SearchResultsCollection"
                             SelectionMode="None"
                             ItemSizingStrategy="MeasureFirstItem"
+                            RemainingItemsThreshold="4"
+                            RemainingItemsThresholdReached="OnSearchResultsThresholdReached"
                             VerticalScrollBarVisibility="Never">
                             <CollectionView.ItemsLayout>
                                 <LinearItemsLayout Orientation="Vertical" ItemSpacing="0" />

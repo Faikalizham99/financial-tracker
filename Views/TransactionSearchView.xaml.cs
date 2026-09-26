@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Text.Json;
 using FinancialTracker.Helpers;
@@ -9,34 +10,36 @@ public partial class TransactionSearchView : ContentView
 {
     private const string RecentSearchesPreferenceKey = "transaction_recent_searches";
     private const int MaximumRecentSearches = 8;
+    private const int SearchPageSize = 30;
     private static readonly TimeSpan SearchDebounceDelay = TimeSpan.FromMilliseconds(120);
 
     private readonly List<string> recentSearches = [];
-    private IReadOnlyList<SearchDocument> searchDocuments = [];
+    private readonly ObservableCollection<TransactionActivityItem> searchResults = [];
     private string currencySymbol = "RM";
+    private string activeQuery = string.Empty;
+    private int searchOffset;
+    private bool hasMoreSearchResults;
     private CancellationTokenSource? searchCancellation;
     private bool isAnimating;
     private bool isSelectingResult;
     private bool isClearingRecentSearches;
+    private bool isLoadingMoreResults;
 
     public TransactionSearchView()
     {
         InitializeComponent();
+        SearchResultsCollection.ItemsSource = searchResults;
         Unloaded += OnUnloaded;
     }
 
-    public event Func<int, Task>? TransactionSelected;
+    public event Func<int, DateTime, Task>? TransactionSelected;
+    public Func<string, int, int, CancellationToken, Task<TransactionSearchPage>>?
+        SearchPageRequested
+    { get; set; }
 
-    public void SetTransactions(
-        IReadOnlyList<TransactionRecord> transactions,
-        CurrencyOption selectedCurrency)
+    public void SetCurrency(CurrencyOption selectedCurrency)
     {
         currencySymbol = selectedCurrency.Symbol;
-        searchDocuments = transactions
-            .Select(transaction => new SearchDocument(
-                transaction,
-                BuildSearchText(transaction)))
-            .ToList();
 
         if (IsVisible && !string.IsNullOrWhiteSpace(SearchEntry.Text))
         {
@@ -148,16 +151,19 @@ public partial class TransactionSearchView : ContentView
                     .ConfigureAwait(false);
             }
 
-            var documents = searchDocuments;
-            var searchCurrencySymbol = currencySymbol;
-            var results = await Task.Run(
-                    () => BuildSearchResults(
-                        documents,
+            var provider = SearchPageRequested;
+            var page = provider is null
+                ? new TransactionSearchPage([], 0, HasMore: false)
+                : await provider(
                         query,
-                        searchCurrencySymbol,
-                        cancellation.Token),
-                    cancellation.Token)
-                .ConfigureAwait(false);
+                        0,
+                        SearchPageSize,
+                        cancellation.Token)
+                    .ConfigureAwait(false);
+            var results = BuildSearchResults(
+                page.Records,
+                currencySymbol,
+                page.HasMore);
 
             cancellation.Token.ThrowIfCancellationRequested();
             await MainThread.InvokeOnMainThreadAsync(() =>
@@ -172,11 +178,34 @@ public partial class TransactionSearchView : ContentView
                     return;
                 }
 
-                ApplySearchResults(results);
+                ApplySearchResults(query, results, page, replaceExisting: true);
             });
         }
         catch (OperationCanceledException)
         {
+        }
+        catch
+        {
+            await MainThread.InvokeOnMainThreadAsync(() =>
+            {
+                if (!IsVisible ||
+                    !string.Equals(
+                        SearchEntry.Text?.Trim(),
+                        query,
+                        StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                searchResults.Clear();
+                activeQuery = string.Empty;
+                hasMoreSearchResults = false;
+                SearchResultsCountLabel.Text = "SEARCH UNAVAILABLE";
+                SearchResultsLoadingPanel.IsVisible = false;
+                SearchResultsCard.IsVisible = false;
+                SearchNoResultsLabel.Text = "Search could not be completed. Try again.";
+                SearchNoResultsLabel.IsVisible = true;
+            });
         }
         finally
         {
@@ -186,6 +215,71 @@ public partial class TransactionSearchView : ContentView
             }
 
             cancellation.Dispose();
+        }
+    }
+
+    private async void OnSearchResultsThresholdReached(object? sender, EventArgs e)
+    {
+        if (isLoadingMoreResults ||
+            !hasMoreSearchResults ||
+            string.IsNullOrWhiteSpace(activeQuery))
+        {
+            return;
+        }
+
+        CancelPendingSearch();
+        var cancellation = new CancellationTokenSource();
+        searchCancellation = cancellation;
+        isLoadingMoreResults = true;
+        var query = activeQuery;
+
+        try
+        {
+            var provider = SearchPageRequested;
+            if (provider is null)
+            {
+                hasMoreSearchResults = false;
+                return;
+            }
+
+            var page = await provider(
+                query,
+                searchOffset,
+                SearchPageSize,
+                cancellation.Token);
+            cancellation.Token.ThrowIfCancellationRequested();
+            if (!string.Equals(
+                    SearchEntry.Text?.Trim(),
+                    query,
+                    StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            var results = BuildSearchResults(
+                page.Records,
+                currencySymbol,
+                page.HasMore);
+            ApplySearchResults(query, results, page, replaceExisting: false);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch
+        {
+            hasMoreSearchResults = false;
+            SearchResultsCountLabel.Text =
+                $"TRANSACTIONS · {searchResults.Count.ToString(CultureInfo.InvariantCulture)}";
+        }
+        finally
+        {
+            if (ReferenceEquals(searchCancellation, cancellation))
+            {
+                searchCancellation = null;
+            }
+
+            cancellation.Dispose();
+            isLoadingMoreResults = false;
         }
     }
 
@@ -280,7 +374,7 @@ public partial class TransactionSearchView : ContentView
                 return;
             }
 
-            await selectionHandler(transaction.Id);
+            await selectionHandler(transaction.Id, transaction.TransactionDate);
         }
         finally
         {
@@ -298,6 +392,7 @@ public partial class TransactionSearchView : ContentView
 
         if (query.Length > 0)
         {
+            SearchNoResultsLabel.Text = "No matching transactions.";
             SearchNoResultsLabel.IsVisible = false;
             SearchResultsCountLabel.Text = "SEARCHING...";
             SearchResultsLoadingPanel.IsVisible = true;
@@ -312,7 +407,10 @@ public partial class TransactionSearchView : ContentView
         ClearButton.IsVisible = false;
         RecentSearchesScrollView.IsVisible = true;
         SearchResultsPanel.IsVisible = false;
-        SearchResultsCollection.ItemsSource = null;
+        searchResults.Clear();
+        activeQuery = string.Empty;
+        searchOffset = 0;
+        hasMoreSearchResults = false;
         SearchResultsLoadingPanel.IsVisible = false;
         SearchResultsCard.IsVisible = false;
         SearchResultsCard.InputTransparent = false;
@@ -321,55 +419,45 @@ public partial class TransactionSearchView : ContentView
     }
 
     private static IReadOnlyList<TransactionActivityItem> BuildSearchResults(
-        IReadOnlyList<SearchDocument> documents,
-        string query,
+        IReadOnlyList<TransactionRecord> records,
         string currencySymbol,
-        CancellationToken cancellationToken)
+        bool hasMore)
     {
-        var matchingRecords = new List<TransactionRecord>();
-        foreach (var document in documents)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            if (document.SearchText.Contains(
-                    query,
-                    StringComparison.CurrentCultureIgnoreCase))
-            {
-                matchingRecords.Add(document.Transaction);
-            }
-        }
-
-        cancellationToken.ThrowIfCancellationRequested();
-        var results = matchingRecords
+        return records
             .Select((record, index) => TransactionActivityItem.FromRecord(
                 record,
                 currencySymbol,
-                index < matchingRecords.Count - 1))
+                index < records.Count - 1 || hasMore))
             .ToList();
-        cancellationToken.ThrowIfCancellationRequested();
-        return results;
     }
 
-    private void ApplySearchResults(IReadOnlyList<TransactionActivityItem> results)
+    private void ApplySearchResults(
+        string query,
+        IReadOnlyList<TransactionActivityItem> results,
+        TransactionSearchPage page,
+        bool replaceExisting)
     {
-        SearchResultsCollection.ItemsSource = results;
-        SearchResultsCountLabel.Text =
-            $"TRANSACTIONS \u00B7 {results.Count.ToString(CultureInfo.InvariantCulture)}";
-        SearchResultsLoadingPanel.IsVisible = false;
-        SearchResultsCard.IsVisible = results.Count > 0;
-        SearchResultsCard.InputTransparent = false;
-        SearchNoResultsLabel.IsVisible = results.Count == 0;
-    }
+        if (replaceExisting)
+        {
+            searchResults.Clear();
+        }
 
-    private static string BuildSearchText(TransactionRecord transaction) =>
-        string.Join(
-            ' ',
-            transaction.Description,
-            transaction.Category,
-            transaction.PaymentMethod,
-            transaction.Type,
-            transaction.TransactionDate.ToString("dddd d MMMM yyyy", CultureInfo.CurrentCulture),
-            transaction.TransactionDate.ToString("d MMM yyyy", CultureInfo.CurrentCulture),
-            (transaction.AmountMinor / 100m).ToString("N2", CultureInfo.InvariantCulture));
+        foreach (var result in results)
+        {
+            searchResults.Add(result);
+        }
+
+        activeQuery = query;
+        searchOffset = page.NextOffset;
+        hasMoreSearchResults = page.HasMore;
+        SearchResultsCountLabel.Text =
+            $"TRANSACTIONS \u00B7 {searchResults.Count.ToString(CultureInfo.InvariantCulture)}" +
+            (hasMoreSearchResults ? "+" : string.Empty);
+        SearchResultsLoadingPanel.IsVisible = false;
+        SearchResultsCard.IsVisible = searchResults.Count > 0;
+        SearchResultsCard.InputTransparent = false;
+        SearchNoResultsLabel.IsVisible = searchResults.Count == 0;
+    }
 
     private void LoadRecentSearches()
     {
@@ -432,7 +520,4 @@ public partial class TransactionSearchView : ContentView
 
     private void OnUnloaded(object? sender, EventArgs e) => CancelPendingSearch();
 
-    private sealed record SearchDocument(
-        TransactionRecord Transaction,
-        string SearchText);
 }
