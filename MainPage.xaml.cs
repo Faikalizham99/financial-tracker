@@ -949,6 +949,12 @@ public partial class MainPage : ContentPage
     {
         DashboardMonthlySummary.IncludeInvestmentInTotals = includeInvestmentInTotals;
         ExpensesView.SetIncludeInvestmentInTotals(includeInvestmentInTotals);
+        if (transactionDataStore.IsLoaded)
+        {
+            RefreshDashboard(
+                transactionDataStore.DashboardRecords,
+                settingsViewModel.SelectedCurrency);
+        }
     }
 
     private void SetTransactionEditingLocked(bool isLocked)
@@ -1596,14 +1602,15 @@ public partial class MainPage : ContentPage
             records,
             selectedCurrency,
             canModifyTransactions: !isTransactionEditingLocked,
-            DateTime.Today);
+            includeInvestment: includeInvestmentInTotals,
+            today: DateTime.Today);
 
         TodaySpentValueLabel.Text = summary.TodaySpentText;
         DailyAverageValueLabel.Text = summary.DailyAverageText;
         DaysRemainingValueLabel.Text = summary.DaysRemainingText;
         ExpenseCategoryTotalLabel.Text = summary.ExpenseTotalText;
         IncomeCategoryTotalLabel.Text = summary.IncomeTotalText;
-        DashboardInsightLabel.Text = summary.InsightText;
+        DashboardInsights.ItemsSource = summary.Insights;
         BindableLayout.SetItemsSource(
             DashboardExpenseCategoriesLayout,
             summary.ExpenseCategories);

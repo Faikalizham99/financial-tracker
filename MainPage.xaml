@@ -124,14 +124,9 @@
                 </VerticalStackLayout>
 
                 <VerticalStackLayout x:Name="DashboardInsightSection" Spacing="13">
-                    <Label Text="MONTHLY INSIGHT" Style="{StaticResource SectionLabel}" />
+                    <Label Text="MONTHLY INSIGHTS" Style="{StaticResource SectionLabel}" />
                     <Border Style="{StaticResource SoftCard}" Padding="17">
-                        <Grid ColumnDefinitions="40,*" ColumnSpacing="13">
-                            <Border WidthRequest="40" HeightRequest="40" BackgroundColor="{DynamicResource AccentTint}" StrokeThickness="0" StrokeShape="RoundRectangle 13">
-                                <Path WidthRequest="22" HeightRequest="22" Data="M 9,18 L 15,18 M 10,21 L 14,21 M 8,14 C 6,12 5,10 5,8 A 7,7 0 0 1 19,8 C 19,10 18,12 16,14 C 15,15 15,16 15,17 L 9,17 C 9,16 9,15 8,14 Z" Stroke="{DynamicResource Accent}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" HorizontalOptions="Center" VerticalOptions="Center" />
-                            </Border>
-                            <Label x:Name="DashboardInsightLabel" Grid.Column="1" Text="Your monthly insight will appear here." FontSize="13" LineHeight="1.25" VerticalTextAlignment="Center" />
-                        </Grid>
+                        <views:FinancialInsightsView x:Name="DashboardInsights" />
                     </Border>
                 </VerticalStackLayout>
 

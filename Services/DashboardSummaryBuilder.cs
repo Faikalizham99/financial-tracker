@@ -10,20 +10,16 @@ public static class DashboardSummaryBuilder
         IReadOnlyList<TransactionRecord> records,
         CurrencyOption selectedCurrency,
         bool canModifyTransactions,
+        bool includeInvestment,
         DateTime today)
     {
         today = today.Date;
-        var previousMonth = today.AddMonths(-1);
-        var comparableDay = Math.Min(
-            today.Day,
-            DateTime.DaysInMonth(previousMonth.Year, previousMonth.Month));
         var expenseRecords = new List<TransactionRecord>();
         var incomeRecords = new List<TransactionRecord>();
         long totalExpenseMinor = 0;
         long totalIncomeMinor = 0;
         long expenseThroughTodayMinor = 0;
         long spentTodayMinor = 0;
-        long previousExpenseMinor = 0;
 
         foreach (var record in records)
         {
@@ -52,13 +48,6 @@ public static class DashboardSummaryBuilder
                     totalIncomeMinor += record.AmountMinor;
                 }
             }
-            else if (isExpense &&
-                     transactionDate.Year == previousMonth.Year &&
-                     transactionDate.Month == previousMonth.Month &&
-                     transactionDate.Day <= comparableDay)
-            {
-                previousExpenseMinor += record.AmountMinor;
-            }
         }
 
         var dailyAverageMinor = (long)Math.Round(
@@ -82,12 +71,11 @@ public static class DashboardSummaryBuilder
                 .ToString(CultureInfo.InvariantCulture),
             MoneyFormatter.FormatMinor(totalExpenseMinor, selectedCurrency.Symbol),
             MoneyFormatter.FormatMinor(totalIncomeMinor, selectedCurrency.Symbol),
-            BuildMonthlyInsight(
-                expenseRecords,
-                incomeRecords,
-                expenseThroughTodayMinor,
-                previousExpenseMinor,
-                totalExpenseMinor),
+            FinancialInsightService.BuildTransactionInsights(
+                records,
+                selectedCurrency,
+                today,
+                includeInvestment),
             BuildCategorySummary(
                 TransactionCatalog.ExpenseCategories,
                 expenseRecords,
@@ -132,47 +120,4 @@ public static class DashboardSummaryBuilder
             .ToList();
     }
 
-    private static string BuildMonthlyInsight(
-        IReadOnlyList<TransactionRecord> expenseRecords,
-        IReadOnlyList<TransactionRecord> incomeRecords,
-        long expenseThroughTodayMinor,
-        long previousExpenseMinor,
-        long totalExpenseMinor)
-    {
-        if (previousExpenseMinor > 0)
-        {
-            var differenceMinor = expenseThroughTodayMinor - previousExpenseMinor;
-            var percentageDifference = Math.Abs(differenceMinor) / (double)previousExpenseMinor;
-            if (percentageDifference < 0.01)
-            {
-                return "Your spending is nearly unchanged from this point last month.";
-            }
-
-            var direction = differenceMinor > 0 ? "higher" : "lower";
-            return $"Spending is {percentageDifference:P0} {direction} than at this point last month.";
-        }
-
-        if (expenseRecords.Count > 0)
-        {
-            var topCategory = expenseRecords
-                .GroupBy(record => TransactionCatalog.GetCategory(
-                    record.Category,
-                    isIncome: false))
-                .Select(group => new
-                {
-                    Category = group.Key,
-                    AmountMinor = group.Sum(record => record.AmountMinor)
-                })
-                .OrderByDescending(item => item.AmountMinor)
-                .First();
-            var share = totalExpenseMinor > 0
-                ? topCategory.AmountMinor / (double)totalExpenseMinor
-                : 0;
-            return $"{topCategory.Category.Title} is your largest expense at {share:P0} of this month\u2019s spending.";
-        }
-
-        return incomeRecords.Count > 0
-            ? "You have recorded income this month and no expenses yet."
-            : "Record a transaction to start receiving monthly spending insights.";
-    }
 }

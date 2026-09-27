@@ -188,7 +188,9 @@ public partial class AssetsView : ContentView
                 $"{MoneyFormatter.FormatMinor(trend[0].TotalMinor, value.CurrencySymbol)} → {MoneyFormatter.FormatMinor(trend[^1].TotalMinor, value.CurrencySymbol)}"
         };
         RenderCharts(trend, accessibleShare, animateCharts);
-        InsightLabel.Text = includeKwsp ? value.InsightText : value.InsightWithoutKwspText;
+        AssetInsights.ItemsSource = includeKwsp
+            ? value.Insights
+            : value.InsightsWithoutKwsp;
     }
 
     private async void OnAssetSortTapped(object? sender, TappedEventArgs e)

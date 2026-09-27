@@ -6,7 +6,7 @@ public sealed record DashboardSummary(
     string DaysRemainingText,
     string ExpenseTotalText,
     string IncomeTotalText,
-    string InsightText,
+    IReadOnlyList<FinancialInsightItem> Insights,
     IReadOnlyList<CategorySummaryItem> ExpenseCategories,
     IReadOnlyList<CategorySummaryItem> IncomeCategories,
     IReadOnlyList<TransactionActivityItem> RecentActivity);

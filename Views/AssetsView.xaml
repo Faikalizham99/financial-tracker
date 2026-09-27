@@ -225,7 +225,7 @@
                         </VerticalStackLayout>
                     </VerticalStackLayout>
 
-                    <Grid ColumnDefinitions="*,*" ColumnSpacing="14">
+                    <VerticalStackLayout Spacing="14">
                         <Border Style="{StaticResource SoftCard}">
                             <VerticalStackLayout Spacing="8">
                                 <Label Text="TREND" Style="{StaticResource SectionLabel}" />
@@ -237,13 +237,13 @@
                                 <Label x:Name="TrendLabel" Style="{StaticResource BodyMuted}" />
                             </VerticalStackLayout>
                         </Border>
-                        <Border Grid.Column="1" Style="{StaticResource SoftCard}">
+                        <Border Style="{StaticResource SoftCard}">
                             <VerticalStackLayout Spacing="8">
-                                <Label Text="INSIGHT" Style="{StaticResource SectionLabel}" />
-                                <Label x:Name="InsightLabel" Style="{StaticResource BodyMuted}" />
+                                <Label Text="PORTFOLIO INSIGHTS" Style="{StaticResource SectionLabel}" />
+                                <views:FinancialInsightsView x:Name="AssetInsights" />
                             </VerticalStackLayout>
                         </Border>
-                    </Grid>
+                    </VerticalStackLayout>
                 </VerticalStackLayout>
             </VerticalStackLayout>
         </ScrollView>

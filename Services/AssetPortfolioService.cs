@@ -40,8 +40,12 @@ public sealed class AssetPortfolioService(LocalDatabase database)
                 BuildTrend(snapshots),
                 BuildTrend(snapshots, AssetCatalog.KwspKey),
                 false,
-                "Add this month's snapshot to start tracking your portfolio.",
-                "Add this month's snapshot to start tracking your portfolio.");
+                [new FinancialInsightItem(
+                    "Add a snapshot",
+                    "Add this month's snapshot to start tracking your portfolio.")],
+                [new FinancialInsightItem(
+                    "Add a snapshot",
+                    "Add this month's snapshot to start tracking your portfolio.")]);
         }
 
         var currentValues = current.Values.ToDictionary(value => value.AssetKey);
@@ -106,10 +110,21 @@ public sealed class AssetPortfolioService(LocalDatabase database)
         var previousAccessible = previousCompatible?.Values
             .Where(value => accessibleKeys.Contains(value.AssetKey))
             .Sum(value => value.AmountMinor);
-        var insight = BuildInsight(comparisons, currencySymbol);
-        var insightWithoutKwsp = BuildInsight(
-            comparisons.Where(item => !item.Asset.Key.Equals(AssetCatalog.KwspKey, StringComparison.Ordinal)),
-            currencySymbol);
+        var comparisonsWithoutKwsp = comparisons
+            .Where(item => !item.Asset.Key.Equals(AssetCatalog.KwspKey, StringComparison.Ordinal))
+            .ToList();
+        var insights = FinancialInsightService.BuildAssetInsights(
+            comparisons,
+            total,
+            accessibleTotal,
+            currencySymbol,
+            previousCompatible is not null);
+        var insightsWithoutKwsp = FinancialInsightService.BuildAssetInsights(
+            comparisonsWithoutKwsp,
+            totalWithoutKwsp,
+            accessibleTotal,
+            currencySymbol,
+            previousCompatible is not null);
 
         return new AssetPortfolio(
             selectedMonth,
@@ -129,8 +144,8 @@ public sealed class AssetPortfolioService(LocalDatabase database)
             BuildTrend(snapshots),
             BuildTrend(snapshots, AssetCatalog.KwspKey),
             true,
-            insight,
-            insightWithoutKwsp);
+            insights,
+            insightsWithoutKwsp);
     }
 
     public Task<AssetSnapshotData?> GetSnapshotAsync(DateTime month) =>
@@ -194,16 +209,6 @@ public sealed class AssetPortfolioService(LocalDatabase database)
             item.Total,
             maximum <= 0 ? 0 : Math.Max(0.08, (double)item.Total / maximum)))
             .ToList();
-    }
-
-    private static string BuildInsight(
-        IEnumerable<AssetComparisonItem> comparisons,
-        string currencySymbol)
-    {
-        var largest = comparisons.OrderByDescending(item => item.CurrentAmountMinor).FirstOrDefault();
-        return largest is null
-            ? "No asset values were recorded."
-            : $"Largest holding: {largest.Asset.DisplayName} at {currencySymbol} {largest.CurrentAmountMinor / 100m:N2}.";
     }
 
     private static int ToMonthKey(DateTime month) => (month.Year * 100) + month.Month;

@@ -31,5 +31,5 @@ public sealed record AssetPortfolio(
     IReadOnlyList<AssetTrendPoint> Trend,
     IReadOnlyList<AssetTrendPoint> TrendWithoutKwsp,
     bool HasSnapshot,
-    string InsightText,
-    string InsightWithoutKwspText);
+    IReadOnlyList<FinancialInsightItem> Insights,
+    IReadOnlyList<FinancialInsightItem> InsightsWithoutKwsp);
