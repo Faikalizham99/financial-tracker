@@ -117,6 +117,7 @@ public partial class MainPage : ContentPage
         ExpensesView.RunWithTransactionLoadingAsync = RunWithDataLoadingSkeletonAsync;
         ExpensesView.TransactionsRequested = transactionDataStore.GetPeriodAsync;
         ExpensesView.EditTransactionRequested += OnTransactionEditRequested;
+        ExpensesView.QuickEditTransactionRequested += OnTransactionQuickEditRequested;
         ExpensesView.DeleteTransactionRequested += OnTransactionDeleteRequested;
         ExpensesView.SearchRequested += OnTransactionSearchRequested;
         ExpensesView.TransactionEditingLockToggleRequested +=
@@ -921,6 +922,9 @@ public partial class MainPage : ContentPage
         }
     }
 
+    private async void OnTransactionQuickEditRequested(int transactionId) =>
+        await OpenTransactionForEditAsync(transactionId, allowWhileLocked: true);
+
     private async void OnTransactionDeleteRequested(int transactionId)
     {
         if (!isTransactionEditingLocked)
@@ -1148,9 +1152,11 @@ public partial class MainPage : ContentPage
         return storedTransaction;
     }
 
-    private async Task OpenTransactionForEditAsync(int transactionId)
+    private async Task OpenTransactionForEditAsync(
+        int transactionId,
+        bool allowWhileLocked = false)
     {
-        if (isTransactionEditingLocked)
+        if (isTransactionEditingLocked && !allowWhileLocked)
         {
             return;
         }

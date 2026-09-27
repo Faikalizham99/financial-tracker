@@ -1,3 +1,4 @@
+using FinancialTracker.Helpers;
 using FinancialTracker.Models;
 
 namespace FinancialTracker.Views;
@@ -20,17 +21,28 @@ public partial class TransactionActivityRow : ContentView
         propertyChanged: static (bindable, _, newValue) =>
             ((TransactionActivityRow)bindable).SearchHighlight.IsVisible = (bool)newValue);
 
+    public static readonly BindableProperty EnableDoubleTapEditProperty = BindableProperty.Create(
+        nameof(EnableDoubleTapEdit),
+        typeof(bool),
+        typeof(TransactionActivityRow),
+        false,
+        propertyChanged: static (bindable, _, newValue) =>
+            ((TransactionActivityRow)bindable).UpdateDoubleTapRecognizers((bool)newValue));
+
     private CancellationTokenSource? measurementCancellation;
     private bool isToggleAnimating;
+    private bool isDoubleTapHandling;
 
     public TransactionActivityRow()
     {
         InitializeComponent();
+        UpdateDoubleTapRecognizers(false);
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
     }
 
     public event EventHandler<TransactionDescriptionToggledEventArgs>? DescriptionToggled;
+    public event EventHandler<TransactionEditRequestedEventArgs>? EditRequested;
 
     public bool ShowDate
     {
@@ -44,6 +56,12 @@ public partial class TransactionActivityRow : ContentView
         set => SetValue(ShowSearchHighlightProperty, value);
     }
 
+    public bool EnableDoubleTapEdit
+    {
+        get => (bool)GetValue(EnableDoubleTapEditProperty);
+        set => SetValue(EnableDoubleTapEditProperty, value);
+    }
+
     protected override void OnBindingContextChanged()
     {
         base.OnBindingContextChanged();
@@ -52,7 +70,10 @@ public partial class TransactionActivityRow : ContentView
 
     private void OnLoaded(object? sender, EventArgs e) => ScheduleDescriptionMeasurement();
 
-    private void OnUnloaded(object? sender, EventArgs e) => CancelDescriptionMeasurement();
+    private void OnUnloaded(object? sender, EventArgs e)
+    {
+        CancelDescriptionMeasurement();
+    }
 
     private void OnDescriptionSizeChanged(object? sender, EventArgs e) =>
         UpdateDescriptionExpandability();
@@ -84,6 +105,52 @@ public partial class TransactionActivityRow : ContentView
         {
             DescriptionHeader.Opacity = 1;
             isToggleAnimating = false;
+        }
+    }
+
+    private async void OnRowDoubleTapped(object? sender, TappedEventArgs e)
+    {
+        if (!EnableDoubleTapEdit ||
+            BindingContext is not TransactionActivityItem item ||
+            isDoubleTapHandling)
+        {
+            return;
+        }
+
+        isDoubleTapHandling = true;
+        try
+        {
+            EditRequested?.Invoke(this, new TransactionEditRequestedEventArgs(item));
+            await InteractionAnimations.PulseAsync(RowRoot);
+        }
+        finally
+        {
+            isDoubleTapHandling = false;
+        }
+    }
+
+    private void UpdateDoubleTapRecognizers(bool isEnabled)
+    {
+        UpdateGestureRecognizer(IconEditZone, IconDoubleTapRecognizer, isEnabled);
+        UpdateGestureRecognizer(DetailEditZone, DetailDoubleTapRecognizer, isEnabled);
+        UpdateGestureRecognizer(AmountEditZone, AmountDoubleTapRecognizer, isEnabled);
+        SemanticProperties.SetDescription(
+            RowRoot,
+            isEnabled ? "Double-tap to edit transaction" : string.Empty);
+    }
+
+    private static void UpdateGestureRecognizer(
+        View view,
+        IGestureRecognizer recognizer,
+        bool isEnabled)
+    {
+        if (isEnabled && !view.GestureRecognizers.Contains(recognizer))
+        {
+            view.GestureRecognizers.Add(recognizer);
+        }
+        else if (!isEnabled)
+        {
+            view.GestureRecognizers.Remove(recognizer);
         }
     }
 
@@ -181,4 +248,9 @@ public sealed class TransactionDescriptionToggledEventArgs(
 {
     public TransactionActivityItem Item { get; } = item;
     public bool IsExpanded { get; } = isExpanded;
+}
+
+public sealed class TransactionEditRequestedEventArgs(TransactionActivityItem item) : EventArgs
+{
+    public TransactionActivityItem Item { get; } = item;
 }

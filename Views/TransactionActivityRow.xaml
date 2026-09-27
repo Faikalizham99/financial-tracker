@@ -6,7 +6,7 @@
     xmlns:models="clr-namespace:FinancialTracker.Models"
     x:DataType="models:TransactionActivityItem">
 
-    <Grid>
+    <Grid x:Name="RowRoot">
         <BoxView
             x:Name="SearchHighlight"
             ClassId="TransactionSearchHighlight"
@@ -20,7 +20,13 @@
             Padding="14,12"
             ColumnDefinitions="90,*,Auto"
             ColumnSpacing="12">
-            <Grid ColumnDefinitions="38,14,38">
+            <Grid x:Name="IconEditZone" ColumnDefinitions="38,14,38">
+                <Grid.GestureRecognizers>
+                    <TapGestureRecognizer
+                        x:Name="IconDoubleTapRecognizer"
+                        NumberOfTapsRequired="2"
+                        Tapped="OnRowDoubleTapped" />
+                </Grid.GestureRecognizers>
                 <Border WidthRequest="38" HeightRequest="38" StrokeThickness="0" StrokeShape="RoundRectangle 12" VerticalOptions="Center">
                     <Image Source="{Binding IconAsset}" WidthRequest="38" HeightRequest="38" Aspect="AspectFill" />
                 </Border>
@@ -75,10 +81,34 @@
                             VerticalOptions="Center" />
                     </Border>
                 </Grid>
-                <Label Text="{Binding DetailText}" Style="{StaticResource BodyMuted}" FontSize="11" LineBreakMode="TailTruncation" MaxLines="1" />
+                <Label
+                    x:Name="DetailEditZone"
+                    Text="{Binding DetailText}"
+                    Style="{StaticResource BodyMuted}"
+                    FontSize="11"
+                    LineBreakMode="TailTruncation"
+                    MaxLines="1">
+                    <Label.GestureRecognizers>
+                        <TapGestureRecognizer
+                            x:Name="DetailDoubleTapRecognizer"
+                            NumberOfTapsRequired="2"
+                            Tapped="OnRowDoubleTapped" />
+                    </Label.GestureRecognizers>
+                </Label>
             </VerticalStackLayout>
 
-            <VerticalStackLayout Grid.Column="2" Spacing="2" HorizontalOptions="End" VerticalOptions="Center">
+            <VerticalStackLayout
+                x:Name="AmountEditZone"
+                Grid.Column="2"
+                Spacing="2"
+                HorizontalOptions="End"
+                VerticalOptions="Center">
+                <VerticalStackLayout.GestureRecognizers>
+                    <TapGestureRecognizer
+                        x:Name="AmountDoubleTapRecognizer"
+                        NumberOfTapsRequired="2"
+                        Tapped="OnRowDoubleTapped" />
+                </VerticalStackLayout.GestureRecognizers>
                 <Label Text="{Binding AmountText}" FontFamily="OpenSansSemibold" FontSize="14" TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" HorizontalTextAlignment="End">
                     <Label.Triggers>
                         <DataTrigger TargetType="Label" Binding="{Binding IsIncome}" Value="True">

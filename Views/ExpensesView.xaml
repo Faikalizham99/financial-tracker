@@ -262,6 +262,8 @@
                                                 <Grid ClassId="TransactionContextMenuTarget" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" HandlerChanged="OnTransactionRowHandlerChanged">
                                                     <views:TransactionActivityRow
                                                         ShowSearchHighlight="True"
+                                                        EnableDoubleTapEdit="True"
+                                                        EditRequested="OnTransactionDoubleTapEditRequested"
                                                         DescriptionToggled="OnTransactionDescriptionToggled" />
                                                 </Grid>
                                             </SwipeView>

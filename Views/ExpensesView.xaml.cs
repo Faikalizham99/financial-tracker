@@ -9,6 +9,7 @@ namespace FinancialTracker.Views;
 public partial class ExpensesView : ContentView
 {
     public event Action<int>? EditTransactionRequested;
+    public event Action<int>? QuickEditTransactionRequested;
     public event Action<int>? DeleteTransactionRequested;
     public event Action? SearchRequested;
     public event EventHandler? TransactionEditingLockToggleRequested;
@@ -670,6 +671,11 @@ public partial class ExpensesView : ContentView
             EditTransactionRequested?.Invoke(item.Id);
         }
     }
+
+    private void OnTransactionDoubleTapEditRequested(
+        object? sender,
+        TransactionEditRequestedEventArgs e) =>
+        QuickEditTransactionRequested?.Invoke(e.Item.Id);
 
     private void OnDeleteTransactionInvoked(object? sender, EventArgs e)
     {
