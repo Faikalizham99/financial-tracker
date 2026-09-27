@@ -23,6 +23,9 @@ public sealed class BudgetSettingsViewModel(
     private long? savedExcludingInvestmentMinor;
     private bool isLoading;
     private bool isSaving;
+    private bool isCopyingPrevious;
+    private string copyPreviousMessage = string.Empty;
+    private bool hasCopyPreviousError;
 
     public event PropertyChangedEventHandler? PropertyChanged;
     public event EventHandler? BudgetSaved;
@@ -37,6 +40,7 @@ public sealed class BudgetSettingsViewModel(
             if (SetProperty(ref selectedMonth, StartOfMonth(value)))
             {
                 OnPropertyChanged(nameof(SelectedMonthLabel));
+                OnPropertyChanged(nameof(CanCopyPrevious));
             }
         }
     }
@@ -133,6 +137,49 @@ public sealed class BudgetSettingsViewModel(
     public string SelectedMonthStatus => HasSavedBudget
         ? "Both monthly budgets are saved"
         : "No budget saved for this month";
+
+    public bool CanCopyPrevious =>
+        !IsLoading &&
+        !IsSaving &&
+        !IsCopyingPrevious &&
+        SelectedMonth > new DateTime(MinimumBudgetYear, 1, 1);
+
+    public bool IsCopyingPrevious
+    {
+        get => isCopyingPrevious;
+        private set
+        {
+            if (SetProperty(ref isCopyingPrevious, value))
+            {
+                OnPropertyChanged(nameof(CanCopyPrevious));
+                OnPropertyChanged(nameof(CopyPreviousButtonText));
+            }
+        }
+    }
+
+    public string CopyPreviousButtonText => IsCopyingPrevious
+        ? "Copyingâ€¦"
+        : "Copy previous";
+
+    public string CopyPreviousMessage
+    {
+        get => copyPreviousMessage;
+        private set
+        {
+            if (SetProperty(ref copyPreviousMessage, value))
+            {
+                OnPropertyChanged(nameof(HasCopyPreviousMessage));
+            }
+        }
+    }
+
+    public bool HasCopyPreviousMessage => !string.IsNullOrWhiteSpace(CopyPreviousMessage);
+
+    public bool HasCopyPreviousError
+    {
+        get => hasCopyPreviousError;
+        private set => SetProperty(ref hasCopyPreviousError, value);
+    }
 
     public bool IsLoading
     {
@@ -253,8 +300,52 @@ public sealed class BudgetSettingsViewModel(
         }
     }
 
+    public async Task CopyPreviousAsync()
+    {
+        if (!CanCopyPrevious)
+        {
+            return;
+        }
+
+        await operationLock.WaitAsync();
+        try
+        {
+            IsCopyingPrevious = true;
+            var previousMonth = SelectedMonth.AddMonths(-1);
+            var previousBudget = await monthlyBudgetService.GetAsync(previousMonth);
+            if (previousBudget is null)
+            {
+                SetCopyPreviousMessage(
+                    $"There is no {previousMonth:MMMM yyyy} budget to copy.",
+                    isError: true);
+                return;
+            }
+
+            IncludingInvestmentText = FormatInput(
+                previousBudget.BudgetIncludingInvestmentMinor);
+            ExcludingInvestmentText = FormatInput(
+                previousBudget.BudgetExcludingInvestmentMinor);
+            SetCopyPreviousMessage(
+                $"Copied from {previousMonth:MMMM yyyy}. Review the amounts, then save.",
+                isError: false);
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Debug.WriteLine($"Copy previous budget failed: {exception}");
+            SetCopyPreviousMessage(
+                "The previous budget could not be loaded. Please try again.",
+                isError: true);
+        }
+        finally
+        {
+            IsCopyingPrevious = false;
+            operationLock.Release();
+        }
+    }
+
     private async Task LoadSelectedMonthAsync()
     {
+        SetCopyPreviousMessage(string.Empty, isError: false);
         var budget = await monthlyBudgetService.GetAsync(SelectedMonth);
         savedIncludingInvestmentMinor = budget?.BudgetIncludingInvestmentMinor;
         savedExcludingInvestmentMinor = budget?.BudgetExcludingInvestmentMinor;
@@ -279,6 +370,13 @@ public sealed class BudgetSettingsViewModel(
         OnPropertyChanged(nameof(CanSave));
         OnPropertyChanged(nameof(SaveButtonText));
         OnPropertyChanged(nameof(SelectedMonthStatus));
+        OnPropertyChanged(nameof(CanCopyPrevious));
+    }
+
+    private void SetCopyPreviousMessage(string message, bool isError)
+    {
+        HasCopyPreviousError = isError;
+        CopyPreviousMessage = message;
     }
 
     private static bool TryParseAmount(string value, out long amountMinor)

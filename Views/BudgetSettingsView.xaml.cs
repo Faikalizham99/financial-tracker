@@ -196,6 +196,20 @@ public partial class BudgetSettingsView : ContentView
         await RunOperationAsync(ViewModel.SaveAsync);
     }
 
+    private async void OnCopyPreviousTapped(object? sender, TappedEventArgs e)
+    {
+        if (ViewModel is null || !ViewModel.CanCopyPrevious || isOperationRunning)
+        {
+            return;
+        }
+
+        var feedback = InteractionAnimations.PulseAsync(sender);
+        IncludingInvestmentEntry.Unfocus();
+        ExcludingInvestmentEntry.Unfocus();
+        await RunOperationAsync(ViewModel.CopyPreviousAsync);
+        await feedback;
+    }
+
     private async void OnPreviousHistoryYearTapped(object? sender, TappedEventArgs e) =>
         await ChangeHistoryYearAsync(-1, sender);
 

@@ -66,6 +66,38 @@
 
                         <Label Text="{Binding SelectedMonthStatus}" Style="{StaticResource BodyMuted}" FontSize="12" HorizontalTextAlignment="Center" />
 
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <Label
+                                Text="{Binding CopyPreviousMessage}"
+                                IsVisible="{Binding HasCopyPreviousMessage}"
+                                Style="{StaticResource BodyMuted}"
+                                FontSize="12"
+                                TextColor="{DynamicResource Accent}"
+                                VerticalTextAlignment="Center">
+                                <Label.Triggers>
+                                    <DataTrigger TargetType="Label" Binding="{Binding HasCopyPreviousError}" Value="True">
+                                        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" />
+                                    </DataTrigger>
+                                </Label.Triggers>
+                            </Label>
+                            <Border
+                                Grid.Column="1"
+                                Style="{StaticResource Pill}"
+                                IsEnabled="{Binding CanCopyPrevious}"
+                                helpers:InteractionAnimations.IsPressFeedbackEnabled="True"
+                                SemanticProperties.Description="Copy both budget amounts from the previous month">
+                                <Border.Triggers>
+                                    <DataTrigger TargetType="Border" Binding="{Binding CanCopyPrevious}" Value="False">
+                                        <Setter Property="Opacity" Value="0.48" />
+                                    </DataTrigger>
+                                </Border.Triggers>
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnCopyPreviousTapped" />
+                                </Border.GestureRecognizers>
+                                <Label Text="{Binding CopyPreviousButtonText}" FontFamily="OpenSansSemibold" FontSize="12" TextColor="{DynamicResource Accent}" />
+                            </Border>
+                        </Grid>
+
                         <Border Style="{StaticResource Card}">
                             <VerticalStackLayout Spacing="13">
                                 <Grid ColumnDefinitions="42,*" ColumnSpacing="12">
