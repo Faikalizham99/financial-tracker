@@ -294,7 +294,7 @@ public partial class AssetsView : ContentView
 
         var accent = GetResourceColor("Accent", "#5044E4");
         var isDarkTheme = Application.Current?.RequestedTheme == AppTheme.Dark;
-        trendChartDrawable.BarColor = accent;
+        trendChartDrawable.UseDarkPalette = isDarkTheme;
         trendChartDrawable.LabelColor = GetResourceColor(
             isDarkTheme ? "SecondaryTextDark" : "SecondaryTextLight",
             isDarkTheme ? "#BBB4C7" : "#686273");
