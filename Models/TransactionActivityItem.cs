@@ -17,7 +17,6 @@ public sealed class TransactionActivityItem : INotifyPropertyChanged
     public int Id { get; private init; }
     public string Description { get; private init; } = string.Empty;
     public string DetailText { get; private init; } = string.Empty;
-    public string DashboardDetailText { get; private init; } = string.Empty;
     public string DashboardDateText { get; private init; } = string.Empty;
     public string AmountText { get; private init; } = string.Empty;
     public string IconAsset { get; private init; } = string.Empty;
@@ -59,7 +58,6 @@ public sealed class TransactionActivityItem : INotifyPropertyChanged
             Id = record.Id,
             Description = record.Description,
             DetailText = $"{record.Category} · {record.PaymentMethod}",
-            DashboardDetailText = $"{record.Category} · {record.PaymentMethod}",
             DashboardDateText = dateText,
             AmountText = MoneyFormatter.FormatMinor(
                 isIncome ? record.AmountMinor : -record.AmountMinor,

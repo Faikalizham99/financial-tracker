@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+    x:Class="FinancialTracker.Views.TransactionActivityRow"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:models="clr-namespace:FinancialTracker.Models"
+    x:DataType="models:TransactionActivityItem">
+
+    <Grid>
+        <BoxView
+            x:Name="SearchHighlight"
+            ClassId="TransactionSearchHighlight"
+            BackgroundColor="{DynamicResource AccentTint}"
+            Opacity="0"
+            IsVisible="False"
+            InputTransparent="True" />
+
+        <Grid
+            ZIndex="1"
+            Padding="14,12"
+            ColumnDefinitions="90,*,Auto"
+            ColumnSpacing="12">
+            <Grid ColumnDefinitions="38,14,38">
+                <Border WidthRequest="38" HeightRequest="38" StrokeThickness="0" StrokeShape="RoundRectangle 12" VerticalOptions="Center">
+                    <Image Source="{Binding IconAsset}" WidthRequest="38" HeightRequest="38" Aspect="AspectFill" />
+                </Border>
+                <Label Grid.Column="1" Text="×" Style="{StaticResource BodyMuted}" FontSize="13" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                <Border Grid.Column="2" WidthRequest="38" HeightRequest="38" StrokeThickness="0" StrokeShape="RoundRectangle 12" VerticalOptions="Center">
+                    <Image Source="{Binding PaymentMethodIconAsset}" WidthRequest="38" HeightRequest="38" Aspect="AspectFill" />
+                </Border>
+            </Grid>
+
+            <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                <Grid
+                    x:Name="DescriptionHeader"
+                    HeightRequest="{Binding DescriptionHeaderHeightRequest}"
+                    MinimumHeightRequest="20"
+                    ColumnDefinitions="*,Auto"
+                    ColumnSpacing="6">
+                    <Grid.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnDescriptionTapped" />
+                    </Grid.GestureRecognizers>
+                    <Label
+                        x:Name="DescriptionLabel"
+                        ClassId="ExpandableTransactionDescription"
+                        Text="{Binding Description}"
+                        Style="{StaticResource CardTitle}"
+                        FontSize="14"
+                        LineBreakMode="{Binding DescriptionLineBreakMode}"
+                        MaxLines="{Binding DescriptionMaxLines}"
+                        SizeChanged="OnDescriptionSizeChanged" />
+                    <Border
+                        x:Name="DescriptionToggleButton"
+                        Grid.Column="1"
+                        WidthRequest="20"
+                        HeightRequest="20"
+                        IsVisible="{Binding CanExpandDescription}"
+                        BackgroundColor="{DynamicResource AccentTint}"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 10"
+                        VerticalOptions="Start"
+                        SemanticProperties.Description="Expand description">
+                        <Path
+                            WidthRequest="10"
+                            HeightRequest="10"
+                            Data="M 4,6 L 8,10 L 12,6"
+                            Rotation="{Binding DescriptionIndicatorRotation}"
+                            Stroke="{DynamicResource Accent}"
+                            StrokeThickness="2"
+                            StrokeLineCap="Round"
+                            StrokeLineJoin="Round"
+                            Fill="Transparent"
+                            Aspect="Uniform"
+                            HorizontalOptions="Center"
+                            VerticalOptions="Center" />
+                    </Border>
+                </Grid>
+                <Label Text="{Binding DetailText}" Style="{StaticResource BodyMuted}" FontSize="11" LineBreakMode="TailTruncation" MaxLines="1" />
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Grid.Column="2" Spacing="2" HorizontalOptions="End" VerticalOptions="Center">
+                <Label Text="{Binding AmountText}" FontFamily="OpenSansSemibold" FontSize="14" TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" HorizontalTextAlignment="End">
+                    <Label.Triggers>
+                        <DataTrigger TargetType="Label" Binding="{Binding IsIncome}" Value="True">
+                            <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource PositiveLight}, Dark={StaticResource PositiveDark}}" />
+                        </DataTrigger>
+                    </Label.Triggers>
+                </Label>
+                <Label
+                    x:Name="DateLabel"
+                    Text="{Binding DashboardDateText}"
+                    Style="{StaticResource BodyMuted}"
+                    FontSize="11"
+                    HorizontalTextAlignment="End"
+                    LineBreakMode="NoWrap"
+                    MaxLines="1"
+                    IsVisible="False" />
+            </VerticalStackLayout>
+        </Grid>
+
+        <BoxView
+            ZIndex="2"
+            Margin="14,0"
+            HeightRequest="1"
+            VerticalOptions="End"
+            IsVisible="{Binding ShowDivider}"
+            BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+    </Grid>
+</ContentView>

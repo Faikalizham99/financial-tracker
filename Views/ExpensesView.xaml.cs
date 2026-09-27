@@ -59,14 +59,12 @@ public partial class ExpensesView : ContentView
     private readonly HashSet<DateTime> collapsedActivityGroupDates = [];
     private readonly HashSet<DateTime> animatingActivityGroupDates = [];
     private readonly HashSet<int> expandedTransactionDescriptionIds = [];
-    private readonly HashSet<int> animatingTransactionDescriptionIds = [];
     private FilterSelectorKind filterSelectorKind;
     private bool isFilterSelectorOpen;
     private bool isFilterSelectorAnimating;
     private bool isDateRangeFilterOpen;
     private bool isDateRangeFilterAnimating;
     private CancellationTokenSource? transactionFocusCancellation;
-    private CancellationTokenSource? descriptionMeasurementCancellation;
     private bool isTransactionEditingLocked = true;
 
     public ExpensesView()
@@ -365,171 +363,24 @@ public partial class ExpensesView : ContentView
     private void OnTransactionsScrolled(object? sender, ScrolledEventArgs e) =>
         UpdateStickyActivityHeader(e.ScrollY);
 
-    private void OnTransactionDescriptionSizeChanged(object? sender, EventArgs e)
+    private void OnTransactionDescriptionToggled(
+        object? sender,
+        TransactionDescriptionToggledEventArgs e)
     {
-        if (sender is Label label)
+        if (e.IsExpanded)
         {
-            UpdateDescriptionExpandability(label);
+            expandedTransactionDescriptionIds.Add(e.Item.Id);
         }
+        else
+        {
+            expandedTransactionDescriptionIds.Remove(e.Item.Id);
+        }
+
+        Dispatcher.Dispatch(UpdateStickyActivityHeader);
     }
 
-    private void UpdateDescriptionExpandability(Label label)
-    {
-        if (label.BindingContext is not TransactionActivityItem item ||
-            label.Width <= 0)
-        {
-            return;
-        }
-
-        var measuredTextWidth = label
-            .Measure(double.PositiveInfinity, double.PositiveInfinity)
-            .Width;
-        var estimatedTextWidth = EstimateSingleLineTextWidth(
-            item.Description,
-            label.FontSize);
-        var fullTextWidth = Math.Max(measuredTextWidth, estimatedTextWidth);
-        var canExpand = fullTextWidth > label.Width + 1;
-        item.SetDescriptionExpandable(canExpand);
-        if (!canExpand)
-        {
-            expandedTransactionDescriptionIds.Remove(item.Id);
-        }
-    }
-
-    private void ScheduleDescriptionMeasurements()
-    {
-        CancelDescriptionMeasurements();
-        var cancellation = new CancellationTokenSource();
-        descriptionMeasurementCancellation = cancellation;
-        _ = MeasureVisibleDescriptionsAfterLayoutAsync(cancellation);
-    }
-
-    private async Task MeasureVisibleDescriptionsAfterLayoutAsync(
-        CancellationTokenSource cancellation)
-    {
-        try
-        {
-            // iOS can assign final BindableLayout child widths over multiple layout passes.
-            foreach (var delay in new[] { 0, 50, 150 })
-            {
-                if (delay > 0)
-                {
-                    await Task.Delay(delay, cancellation.Token);
-                }
-
-                cancellation.Token.ThrowIfCancellationRequested();
-                Dispatcher.Dispatch(RecalculateVisibleDescriptionExpandability);
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // A newer transaction refresh owns the current visual tree.
-        }
-        finally
-        {
-            if (ReferenceEquals(descriptionMeasurementCancellation, cancellation))
-            {
-                descriptionMeasurementCancellation = null;
-            }
-
-            cancellation.Dispose();
-        }
-    }
-
-    private void RecalculateVisibleDescriptionExpandability()
-    {
-        foreach (var label in ActivityGroupsLayout
-            .GetVisualTreeDescendants()
-            .OfType<Label>()
-            .Where(candidate =>
-                candidate.ClassId == "ExpandableTransactionDescription"))
-        {
-            UpdateDescriptionExpandability(label);
-        }
-    }
-
-    private void CancelDescriptionMeasurements()
-    {
-        var pendingCancellation = descriptionMeasurementCancellation;
-        descriptionMeasurementCancellation = null;
-        if (pendingCancellation is null)
-        {
-            return;
-        }
-
-        pendingCancellation.Cancel();
-    }
-
-    private static double EstimateSingleLineTextWidth(
-        string text,
-        double fontSize)
-    {
-        var emWidth = 0d;
-        foreach (var character in text)
-        {
-            emWidth += character switch
-            {
-                _ when char.IsWhiteSpace(character) => 0.33,
-                'i' or 'l' or 'I' or '1' or '|' or '!' or '.' or ',' or ':' or ';' or '\'' => 0.3,
-                'm' or 'w' or 'M' or 'W' or '@' or '#' or '%' or '&' => 0.85,
-                _ when char.IsUpper(character) => 0.64,
-                _ => 0.55
-            };
-        }
-
-        return emWidth * fontSize;
-    }
-
-    private async void OnTransactionDescriptionTapped(object? sender, TappedEventArgs e)
-    {
-        if (e.Parameter is not TransactionActivityItem item ||
-            !item.CanExpandDescription ||
-            !animatingTransactionDescriptionIds.Add(item.Id))
-        {
-            return;
-        }
-
-        var descriptionContainer = (sender as TapGestureRecognizer)?.Parent as Grid;
-        try
-        {
-            if (descriptionContainer is not null)
-            {
-                await descriptionContainer.FadeToAsync(0.58, 55, Easing.CubicIn);
-            }
-
-            var shouldExpand = !item.IsDescriptionExpanded;
-            item.SetDescriptionExpanded(shouldExpand);
-            if (shouldExpand)
-            {
-                expandedTransactionDescriptionIds.Add(item.Id);
-            }
-            else
-            {
-                expandedTransactionDescriptionIds.Remove(item.Id);
-            }
-
-            if (descriptionContainer is not null)
-            {
-                await descriptionContainer.FadeToAsync(1, 115, Easing.CubicOut);
-            }
-        }
-        finally
-        {
-            if (descriptionContainer is not null)
-            {
-                descriptionContainer.Opacity = 1;
-            }
-
-            animatingTransactionDescriptionIds.Remove(item.Id);
-            Dispatcher.Dispatch(UpdateStickyActivityHeader);
-        }
-    }
-
-    private void OnActivityGroupsLayoutSizeChanged(object? sender, EventArgs e)
-    {
+    private void OnActivityGroupsLayoutSizeChanged(object? sender, EventArgs e) =>
         UpdateStickyActivityHeader();
-        ScheduleDescriptionMeasurements();
-    }
 
     private void UpdateStickyActivityHeader() =>
         UpdateStickyActivityHeader(TransactionsScrollView.ScrollY);
@@ -1142,7 +993,6 @@ public partial class ExpensesView : ContentView
         }
         MonthSwitcherLabel.Text = presentation.PeriodLabel;
         UpdateFilterChips();
-        ScheduleDescriptionMeasurements();
         Dispatcher.Dispatch(UpdateStickyActivityHeader);
         Dispatcher.Dispatch(UpdateTransactionContextMenus);
     }

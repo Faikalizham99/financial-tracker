@@ -6,6 +6,7 @@ using FinancialTracker.Helpers;
 using FinancialTracker.Models;
 using FinancialTracker.Services;
 using FinancialTracker.ViewModels;
+using FinancialTracker.Views;
 using Microsoft.Maui.Storage;
 
 namespace FinancialTracker;
@@ -43,12 +44,14 @@ public partial class MainPage : ContentPage
     private readonly SemaphoreSlim dataLoadingOperationLock = new(1, 1);
     private readonly List<string> homeSectionOrder = [];
     private readonly List<string> draftHomeSectionOrder = [];
+    private IReadOnlyList<TransactionActivityItem> dashboardRecentActivity = [];
     private readonly VisualElement[] navigationPages;
     private readonly VisualElement[] navigationIcons;
     private readonly Border[] navigationTabs;
     private readonly Label[] navigationLabels;
     private int selectedSectionIndex = 1;
     private int navigationTransitionVersion;
+    private int? expandedDashboardTransactionDescriptionId;
     private TransactionRecord? pendingDeleteTransaction;
     private bool isDeleteConfirmationAnimating;
     private bool isDeletingTransaction;
@@ -1042,6 +1045,28 @@ public partial class MainPage : ContentPage
         await feedback;
     }
 
+    private void OnDashboardTransactionDescriptionToggled(
+        object? sender,
+        TransactionDescriptionToggledEventArgs e)
+    {
+        if (e.IsExpanded)
+        {
+            foreach (var item in dashboardRecentActivity)
+            {
+                if (item.Id != e.Item.Id)
+                {
+                    item.SetDescriptionExpanded(false);
+                }
+            }
+
+            expandedDashboardTransactionDescriptionId = e.Item.Id;
+        }
+        else if (expandedDashboardTransactionDescriptionId == e.Item.Id)
+        {
+            expandedDashboardTransactionDescriptionId = null;
+        }
+    }
+
     private void OnDashboardTransactionRowHandlerChanged(object? sender, EventArgs e)
     {
         if (sender is Grid row)
@@ -1579,10 +1604,24 @@ public partial class MainPage : ContentPage
         BindableLayout.SetItemsSource(
             DashboardIncomeCategoriesLayout,
             summary.IncomeCategories);
+        dashboardRecentActivity = summary.RecentActivity;
+        if (expandedDashboardTransactionDescriptionId is int expandedId)
+        {
+            var expandedItem = dashboardRecentActivity.FirstOrDefault(item => item.Id == expandedId);
+            if (expandedItem is null)
+            {
+                expandedDashboardTransactionDescriptionId = null;
+            }
+            else
+            {
+                expandedItem.SetDescriptionExpanded(true);
+            }
+        }
+
         BindableLayout.SetItemsSource(
             DashboardActivityLayout,
-            summary.RecentActivity);
-        var hasRecentActivity = summary.RecentActivity.Count > 0;
+            dashboardRecentActivity);
+        var hasRecentActivity = dashboardRecentActivity.Count > 0;
         DashboardActivityCard.IsVisible = hasRecentActivity;
         DashboardEmptyActivityState.IsVisible = !hasRecentActivity;
         DashboardViewAllButton.IsVisible = hasRecentActivity;
