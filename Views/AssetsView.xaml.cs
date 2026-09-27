@@ -150,6 +150,7 @@ public partial class AssetsView : ContentView
         TotalModeLabel.Text = includeKwsp ? "TOTAL ASSETS" : "TOTAL ASSETS · EXCLUDING KWSP";
         KwspModeLabel.Text = includeKwsp ? "With KWSP" : "Without KWSP";
         TotalLabel.Text = MoneyFormatter.FormatMinor(total, value.CurrencySymbol);
+        TotalLabel.FontSize = GetPortfolioTotalFontSize(TotalLabel.Text);
         SnapshotDateLabel.Text = value.PreviousEntryDate.HasValue
             ? $"{value.PreviousEntryDate:dd MMM yyyy} → {value.EntryDate:dd MMM yyyy}"
             : $"Baseline · {value.EntryDate:dd MMM yyyy}";
@@ -852,4 +853,20 @@ public partial class AssetsView : ContentView
         < 0 => Color.FromArgb("#C2415A"),
         _ => Color.FromArgb("#777381")
     };
+
+    private static double GetPortfolioTotalFontSize(string text)
+    {
+        if (DeviceInfo.Idiom != DeviceIdiom.Phone)
+        {
+            return 34;
+        }
+
+        return text.Length switch
+        {
+            > 20 => 24,
+            > 16 => 28,
+            > 13 => 31,
+            _ => 34
+        };
+    }
 }

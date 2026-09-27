@@ -94,14 +94,31 @@
                                     </Border>
                                 </HorizontalStackLayout>
                             </Grid>
-                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-                                <VerticalStackLayout Spacing="4">
-                                    <Label x:Name="TotalLabel" FontFamily="OpenSansSemibold" FontSize="34" />
-                                    <Label x:Name="SnapshotDateLabel" Style="{StaticResource BodyMuted}" />
-                                </VerticalStackLayout>
-                                <Border Grid.Column="1" Style="{StaticResource Pill}" VerticalOptions="Start">
-                                    <Label x:Name="TotalChangeLabel" FontFamily="OpenSansSemibold" />
+                            <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,Auto" RowSpacing="6" ColumnSpacing="16">
+                                <Label
+                                    x:Name="TotalLabel"
+                                    Grid.ColumnSpan="{OnIdiom Phone=2, Tablet=1, Desktop=1}"
+                                    FontFamily="OpenSansSemibold"
+                                    FontSize="34"
+                                    FontAutoScalingEnabled="False"
+                                    LineBreakMode="NoWrap"
+                                    MaxLines="1" />
+                                <Border
+                                    Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
+                                    Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}"
+                                    Grid.ColumnSpan="{OnIdiom Phone=2, Tablet=1, Desktop=1}"
+                                    Style="{StaticResource Pill}"
+                                    HorizontalOptions="End"
+                                    VerticalOptions="Start">
+                                    <Label x:Name="TotalChangeLabel" FontFamily="OpenSansSemibold" LineBreakMode="NoWrap" MaxLines="1" />
                                 </Border>
+                                <Label
+                                    x:Name="SnapshotDateLabel"
+                                    Grid.Row="{OnIdiom Phone=2, Tablet=1, Desktop=1}"
+                                    Grid.ColumnSpan="{OnIdiom Phone=2, Tablet=1, Desktop=1}"
+                                    Style="{StaticResource BodyMuted}"
+                                    LineBreakMode="NoWrap"
+                                    MaxLines="1" />
                             </Grid>
                             <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
                             <Grid ColumnDefinitions="*,*" ColumnSpacing="18">
