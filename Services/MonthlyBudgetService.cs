@@ -1,4 +1,5 @@
 using FinancialTracker.Data;
+using FinancialTracker.Helpers;
 using FinancialTracker.Models;
 
 namespace FinancialTracker.Services;
@@ -10,7 +11,7 @@ public sealed class MonthlyBudgetService(LocalDatabase database)
 
     public Task<MonthlyBudgetRecord?> GetAsync(DateTime month)
     {
-        var monthKey = ToMonthKey(month);
+        var monthKey = MonthKeyConverter.FromDate(month);
         Task<MonthlyBudgetRecord?> queryTask;
         lock (cacheLock)
         {
@@ -28,10 +29,10 @@ public sealed class MonthlyBudgetService(LocalDatabase database)
 
     public async Task<IReadOnlyList<MonthlyBudgetRecord>> GetYearAsync(int year)
     {
-        var firstMonthKey = (year * 100) + 1;
+        var firstMonthKey = MonthKeyConverter.FromDate(new DateTime(year, 1, 1));
         var budgets = await database.GetMonthlyBudgetsAsync(
             firstMonthKey,
-            firstMonthKey + 11);
+            firstMonthKey + 11).ConfigureAwait(false);
         var budgetsByMonth = budgets.ToDictionary(budget => budget.MonthKey);
 
         lock (cacheLock)
@@ -55,7 +56,7 @@ public sealed class MonthlyBudgetService(LocalDatabase database)
         string currencyCode) =>
         SaveCoreAsync(new MonthlyBudgetRecord
         {
-            MonthKey = ToMonthKey(month),
+            MonthKey = MonthKeyConverter.FromDate(month),
             BudgetIncludingInvestmentMinor = includingInvestmentMinor,
             BudgetExcludingInvestmentMinor = excludingInvestmentMinor,
             CurrencyCode = currencyCode,
@@ -72,7 +73,7 @@ public sealed class MonthlyBudgetService(LocalDatabase database)
 
     private async Task SaveCoreAsync(MonthlyBudgetRecord budget)
     {
-        await database.SaveMonthlyBudgetAsync(budget);
+        await database.SaveMonthlyBudgetAsync(budget).ConfigureAwait(false);
         lock (cacheLock)
         {
             cache[budget.MonthKey] = Task.FromResult<MonthlyBudgetRecord?>(budget);
@@ -85,7 +86,7 @@ public sealed class MonthlyBudgetService(LocalDatabase database)
     {
         try
         {
-            return await queryTask;
+            return await queryTask.ConfigureAwait(false);
         }
         catch
         {
@@ -101,7 +102,4 @@ public sealed class MonthlyBudgetService(LocalDatabase database)
             throw;
         }
     }
-
-    private static int ToMonthKey(DateTime month) =>
-        (month.Year * 100) + month.Month;
 }

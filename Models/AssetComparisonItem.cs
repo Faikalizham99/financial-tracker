@@ -14,8 +14,6 @@ public sealed record AssetTrendPoint(
     double RelativeHeight);
 
 public sealed record AssetPortfolio(
-    DateTime Month,
-    string CurrencyCode,
     string CurrencySymbol,
     DateTime? EntryDate,
     DateTime? PreviousEntryDate,

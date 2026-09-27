@@ -5,6 +5,8 @@ namespace FinancialTracker.Views;
 
 public partial class TransactionActivityRow : ContentView
 {
+    private static readonly int[] DescriptionMeasurementDelays = [0, 50, 150];
+
     public static readonly BindableProperty ShowDateProperty = BindableProperty.Create(
         nameof(ShowDate),
         typeof(bool),
@@ -166,7 +168,7 @@ public partial class TransactionActivityRow : ContentView
     {
         try
         {
-            foreach (var delay in new[] { 0, 50, 150 })
+            foreach (var delay in DescriptionMeasurementDelays)
             {
                 if (delay > 0)
                 {
@@ -174,7 +176,7 @@ public partial class TransactionActivityRow : ContentView
                 }
 
                 cancellation.Token.ThrowIfCancellationRequested();
-                Dispatcher.Dispatch(UpdateDescriptionExpandability);
+                UpdateDescriptionExpandability();
             }
         }
         catch (OperationCanceledException)

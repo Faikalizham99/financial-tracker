@@ -1,7 +1,5 @@
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Globalization;
-using System.Runtime.CompilerServices;
 using FinancialTracker.Helpers;
 using FinancialTracker.Models;
 using FinancialTracker.Services;
@@ -10,7 +8,7 @@ namespace FinancialTracker.ViewModels;
 
 public sealed class BudgetSettingsViewModel(
     MonthlyBudgetService monthlyBudgetService,
-    SettingsViewModel settingsViewModel) : INotifyPropertyChanged
+    SettingsViewModel settingsViewModel) : ObservableObject
 {
     public const int MinimumBudgetYear = DateRangeLimits.MinimumYear;
     public static int MaximumBudgetYear => DateRangeLimits.MaximumYear;
@@ -26,8 +24,9 @@ public sealed class BudgetSettingsViewModel(
     private bool isCopyingPrevious;
     private string copyPreviousMessage = string.Empty;
     private bool hasCopyPreviousError;
+    private int selectedMonthLoadVersion;
+    private int historyLoadVersion;
 
-    public event PropertyChangedEventHandler? PropertyChanged;
     public event EventHandler? BudgetSaved;
 
     public ObservableCollection<BudgetHistoryMonthItem> HistoryMonths { get; } = [];
@@ -232,18 +231,24 @@ public sealed class BudgetSettingsViewModel(
 
     public async Task LoadHistoryYearAsync(int year)
     {
+        var requestVersion = ++historyLoadVersion;
         IsLoading = true;
         try
         {
             var normalizedYear = Math.Clamp(year, MinimumBudgetYear, MaximumBudgetYear);
             HistoryYear = normalizedYear;
             var budgets = await monthlyBudgetService.GetYearAsync(normalizedYear);
+            if (requestVersion != historyLoadVersion)
+            {
+                return;
+            }
+
             var byMonth = budgets.ToDictionary(item => item.MonthKey);
             HistoryMonths.Clear();
             for (var monthNumber = 1; monthNumber <= 12; monthNumber++)
             {
                 var month = new DateTime(normalizedYear, monthNumber, 1);
-                byMonth.TryGetValue((normalizedYear * 100) + monthNumber, out var budget);
+                byMonth.TryGetValue(MonthKeyConverter.FromDate(month), out var budget);
                 HistoryMonths.Add(BudgetHistoryMonthItem.Create(
                     month,
                     budget,
@@ -252,7 +257,10 @@ public sealed class BudgetSettingsViewModel(
         }
         finally
         {
-            IsLoading = false;
+            if (requestVersion == historyLoadVersion)
+            {
+                IsLoading = false;
+            }
         }
     }
 
@@ -345,8 +353,15 @@ public sealed class BudgetSettingsViewModel(
 
     private async Task LoadSelectedMonthAsync()
     {
+        var requestVersion = ++selectedMonthLoadVersion;
+        var requestedMonth = SelectedMonth;
         SetCopyPreviousMessage(string.Empty, isError: false);
-        var budget = await monthlyBudgetService.GetAsync(SelectedMonth);
+        var budget = await monthlyBudgetService.GetAsync(requestedMonth);
+        if (requestVersion != selectedMonthLoadVersion || requestedMonth != SelectedMonth)
+        {
+            return;
+        }
+
         savedIncludingInvestmentMinor = budget?.BudgetIncludingInvestmentMinor;
         savedExcludingInvestmentMinor = budget?.BudgetExcludingInvestmentMinor;
         includingInvestmentText = budget is null
@@ -380,24 +395,7 @@ public sealed class BudgetSettingsViewModel(
     }
 
     private static bool TryParseAmount(string value, out long amountMinor)
-    {
-        amountMinor = 0;
-        var styles = NumberStyles.AllowDecimalPoint |
-            NumberStyles.AllowThousands |
-            NumberStyles.AllowLeadingWhite |
-            NumberStyles.AllowTrailingWhite;
-        if ((!decimal.TryParse(value, styles, CultureInfo.CurrentCulture, out var amount) &&
-             !decimal.TryParse(value, styles, CultureInfo.InvariantCulture, out amount)) ||
-            amount <= 0 ||
-            amount > long.MaxValue / 100m)
-        {
-            return false;
-        }
-
-        amountMinor = decimal.ToInt64(
-            decimal.Round(amount * 100m, 0, MidpointRounding.AwayFromZero));
-        return amountMinor > 0;
-    }
+        => MoneyInputParser.TryParseMinor(value, allowZero: false, out amountMinor);
 
     private static string FormatInput(long amountMinor) =>
         (amountMinor / 100m).ToString("0.00", CultureInfo.InvariantCulture);
@@ -405,18 +403,4 @@ public sealed class BudgetSettingsViewModel(
     private static DateTime StartOfMonth(DateTime value) =>
         new(value.Year, value.Month, 1);
 
-    private bool SetProperty<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
-    {
-        if (EqualityComparer<T>.Default.Equals(field, value))
-        {
-            return false;
-        }
-
-        field = value;
-        OnPropertyChanged(propertyName);
-        return true;
-    }
-
-    private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 }

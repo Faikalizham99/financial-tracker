@@ -1,4 +1,5 @@
 using System.Globalization;
+using FinancialTracker.Helpers;
 using FinancialTracker.Models;
 using Microsoft.Maui.Graphics;
 
@@ -68,7 +69,7 @@ public sealed class AssetTrendChartDrawable : IDrawable
         points = source
             .TakeLast(MaximumVisiblePoints)
             .Select(point => new ChartPoint(
-                (point.Month.Year * 100) + point.Month.Month,
+                MonthKeyConverter.FromDate(point.Month),
                 point.Month.Month,
                 point.Month.ToString("MMM", CultureInfo.CurrentCulture),
                 Math.Clamp((float)point.RelativeHeight, 0f, 1f)))

@@ -279,7 +279,7 @@ public partial class MonthlySummaryCard : ContentView
 
         if (usageRatio > 1)
         {
-            budgetProgressDrawable.ProgressColor = GetThemeResourceColor(
+            budgetProgressDrawable.ProgressColor = ThemeResourceBindings.GetThemeColor(
                 "NegativeLight",
                 "NegativeDark",
                 "#C2415A");
@@ -291,14 +291,15 @@ public partial class MonthlySummaryCard : ContentView
         }
         else
         {
-            budgetProgressDrawable.ProgressColor = GetResourceColor("Accent", "#5044E4");
+            budgetProgressDrawable.ProgressColor =
+                ThemeResourceBindings.GetColor("Accent", "#5044E4");
             ThemeResourceBindings.SetDynamic(
                 BudgetUsagePercentageLabel,
                 Label.TextColorProperty,
                 "Accent");
         }
 
-        budgetProgressDrawable.TrackColor = GetThemeResourceColor(
+        budgetProgressDrawable.TrackColor = ThemeResourceBindings.GetThemeColor(
             "SurfaceMutedLight",
             "SurfaceMutedDark",
             "#F1EDE7");
@@ -325,22 +326,6 @@ public partial class MonthlySummaryCard : ContentView
             length: BudgetProgressAnimationLength,
             easing: Easing.CubicOut);
     }
-
-    private static Color GetThemeResourceColor(
-        string lightKey,
-        string darkKey,
-        string fallback)
-    {
-        var key = Application.Current?.RequestedTheme == AppTheme.Dark
-            ? darkKey
-            : lightKey;
-        return GetResourceColor(key, fallback);
-    }
-
-    private static Color GetResourceColor(string key, string fallback) =>
-        Application.Current?.Resources.TryGetValue(key, out var value) == true && value is Color color
-            ? color
-            : Color.FromArgb(fallback);
 
     private int? PrepareBudgetMonth(DateTime month)
     {

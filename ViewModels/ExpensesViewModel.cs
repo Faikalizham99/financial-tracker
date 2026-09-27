@@ -1,4 +1,5 @@
 using System.Globalization;
+using FinancialTracker.Helpers;
 using FinancialTracker.Models;
 using FinancialTracker.Services;
 
@@ -73,7 +74,8 @@ public sealed class ExpensesViewModel
             currency.Symbol,
             expandedDescriptionIds,
             collapsedGroupDates,
-            canModifyTransactions);
+            canModifyTransactions,
+            DateTime.Today);
         var hasFilters = paymentFilter is not null ||
             categoryFilter is not null ||
             startDate is not null;
@@ -81,7 +83,7 @@ public sealed class ExpensesViewModel
             ? "No transactions match these filters"
             : $"No transactions in {displayedMonth.ToString("MMMM yyyy", CultureInfo.CurrentCulture)}";
         var periodLabel = hasDateRange
-            ? FormatDateRange(startDate!.Value, endDate!.Value)
+            ? CompactDateRangeFormatter.Format(startDate!.Value, endDate!.Value)
             : displayedMonth.ToString("MMMM yyyy", CultureInfo.CurrentCulture);
         var hasSummaryScopeFilters = paymentFilter is not null || categoryFilter is not null;
 
@@ -99,7 +101,8 @@ public sealed class ExpensesViewModel
         string currencySymbol,
         IReadOnlySet<int> expandedDescriptionIds,
         IReadOnlySet<DateTime> collapsedGroupDates,
-        bool canModifyTransactions)
+        bool canModifyTransactions,
+        DateTime today)
     {
         var groups = new List<TransactionActivityGroup>();
         var index = 0;
@@ -133,7 +136,7 @@ public sealed class ExpensesViewModel
 
             groups.Add(new TransactionActivityGroup(
                 date,
-                GetDateGroupTitle(date),
+                GetDateGroupTitle(date, today),
                 items,
                 netAmountMinor,
                 currencySymbol,
@@ -143,32 +146,12 @@ public sealed class ExpensesViewModel
         return groups;
     }
 
-    private static string FormatDateRange(DateTime startDate, DateTime endDate)
-    {
-        if (startDate == endDate)
-        {
-            return startDate.ToString("d MMM yyyy", CultureInfo.CurrentCulture);
-        }
-
-        if (startDate.Year == endDate.Year && startDate.Month == endDate.Month)
-        {
-            return $"{startDate.Day}–{endDate.ToString("d MMM yyyy", CultureInfo.CurrentCulture)}";
-        }
-
-        if (startDate.Year == endDate.Year)
-        {
-            return $"{startDate.ToString("d MMM", CultureInfo.CurrentCulture)} – {endDate.ToString("d MMM yyyy", CultureInfo.CurrentCulture)}";
-        }
-
-        return $"{startDate.ToString("d MMM yyyy", CultureInfo.CurrentCulture)} – {endDate.ToString("d MMM yyyy", CultureInfo.CurrentCulture)}";
-    }
-
-    private static string GetDateGroupTitle(DateTime date)
+    private static string GetDateGroupTitle(DateTime date, DateTime today)
     {
         var dayLabel = date.Date switch
         {
-            var value when value == DateTime.Today => "TODAY",
-            var value when value == DateTime.Today.AddDays(-1) => "YESTERDAY",
+            var value when value == today => "TODAY",
+            var value when value == today.AddDays(-1) => "YESTERDAY",
             _ => date.ToString("dddd", CultureInfo.CurrentCulture).ToUpperInvariant()
         };
 

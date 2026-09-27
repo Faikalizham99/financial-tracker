@@ -46,10 +46,11 @@ public sealed class TransactionActivityItem : INotifyPropertyChanged
         var isIncome = TransactionCatalog.IsIncomeType(record.Type);
         var category = TransactionCatalog.GetCategory(record.Category, isIncome);
         var paymentMethod = TransactionCatalog.GetPaymentMethod(record.PaymentMethod);
+        var today = DateTime.Today;
         var dateText = record.TransactionDate.Date switch
         {
-            var date when date == DateTime.Today => "Today",
-            var date when date == DateTime.Today.AddDays(-1) => "Yesterday",
+            var date when date == today => "Today",
+            var date when date == today.AddDays(-1) => "Yesterday",
             var date => date.ToString("d MMM yyyy", CultureInfo.CurrentCulture)
         };
 

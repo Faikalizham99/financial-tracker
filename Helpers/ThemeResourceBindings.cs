@@ -2,6 +2,23 @@ namespace FinancialTracker.Helpers;
 
 public static class ThemeResourceBindings
 {
+    public static Color GetColor(string resourceKey, string fallback) =>
+        Application.Current?.Resources.TryGetValue(resourceKey, out var value) == true &&
+        value is Color color
+            ? color
+            : Color.FromArgb(fallback);
+
+    public static Color GetThemeColor(
+        string lightResourceKey,
+        string darkResourceKey,
+        string fallback)
+    {
+        var resourceKey = Application.Current?.RequestedTheme == AppTheme.Dark
+            ? darkResourceKey
+            : lightResourceKey;
+        return GetColor(resourceKey, fallback);
+    }
+
     public static void SetColor(
         Element target,
         BindableProperty property,

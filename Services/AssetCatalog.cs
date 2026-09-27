@@ -12,7 +12,6 @@ public static class AssetCatalog
             "ambank",
             "AmBank",
             "asset_ambank.png",
-            "Bank",
             0,
             IsAccessible: true,
             IsActive: true),
@@ -20,7 +19,6 @@ public static class AssetCatalog
             "asb",
             "ASB",
             "asset_asb.jpeg",
-            "Investment",
             1,
             IsAccessible: true,
             IsActive: true),
@@ -28,7 +26,6 @@ public static class AssetCatalog
             "bank_islam",
             "Bank Islam",
             "asset_bank_islam.jpeg",
-            "Bank",
             2,
             IsAccessible: true,
             IsActive: true),
@@ -36,7 +33,6 @@ public static class AssetCatalog
             "cash",
             "Cash",
             "payment_cash.png",
-            "Cash",
             3,
             IsAccessible: true,
             IsActive: true),
@@ -44,7 +40,6 @@ public static class AssetCatalog
             "cimb",
             "CIMB",
             "asset_cimb.jpeg",
-            "Bank",
             4,
             IsAccessible: true,
             IsActive: true),
@@ -52,7 +47,6 @@ public static class AssetCatalog
             "gxbank",
             "GXBank",
             "asset_gxbank.jpeg",
-            "Bank",
             5,
             IsAccessible: true,
             IsActive: true),
@@ -60,7 +54,6 @@ public static class AssetCatalog
             KwspKey,
             "KWSP",
             "asset_kwsp.jpeg",
-            "Retirement",
             6,
             IsAccessible: false,
             IsActive: true),
@@ -68,7 +61,6 @@ public static class AssetCatalog
             "luno",
             "Luno",
             "asset_luno.jpeg",
-            "Cryptocurrency",
             7,
             IsAccessible: true,
             IsActive: true),
@@ -76,7 +68,6 @@ public static class AssetCatalog
             "maybank",
             "Maybank",
             "asset_maybank.png",
-            "Bank",
             8,
             IsAccessible: true,
             IsActive: true),
@@ -84,7 +75,6 @@ public static class AssetCatalog
             "moomoo",
             "Moomoo",
             "asset_moomoo.jpeg",
-            "Investment",
             9,
             IsAccessible: true,
             IsActive: true),
@@ -92,7 +82,6 @@ public static class AssetCatalog
             "ryt_bank",
             "Ryt Bank",
             "asset_ryt_bank.jpeg",
-            "Bank",
             10,
             IsAccessible: true,
             IsActive: true),
@@ -100,7 +89,6 @@ public static class AssetCatalog
             "standard_chartered",
             "Standard Chartered",
             "asset_standard_chartered.png",
-            "Bank",
             11,
             IsAccessible: true,
             IsActive: true),
@@ -108,7 +96,6 @@ public static class AssetCatalog
             "touch_n_go_ewallet",
             "Touch N Go eWallet",
             "asset_touch_n_go_ewallet.jpeg",
-            "E-wallet",
             12,
             IsAccessible: true,
             IsActive: true),
@@ -116,7 +103,6 @@ public static class AssetCatalog
             "versa",
             "Versa",
             "asset_versa.jpeg",
-            "Investment",
             13,
             IsAccessible: true,
             IsActive: true),
@@ -124,7 +110,6 @@ public static class AssetCatalog
             "wahed",
             "Wahed",
             "asset_wahed.jpeg",
-            "Investment",
             14,
             IsAccessible: true,
             IsActive: true)
@@ -135,7 +120,23 @@ public static class AssetCatalog
         .OrderBy(item => item.DisplayOrder)
         .ToList();
 
+    private static IReadOnlyDictionary<string, AssetCatalogItem> ItemsByKey { get; } =
+        Items.ToDictionary(item => item.Key, StringComparer.Ordinal);
+
+    private static IReadOnlySet<string> ActiveKeys { get; } = ActiveItems
+        .Select(item => item.Key)
+        .ToHashSet(StringComparer.Ordinal);
+
+    private static IReadOnlySet<string> AccessibleKeys { get; } = Items
+        .Where(item => item.IsAccessible)
+        .Select(item => item.Key)
+        .ToHashSet(StringComparer.Ordinal);
+
     public static AssetCatalogItem GetHistoricalItem(string key) =>
-        Items.FirstOrDefault(item => item.Key.Equals(key, StringComparison.Ordinal))
-        ?? new AssetCatalogItem(key, key, string.Empty, "Other", int.MaxValue, false, false);
+        ItemsByKey.GetValueOrDefault(key)
+        ?? new AssetCatalogItem(key, key, string.Empty, int.MaxValue, false, false);
+
+    public static bool IsActive(string key) => ActiveKeys.Contains(key);
+
+    public static bool IsAccessible(string key) => AccessibleKeys.Contains(key);
 }

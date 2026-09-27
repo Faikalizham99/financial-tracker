@@ -18,13 +18,14 @@ public sealed class BudgetHistoryMonthItem
         string currencySymbol)
     {
         var hasBudget = budget is not null;
+        var today = DateTime.Today;
         return new BudgetHistoryMonthItem
         {
             Month = month,
             MonthName = month.ToString("MMM"),
             HasBudget = hasBudget,
-            IsCurrentMonth = month.Year == DateTime.Today.Year &&
-                month.Month == DateTime.Today.Month,
+            IsCurrentMonth = month.Year == today.Year &&
+                month.Month == today.Month,
             IncludingInvestmentText = hasBudget
                 ? MoneyFormatter.FormatMinor(
                     budget!.BudgetIncludingInvestmentMinor,

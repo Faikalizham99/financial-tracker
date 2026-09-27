@@ -14,7 +14,6 @@ public sealed class TransactionDataStore(LocalDatabase database)
 
     public IReadOnlyList<TransactionRecord> DashboardRecords { get; private set; } = [];
     public IReadOnlyList<TransactionRecord> DescriptionHistoryRecords { get; private set; } = [];
-    public IReadOnlyList<TransactionRecord> PeriodRecords => periodRecords;
     public bool IsLoaded { get; private set; }
 
     public Task<TransactionDataSnapshot> LoadStartupAsync(
@@ -130,27 +129,38 @@ public sealed class TransactionDataStore(LocalDatabase database)
 
     private void RebuildRecordLookup()
     {
-        recordsById = DashboardRecords
-            .Concat(periodRecords)
-            .Concat(DescriptionHistoryRecords)
-            .DistinctBy(record => record.Id)
-            .ToDictionary(record => record.Id);
+        var lookup = new Dictionary<int, TransactionRecord>(
+            DashboardRecords.Count +
+            periodRecords.Count +
+            DescriptionHistoryRecords.Count);
+        AddRecords(lookup, DashboardRecords);
+        AddRecords(lookup, periodRecords);
+        AddRecords(lookup, DescriptionHistoryRecords);
+        recordsById = lookup;
     }
 
-    private static string BuildSearchText(TransactionRecord transaction) =>
-        string.Join(
-            ' ',
-            transaction.Description,
-            transaction.Category,
-            transaction.PaymentMethod,
-            transaction.Type,
-            transaction.TransactionDate.ToString(
-                "dddd d MMMM yyyy",
-                CultureInfo.CurrentCulture),
-            transaction.TransactionDate.ToString(
-                "d MMM yyyy",
-                CultureInfo.CurrentCulture),
-            (transaction.AmountMinor / 100m).ToString(
-                "N2",
-                CultureInfo.InvariantCulture));
+    private static void AddRecords(
+        Dictionary<int, TransactionRecord> destination,
+        IEnumerable<TransactionRecord> source)
+    {
+        foreach (var record in source)
+        {
+            destination.TryAdd(record.Id, record);
+        }
+    }
+
+    private static string BuildSearchText(TransactionRecord transaction)
+    {
+        var longDate = transaction.TransactionDate.ToString(
+            "dddd d MMMM yyyy",
+            CultureInfo.CurrentCulture);
+        var shortDate = transaction.TransactionDate.ToString(
+            "d MMM yyyy",
+            CultureInfo.CurrentCulture);
+        var amount = (transaction.AmountMinor / 100m).ToString(
+            "N2",
+            CultureInfo.InvariantCulture);
+        return $"{transaction.Description} {transaction.Category} " +
+            $"{transaction.PaymentMethod} {transaction.Type} {longDate} {shortDate} {amount}";
+    }
 }

@@ -65,7 +65,9 @@ public partial class ExpensesView : ContentView
     private bool isFilterSelectorAnimating;
     private bool isDateRangeFilterOpen;
     private bool isDateRangeFilterAnimating;
+    private int periodLoadVersion;
     private CancellationTokenSource? transactionFocusCancellation;
+    private TransactionActivityGroup? stickyActivityGroup;
     private bool isTransactionEditingLocked = true;
 
     public ExpensesView()
@@ -83,6 +85,7 @@ public partial class ExpensesView : ContentView
         IReadOnlyList<TransactionRecord> records,
         CurrencyOption selectedCurrency)
     {
+        periodLoadVersion++;
         transactionRecords = records;
         var validTransactionIds = records.Select(record => record.Id).ToHashSet();
         expandedTransactionDescriptionIds.RemoveWhere(
@@ -394,44 +397,57 @@ public partial class ExpensesView : ContentView
             return;
         }
 
-        var groupViews = ActivityGroupsLayout.Children
-            .OfType<VerticalStackLayout>()
-            .Where(view => view.BindingContext is TransactionActivityGroup)
-            .ToList();
         var stickyTopInset = StickyActivityHeader.Margin.Top;
-        var activeIndex = -1;
-        var groupOffsets = new double[groupViews.Count];
+        var activationOffset = scrollY + stickyTopInset;
+        var firstGroupOffset = double.NaN;
+        var nextGroupOffset = double.NaN;
+        TransactionActivityGroup? activeGroup = null;
 
-        for (var index = 0; index < groupViews.Count; index++)
+        foreach (var child in ActivityGroupsLayout.Children)
         {
-            var offset = GetVerticalOffsetWithinScrollContent(groupViews[index]);
-            groupOffsets[index] = offset;
-            if (offset >= 0 && offset <= scrollY + stickyTopInset)
+            if (child is not VerticalStackLayout groupView ||
+                groupView.BindingContext is not TransactionActivityGroup group)
             {
-                activeIndex = index;
+                continue;
+            }
+
+            var offset = GetVerticalOffsetWithinScrollContent(groupView);
+            if (double.IsNaN(firstGroupOffset))
+            {
+                firstGroupOffset = offset;
+            }
+
+            if (offset >= 0 && offset <= activationOffset)
+            {
+                activeGroup = group;
+                continue;
+            }
+
+            if (activeGroup is not null && offset >= 0)
+            {
+                nextGroupOffset = offset;
+                break;
             }
         }
 
-        if (groupOffsets.Length == 0 || groupOffsets[0] <= 1)
+        if (double.IsNaN(firstGroupOffset) || firstGroupOffset <= 1 || activeGroup is null)
         {
             HideStickyActivityHeader();
             return;
         }
 
-        if (activeIndex < 0 ||
-            groupViews[activeIndex].BindingContext is not TransactionActivityGroup activeGroup)
+        if (!ReferenceEquals(stickyActivityGroup, activeGroup))
         {
-            HideStickyActivityHeader();
-            return;
+            stickyActivityGroup = activeGroup;
+            StickyActivityHeader.BindingContext = activeGroup;
         }
 
-        StickyActivityHeader.BindingContext = activeGroup;
         StickyActivityHeader.IsVisible = true;
         var stickyHeight = Math.Max(StickyActivityHeader.Height, 42);
         var translationY = 0d;
-        if (activeIndex + 1 < groupOffsets.Length)
+        if (!double.IsNaN(nextGroupOffset))
         {
-            var nextHeaderTop = groupOffsets[activeIndex + 1] - scrollY - stickyTopInset;
+            var nextHeaderTop = nextGroupOffset - activationOffset;
             if (nextHeaderTop < stickyHeight)
             {
                 translationY = Math.Min(0, nextHeaderTop - stickyHeight);
@@ -443,9 +459,15 @@ public partial class ExpensesView : ContentView
 
     private void HideStickyActivityHeader()
     {
+        if (!StickyActivityHeader.IsVisible && stickyActivityGroup is null)
+        {
+            return;
+        }
+
         StickyActivityHeader.IsVisible = false;
         StickyActivityHeader.TranslationY = 0;
         StickyActivityHeader.BindingContext = null;
+        stickyActivityGroup = null;
     }
 
     private async Task ChangeDisplayedMonthAsync(int monthOffset, object? sender)
@@ -840,7 +862,14 @@ public partial class ExpensesView : ContentView
         var startDate = selectedStartDate?.Date ?? displayedMonth.Date;
         var endDateExclusive = selectedEndDate?.Date.AddDays(1) ??
             displayedMonth.AddMonths(1).Date;
-        transactionRecords = await provider(startDate, endDateExclusive);
+        var requestVersion = ++periodLoadVersion;
+        var records = await provider(startDate, endDateExclusive);
+        if (requestVersion != periodLoadVersion)
+        {
+            return;
+        }
+
+        transactionRecords = records;
         var validTransactionIds = transactionRecords
             .Select(record => record.Id)
             .ToHashSet();
@@ -1093,28 +1122,8 @@ public partial class ExpensesView : ContentView
     private void UpdateMonthSwitcherLabel()
     {
         MonthSwitcherLabel.Text = selectedStartDate is not null && selectedEndDate is not null
-            ? FormatDateRange(selectedStartDate.Value, selectedEndDate.Value)
+            ? CompactDateRangeFormatter.Format(selectedStartDate.Value, selectedEndDate.Value)
             : displayedMonth.ToString("MMMM yyyy", CultureInfo.CurrentCulture);
-    }
-
-    private static string FormatDateRange(DateTime startDate, DateTime endDate)
-    {
-        if (startDate == endDate)
-        {
-            return startDate.ToString("d MMM yyyy", CultureInfo.CurrentCulture);
-        }
-
-        if (startDate.Year == endDate.Year && startDate.Month == endDate.Month)
-        {
-            return $"{startDate.Day}–{endDate.ToString("d MMM yyyy", CultureInfo.CurrentCulture)}";
-        }
-
-        if (startDate.Year == endDate.Year)
-        {
-            return $"{startDate.ToString("d MMM", CultureInfo.CurrentCulture)} – {endDate.ToString("d MMM yyyy", CultureInfo.CurrentCulture)}";
-        }
-
-        return $"{startDate.ToString("d MMM yyyy", CultureInfo.CurrentCulture)} – {endDate.ToString("d MMM yyyy", CultureInfo.CurrentCulture)}";
     }
 
 }

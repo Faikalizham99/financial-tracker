@@ -418,7 +418,7 @@ public partial class TransactionSearchView : ContentView
         UpdateRecentSearchesView();
     }
 
-    private static IReadOnlyList<TransactionActivityItem> BuildSearchResults(
+    private static List<TransactionActivityItem> BuildSearchResults(
         IReadOnlyList<TransactionRecord> records,
         string currencySymbol,
         bool hasMore)

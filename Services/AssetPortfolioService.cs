@@ -1,4 +1,5 @@
 using FinancialTracker.Data;
+using FinancialTracker.Helpers;
 using FinancialTracker.Models;
 
 namespace FinancialTracker.Services;
@@ -10,21 +11,19 @@ public sealed class AssetPortfolioService(LocalDatabase database)
         CurrencyOption fallbackCurrency)
     {
         var selectedMonth = new DateTime(month.Year, month.Month, 1);
+        var selectedMonthKey = MonthKeyConverter.FromDate(selectedMonth);
         var snapshots = await database.GetAssetSnapshotsThroughAsync(
-            ToMonthKey(selectedMonth),
-            13);
+            selectedMonthKey,
+            13).ConfigureAwait(false);
         var current = snapshots.FirstOrDefault(
-            item => item.Snapshot.MonthKey == ToMonthKey(selectedMonth));
+            item => item.Snapshot.MonthKey == selectedMonthKey);
         var previous = snapshots.FirstOrDefault(
-            item => item.Snapshot.MonthKey < ToMonthKey(selectedMonth));
-        var currencyCode = fallbackCurrency.Code;
+            item => item.Snapshot.MonthKey < selectedMonthKey);
         var currencySymbol = fallbackCurrency.Symbol;
 
         if (current is null)
         {
             return new AssetPortfolio(
-                selectedMonth,
-                currencyCode,
                 currencySymbol,
                 null,
                 previous?.Snapshot.EntryDate,
@@ -101,15 +100,11 @@ public sealed class AssetPortfolioService(LocalDatabase database)
         decimal? totalWithoutKwspPercentage = totalWithoutKwspChange.HasValue && previousTotalWithoutKwsp is > 0
             ? totalWithoutKwspChange.Value * 100m / previousTotalWithoutKwsp.Value
             : null;
-        var accessibleKeys = AssetCatalog.Items
-            .Where(item => item.IsAccessible)
-            .Select(item => item.Key)
-            .ToHashSet(StringComparer.Ordinal);
         var accessibleTotal = current.Values
-            .Where(value => accessibleKeys.Contains(value.AssetKey))
+            .Where(value => AssetCatalog.IsAccessible(value.AssetKey))
             .Sum(value => value.AmountMinor);
         var previousAccessible = previousCompatible?.Values
-            .Where(value => accessibleKeys.Contains(value.AssetKey))
+            .Where(value => AssetCatalog.IsAccessible(value.AssetKey))
             .Sum(value => value.AmountMinor);
         long? accessibleChange = previousAccessible.HasValue
             ? accessibleTotal - previousAccessible.Value
@@ -134,8 +129,6 @@ public sealed class AssetPortfolioService(LocalDatabase database)
             previousCompatible is not null);
 
         return new AssetPortfolio(
-            selectedMonth,
-            currencyCode,
             currencySymbol,
             current.Snapshot.EntryDate,
             previousCompatible?.Snapshot.EntryDate,
@@ -157,12 +150,12 @@ public sealed class AssetPortfolioService(LocalDatabase database)
     }
 
     public Task<AssetSnapshotData?> GetSnapshotAsync(DateTime month) =>
-        database.GetAssetSnapshotAsync(ToMonthKey(month));
+        database.GetAssetSnapshotAsync(MonthKeyConverter.FromDate(month));
 
     public Task<AssetSnapshotData?> GetPreviousMonthSnapshotAsync(DateTime month)
     {
         var previousMonth = new DateTime(month.Year, month.Month, 1).AddMonths(-1);
-        return database.GetAssetSnapshotAsync(ToMonthKey(previousMonth));
+        return database.GetAssetSnapshotAsync(MonthKeyConverter.FromDate(previousMonth));
     }
 
     public Task SaveAsync(
@@ -173,8 +166,8 @@ public sealed class AssetPortfolioService(LocalDatabase database)
     {
         var normalizedMonth = new DateTime(month.Year, month.Month, 1);
 
-        var activeKeys = AssetCatalog.ActiveItems.Select(item => item.Key).ToHashSet(StringComparer.Ordinal);
-        if (amounts.Count != activeKeys.Count || amounts.Keys.Any(key => !activeKeys.Contains(key)))
+        if (amounts.Count != AssetCatalog.ActiveItems.Count ||
+            amounts.Keys.Any(key => !AssetCatalog.IsActive(key)))
         {
             throw new InvalidOperationException("Enter a value for every active asset.");
         }
@@ -182,7 +175,7 @@ public sealed class AssetPortfolioService(LocalDatabase database)
         return database.SaveAssetSnapshotAsync(
             new AssetSnapshotRecord
             {
-                MonthKey = ToMonthKey(normalizedMonth),
+                MonthKey = MonthKeyConverter.FromDate(normalizedMonth),
                 EntryDate = entryDate.Date,
                 CurrencyCode = currencyCode
             },
@@ -195,16 +188,14 @@ public sealed class AssetPortfolioService(LocalDatabase database)
 
     private static IReadOnlyList<AssetTrendPoint> BuildTrend(
         IReadOnlyList<AssetSnapshotData> snapshots,
-        string? excludedAssetKey = null,
-        string? currencyCode = null)
+        string? excludedAssetKey = null)
     {
         var compatible = snapshots
-            .Where(item => currencyCode is null || item.Snapshot.CurrencyCode.Equals(currencyCode, StringComparison.OrdinalIgnoreCase))
             .OrderBy(item => item.Snapshot.MonthKey)
             .TakeLast(12)
             .Select(item => new
             {
-                Month = new DateTime(item.Snapshot.MonthKey / 100, item.Snapshot.MonthKey % 100, 1),
+                Month = MonthKeyConverter.ToDate(item.Snapshot.MonthKey),
                 Total = item.Values
                     .Where(value => excludedAssetKey is null ||
                         !value.AssetKey.Equals(excludedAssetKey, StringComparison.Ordinal))
@@ -218,6 +209,4 @@ public sealed class AssetPortfolioService(LocalDatabase database)
             maximum <= 0 ? 0 : Math.Max(0.08, (double)item.Total / maximum)))
             .ToList();
     }
-
-    private static int ToMonthKey(DateTime month) => (month.Year * 100) + month.Month;
 }

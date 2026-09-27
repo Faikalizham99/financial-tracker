@@ -38,26 +38,14 @@ public sealed class LocalDatabase
             SQLiteOpenFlags.Create |
             SQLiteOpenFlags.FullMutex);
 
-    public async Task InitializeAsync()
-    {
-        await databaseLock.WaitAsync();
-        try
-        {
-            await EnsureInitializedCoreAsync();
-        }
-        finally
-        {
-            databaseLock.Release();
-        }
-    }
-
     public Task<AppSettingsRecord> GetSettingsAsync() =>
         ExecuteWithConnectionAsync(async activeConnection =>
         {
             var settings = await activeConnection
                 .Table<AppSettingsRecord>()
                 .Where(item => item.Id == 1)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync()
+                .ConfigureAwait(false);
 
             if (settings is not null)
             {
@@ -65,7 +53,7 @@ public sealed class LocalDatabase
             }
 
             settings = new AppSettingsRecord();
-            await activeConnection.InsertAsync(settings);
+            await activeConnection.InsertAsync(settings).ConfigureAwait(false);
             return settings;
         });
 
@@ -92,7 +80,8 @@ public sealed class LocalDatabase
 
     public Task<TransactionRecord?> GetTransactionAsync(int transactionId) =>
         ExecuteWithConnectionAsync(async activeConnection =>
-            (TransactionRecord?)await activeConnection.FindAsync<TransactionRecord>(transactionId));
+            (TransactionRecord?)await activeConnection.FindAsync<TransactionRecord>(transactionId)
+                .ConfigureAwait(false));
 
     public Task<IReadOnlyList<TransactionRecord>> GetTransactionsAsync(
         DateTime startDateInclusive,
@@ -112,7 +101,7 @@ public sealed class LocalDatabase
                 "ORDER BY TransactionDate DESC, CreatedAtUtc DESC, Id DESC " +
                 "LIMIT ? OFFSET ?",
                 Math.Max(1, limit),
-                Math.Max(0, offset)));
+                Math.Max(0, offset)).ConfigureAwait(false));
 
     public Task<TransactionDataSnapshot> GetTransactionSnapshotAsync(DateTime month) =>
         ExecuteWithConnectionAsync(
@@ -122,7 +111,8 @@ public sealed class LocalDatabase
 
     public Task<MonthlyBudgetRecord?> GetMonthlyBudgetAsync(int monthKey) =>
         ExecuteWithConnectionAsync(async activeConnection =>
-            (MonthlyBudgetRecord?)await activeConnection.FindAsync<MonthlyBudgetRecord>(monthKey));
+            (MonthlyBudgetRecord?)await activeConnection.FindAsync<MonthlyBudgetRecord>(monthKey)
+                .ConfigureAwait(false));
 
     public Task<IReadOnlyList<MonthlyBudgetRecord>> GetMonthlyBudgetsAsync(
         int firstMonthKey,
@@ -133,7 +123,8 @@ public sealed class LocalDatabase
                     item.MonthKey >= firstMonthKey &&
                     item.MonthKey <= lastMonthKey)
                 .OrderBy(item => item.MonthKey)
-                .ToListAsync());
+                .ToListAsync()
+                .ConfigureAwait(false));
 
     public Task SaveMonthlyBudgetAsync(MonthlyBudgetRecord budget) =>
         ExecuteWithConnectionAsync(
@@ -144,7 +135,8 @@ public sealed class LocalDatabase
         {
             var snapshot = await activeConnection.Table<AssetSnapshotRecord>()
                 .Where(item => item.MonthKey == monthKey)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync()
+                .ConfigureAwait(false);
             if (snapshot is null)
             {
                 return null;
@@ -152,7 +144,8 @@ public sealed class LocalDatabase
 
             var values = await activeConnection.Table<AssetSnapshotValueRecord>()
                 .Where(item => item.SnapshotId == snapshot.Id)
-                .ToListAsync();
+                .ToListAsync()
+                .ConfigureAwait(false);
             return new AssetSnapshotData(snapshot, values);
         });
 
@@ -165,7 +158,8 @@ public sealed class LocalDatabase
                 .Where(item => item.MonthKey <= lastMonthKey)
                 .OrderByDescending(item => item.MonthKey)
                 .Take(Math.Max(1, limit))
-                .ToListAsync();
+                .ToListAsync()
+                .ConfigureAwait(false);
             if (snapshots.Count == 0)
             {
                 return [];
@@ -173,7 +167,8 @@ public sealed class LocalDatabase
 
             var snapshotIds = string.Join(",", snapshots.Select(item => item.Id));
             var values = await activeConnection.QueryAsync<AssetSnapshotValueRecord>(
-                $"SELECT * FROM AssetSnapshotValues WHERE SnapshotId IN ({snapshotIds})");
+                $"SELECT * FROM AssetSnapshotValues WHERE SnapshotId IN ({snapshotIds})")
+                .ConfigureAwait(false);
             var valuesBySnapshot = values.ToLookup(item => item.SnapshotId);
             return snapshots
                 .Select(snapshot => new AssetSnapshotData(
@@ -237,7 +232,7 @@ public sealed class LocalDatabase
                 File.Delete(destinationPath);
             }
 
-            await activeConnection.BackupAsync(destinationPath, "main");
+            await activeConnection.BackupAsync(destinationPath, "main").ConfigureAwait(false);
             ValidateDatabaseFile(destinationPath);
         });
     }
@@ -270,16 +265,18 @@ public sealed class LocalDatabase
                 bufferSize: 81920,
                 useAsync: true))
             {
-                await backupStream.CopyToAsync(stagingStream, cancellationToken);
-                await stagingStream.FlushAsync(cancellationToken);
+                await backupStream.CopyToAsync(stagingStream, cancellationToken)
+                    .ConfigureAwait(false);
+                await stagingStream.FlushAsync(cancellationToken).ConfigureAwait(false);
             }
 
             ValidateDatabaseFile(stagingPath);
 
-            await databaseLock.WaitAsync(cancellationToken);
+            await databaseLock.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                await ReplaceDatabaseCoreAsync(stagingPath, rollbackPath);
+                await ReplaceDatabaseCoreAsync(stagingPath, rollbackPath)
+                    .ConfigureAwait(false);
             }
             finally
             {
@@ -300,7 +297,8 @@ public sealed class LocalDatabase
             return;
         }
 
-        var version = await Connection.ExecuteScalarAsync<int>("PRAGMA user_version");
+        var version = await Connection.ExecuteScalarAsync<int>("PRAGMA user_version")
+            .ConfigureAwait(false);
         if (version > CurrentSchemaVersion)
         {
             throw new InvalidDataException(
@@ -309,50 +307,55 @@ public sealed class LocalDatabase
 
         if (version < 1)
         {
-            await Connection.CreateTableAsync<AppSettingsRecord>();
+            await Connection.CreateTableAsync<AppSettingsRecord>().ConfigureAwait(false);
         }
         else if (version < 2)
         {
             await Connection.ExecuteAsync(
-                "ALTER TABLE AppSettings ADD COLUMN AccentColorHex TEXT NOT NULL DEFAULT '#5044E4'");
+                "ALTER TABLE AppSettings ADD COLUMN AccentColorHex TEXT NOT NULL DEFAULT '#5044E4'")
+                .ConfigureAwait(false);
         }
 
         if (version < 3)
         {
-            await Connection.CreateTableAsync<TransactionRecord>();
+            await Connection.CreateTableAsync<TransactionRecord>().ConfigureAwait(false);
         }
 
         if (version < 4)
         {
             await Connection.ExecuteAsync(
                 "CREATE INDEX IF NOT EXISTS IX_Transactions_Date_Created_Id " +
-                "ON Transactions (TransactionDate DESC, CreatedAtUtc DESC, Id DESC)");
+                "ON Transactions (TransactionDate DESC, CreatedAtUtc DESC, Id DESC)")
+                .ConfigureAwait(false);
         }
 
         if (version < 5)
         {
-            await Connection.CreateTableAsync<MonthlyBudgetRecord>();
+            await Connection.CreateTableAsync<MonthlyBudgetRecord>().ConfigureAwait(false);
         }
         else if (version == 5)
         {
-            await MigratePrototypeMonthlyBudgetsAsync();
+            await MigratePrototypeMonthlyBudgetsAsync().ConfigureAwait(false);
         }
 
         if (version < 7)
         {
-            await Connection.CreateTableAsync<AssetSnapshotRecord>();
-            await Connection.CreateTableAsync<AssetSnapshotValueRecord>();
+            await Connection.CreateTableAsync<AssetSnapshotRecord>().ConfigureAwait(false);
+            await Connection.CreateTableAsync<AssetSnapshotValueRecord>().ConfigureAwait(false);
             await Connection.ExecuteAsync(
                 "CREATE UNIQUE INDEX IF NOT EXISTS IX_AssetSnapshots_MonthKey " +
-                "ON AssetSnapshots (MonthKey)");
+                "ON AssetSnapshots (MonthKey)")
+                .ConfigureAwait(false);
             await Connection.ExecuteAsync(
                 "CREATE UNIQUE INDEX IF NOT EXISTS IX_AssetSnapshotValues_Snapshot_Asset " +
-                "ON AssetSnapshotValues (SnapshotId, AssetKey)");
+                "ON AssetSnapshotValues (SnapshotId, AssetKey)")
+                .ConfigureAwait(false);
         }
 
         if (version < CurrentSchemaVersion)
         {
-            await Connection.ExecuteAsync($"PRAGMA user_version = {CurrentSchemaVersion}");
+            await Connection.ExecuteAsync($"PRAGMA user_version = {CurrentSchemaVersion}")
+                .ConfigureAwait(false);
         }
 
         isInitialized = true;
@@ -360,8 +363,9 @@ public sealed class LocalDatabase
 
     private async Task MigratePrototypeMonthlyBudgetsAsync()
     {
-        await Connection.CreateTableAsync<MonthlyBudgetRecord>();
-        var columns = await Connection.GetTableInfoAsync("MonthlyBudgets");
+        await Connection.CreateTableAsync<MonthlyBudgetRecord>().ConfigureAwait(false);
+        var columns = await Connection.GetTableInfoAsync("MonthlyBudgets")
+            .ConfigureAwait(false);
         var columnNames = columns
             .Select(column => column.Name)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -370,14 +374,16 @@ public sealed class LocalDatabase
         {
             await Connection.ExecuteAsync(
                 "ALTER TABLE MonthlyBudgets ADD COLUMN " +
-                "BudgetIncludingInvestmentMinor INTEGER NOT NULL DEFAULT 0");
+                "BudgetIncludingInvestmentMinor INTEGER NOT NULL DEFAULT 0")
+                .ConfigureAwait(false);
         }
 
         if (!columnNames.Contains(nameof(MonthlyBudgetRecord.BudgetExcludingInvestmentMinor)))
         {
             await Connection.ExecuteAsync(
                 "ALTER TABLE MonthlyBudgets ADD COLUMN " +
-                "BudgetExcludingInvestmentMinor INTEGER NOT NULL DEFAULT 0");
+                "BudgetExcludingInvestmentMinor INTEGER NOT NULL DEFAULT 0")
+                .ConfigureAwait(false);
         }
 
         if (columnNames.Contains("AmountMinor"))
@@ -385,26 +391,27 @@ public sealed class LocalDatabase
             await Connection.ExecuteAsync(
                 "UPDATE MonthlyBudgets SET " +
                 "BudgetIncludingInvestmentMinor = AmountMinor, " +
-                "BudgetExcludingInvestmentMinor = AmountMinor");
+                "BudgetExcludingInvestmentMinor = AmountMinor")
+                .ConfigureAwait(false);
         }
     }
 
     private async Task ReplaceDatabaseCoreAsync(string stagingPath, string rollbackPath)
     {
-        await EnsureInitializedCoreAsync();
-        await Connection.BackupAsync(rollbackPath, "main");
-        await CloseConnectionCoreAsync();
+        await EnsureInitializedCoreAsync().ConfigureAwait(false);
+        await Connection.BackupAsync(rollbackPath, "main").ConfigureAwait(false);
+        await CloseConnectionCoreAsync().ConfigureAwait(false);
 
         try
         {
             DeleteCompanionFiles(DatabasePath);
             File.Move(stagingPath, DatabasePath, overwrite: true);
             ValidateDatabaseFile(DatabasePath);
-            await EnsureInitializedCoreAsync();
+            await EnsureInitializedCoreAsync().ConfigureAwait(false);
         }
         catch
         {
-            await CloseConnectionCoreAsync();
+            await CloseConnectionCoreAsync().ConfigureAwait(false);
             DeleteCompanionFiles(DatabasePath);
 
             if (File.Exists(rollbackPath))
@@ -412,7 +419,7 @@ public sealed class LocalDatabase
                 File.Move(rollbackPath, DatabasePath, overwrite: true);
             }
 
-            await EnsureInitializedCoreAsync();
+            await EnsureInitializedCoreAsync().ConfigureAwait(false);
             throw;
         }
     }
@@ -425,18 +432,18 @@ public sealed class LocalDatabase
 
         if (activeConnection is not null)
         {
-            await activeConnection.CloseAsync();
+            await activeConnection.CloseAsync().ConfigureAwait(false);
         }
     }
 
     private async Task<T> ExecuteWithConnectionAsync<T>(
         Func<SQLiteAsyncConnection, Task<T>> operation)
     {
-        await databaseLock.WaitAsync();
+        await databaseLock.WaitAsync().ConfigureAwait(false);
         try
         {
-            await EnsureInitializedCoreAsync();
-            return await operation(Connection);
+            await EnsureInitializedCoreAsync().ConfigureAwait(false);
+            return await operation(Connection).ConfigureAwait(false);
         }
         finally
         {
@@ -447,11 +454,11 @@ public sealed class LocalDatabase
     private async Task ExecuteWithConnectionAsync(
         Func<SQLiteAsyncConnection, Task> operation)
     {
-        await databaseLock.WaitAsync();
+        await databaseLock.WaitAsync().ConfigureAwait(false);
         try
         {
-            await EnsureInitializedCoreAsync();
-            await operation(Connection);
+            await EnsureInitializedCoreAsync().ConfigureAwait(false);
+            await operation(Connection).ConfigureAwait(false);
         }
         finally
         {
@@ -464,7 +471,7 @@ public sealed class LocalDatabase
         Func<T, bool> containsTransactions,
         CancellationToken cancellationToken)
     {
-        await WaitForExistingIosDatabaseAsync(cancellationToken);
+        await WaitForExistingIosDatabaseAsync(cancellationToken).ConfigureAwait(false);
 
         var hasKnownTransactionData = Preferences.Default.Get(
             KnownTransactionDataPreferenceKey,
@@ -472,7 +479,7 @@ public sealed class LocalDatabase
         var shouldRecoverEmptyRead =
             File.Exists(DatabasePath) || hasKnownTransactionData;
 
-        await databaseLock.WaitAsync(cancellationToken);
+        await databaseLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             for (var attempt = 0;
@@ -483,7 +490,7 @@ public sealed class LocalDatabase
                 {
                     await Task.Delay(
                         StartupEmptyReadRetryDelays[attempt - 1],
-                        cancellationToken);
+                        cancellationToken).ConfigureAwait(false);
                 }
 
                 if (!File.Exists(DatabasePath) &&
@@ -493,8 +500,8 @@ public sealed class LocalDatabase
                     continue;
                 }
 
-                await EnsureInitializedCoreAsync();
-                var result = await query(Connection);
+                await EnsureInitializedCoreAsync().ConfigureAwait(false);
+                var result = await query(Connection).ConfigureAwait(false);
                 if (containsTransactions(result) || !shouldRecoverEmptyRead)
                 {
                     return result;
@@ -517,7 +524,7 @@ public sealed class LocalDatabase
                 // A LiveContainer data directory or externally restored database can
                 // replace the file after SQLite has opened it. Reopening ensures the
                 // next attempt observes the current file instead of the stale handle.
-                await CloseConnectionCoreAsync();
+                await CloseConnectionCoreAsync().ConfigureAwait(false);
             }
 
             throw new InvalidOperationException("The startup database read did not complete.");
@@ -538,7 +545,7 @@ public sealed class LocalDatabase
             "WHERE TransactionDate >= ? AND TransactionDate < ? " +
             "ORDER BY TransactionDate DESC, CreatedAtUtc DESC, Id DESC",
             startDateInclusive,
-            endDateExclusive);
+            endDateExclusive).ConfigureAwait(false);
         RememberTransactionData(records);
         return records;
     }
@@ -553,14 +560,16 @@ public sealed class LocalDatabase
         var comparisonRecords = await QueryTransactionsCoreAsync(
             activeConnection,
             previousMonthStart,
-            nextMonthStart);
+            nextMonthStart).ConfigureAwait(false);
         var recentRecords = await activeConnection.QueryAsync<TransactionRecord>(
             "SELECT * FROM Transactions " +
-            "ORDER BY TransactionDate DESC, CreatedAtUtc DESC, Id DESC LIMIT 3");
+            "ORDER BY TransactionDate DESC, CreatedAtUtc DESC, Id DESC LIMIT 3")
+            .ConfigureAwait(false);
         var descriptionHistoryRecords = await activeConnection.QueryAsync<TransactionRecord>(
             "SELECT * FROM Transactions " +
             "WHERE Description <> '' " +
-            "ORDER BY TransactionDate DESC, CreatedAtUtc DESC, Id DESC LIMIT 250");
+            "ORDER BY TransactionDate DESC, CreatedAtUtc DESC, Id DESC LIMIT 250")
+            .ConfigureAwait(false);
 
         var dashboardRecords = comparisonRecords
             .Concat(recentRecords)
@@ -596,7 +605,7 @@ public sealed class LocalDatabase
         // visible (including a genuine first launch).
         foreach (var delay in IosDatabaseDiscoveryRetryDelays)
         {
-            await Task.Delay(delay, cancellationToken);
+            await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
             if (File.Exists(DatabasePath))
             {
                 return;

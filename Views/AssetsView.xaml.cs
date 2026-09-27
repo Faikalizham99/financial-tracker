@@ -34,7 +34,7 @@ public partial class AssetsView : ContentView
     private bool includeKwsp = true;
     private bool isNormalizingAmountText;
     private AssetSortMode assetSortMode = AssetSortMode.Alphabetical;
-    private bool isLoading;
+    private int loadVersion;
     private bool isLoadingEditor;
 
     public AssetsView()
@@ -84,30 +84,47 @@ public partial class AssetsView : ContentView
 
     private async Task LoadAsync()
     {
-        if (portfolioService is null || currencyProvider is null || isLoading)
+        if (portfolioService is null || currencyProvider is null)
         {
             return;
         }
 
-        isLoading = true;
+        var requestVersion = ++loadVersion;
+        var requestedMonth = selectedMonth;
+        var requestedCurrency = currencyProvider();
         LoadingOverlay.IsVisible = true;
         try
         {
-            MonthLabel.Text = selectedMonth.ToString("MMMM yyyy", CultureInfo.CurrentCulture);
-            portfolio = await portfolioService.GetPortfolioAsync(selectedMonth, currencyProvider());
-            RenderPortfolio(portfolio, animateCharts: true);
+            MonthLabel.Text = requestedMonth.ToString("MMMM yyyy", CultureInfo.CurrentCulture);
+            var loadedPortfolio = await portfolioService.GetPortfolioAsync(
+                requestedMonth,
+                requestedCurrency);
+            if (requestVersion != loadVersion)
+            {
+                return;
+            }
+
+            portfolio = loadedPortfolio;
+            RenderPortfolio(loadedPortfolio, animateCharts: true);
             hasLoaded = true;
         }
         catch
         {
+            if (requestVersion != loadVersion)
+            {
+                return;
+            }
+
             EmptyCard.IsVisible = true;
             PortfolioContent.IsVisible = false;
             EmptyMessageLabel.Text = "Asset data could not be loaded. Please try again.";
         }
         finally
         {
-            LoadingOverlay.IsVisible = false;
-            isLoading = false;
+            if (requestVersion == loadVersion)
+            {
+                LoadingOverlay.IsVisible = false;
+            }
         }
     }
 
@@ -292,14 +309,14 @@ public partial class AssetsView : ContentView
         TrendChart.AbortAnimation(TrendAnimationName);
         AccessibleShareChart.AbortAnimation(ProgressAnimationName);
 
-        var accent = GetResourceColor("Accent", "#5044E4");
+        var accent = ThemeResourceBindings.GetColor("Accent", "#5044E4");
         var isDarkTheme = Application.Current?.RequestedTheme == AppTheme.Dark;
         trendChartDrawable.UseDarkPalette = isDarkTheme;
-        trendChartDrawable.LabelColor = GetResourceColor(
+        trendChartDrawable.LabelColor = ThemeResourceBindings.GetColor(
             isDarkTheme ? "SecondaryTextDark" : "SecondaryTextLight",
             isDarkTheme ? "#BBB4C7" : "#686273");
         accessibleShareDrawable.ProgressColor = accent;
-        accessibleShareDrawable.TrackColor = GetResourceColor(
+        accessibleShareDrawable.TrackColor = ThemeResourceBindings.GetColor(
             isDarkTheme ? "DividerDark" : "DividerLight",
             isDarkTheme ? "#29292D" : "#E9E3DB");
 
@@ -339,11 +356,6 @@ public partial class AssetsView : ContentView
             AccessibleShareChart.Invalidate();
         }
     }
-
-    private static Color GetResourceColor(string key, string fallback) =>
-        Application.Current?.Resources.TryGetValue(key, out var value) == true && value is Color color
-            ? color
-            : Color.FromArgb(fallback);
 
     private async void OnPreviousMonthTapped(object? sender, TappedEventArgs e)
     {
@@ -532,7 +544,7 @@ public partial class AssetsView : ContentView
     {
         if (!isNormalizingAmountText && sender is Entry entry)
         {
-            var sanitized = SanitizeAmountText(e.NewTextValue);
+            var sanitized = MoneyInputParser.SanitizeDecimal(e.NewTextValue);
             if (!string.Equals(sanitized, e.NewTextValue, StringComparison.Ordinal))
             {
                 isNormalizingAmountText = true;
@@ -565,48 +577,6 @@ public partial class AssetsView : ContentView
         {
             entry.Text = "0.00";
         }
-    }
-
-    private static string SanitizeAmountText(string? value)
-    {
-        if (string.IsNullOrEmpty(value))
-        {
-            return string.Empty;
-        }
-
-        var result = new System.Text.StringBuilder(value.Length);
-        var hasDecimalPoint = false;
-        var decimalDigits = 0;
-
-        foreach (var character in value)
-        {
-            if (character is >= '0' and <= '9')
-            {
-                if (!hasDecimalPoint || decimalDigits < 2)
-                {
-                    result.Append(character);
-                    if (hasDecimalPoint)
-                    {
-                        decimalDigits++;
-                    }
-                }
-
-                continue;
-            }
-
-            if (character == '.' && !hasDecimalPoint)
-            {
-                if (result.Length == 0)
-                {
-                    result.Append('0');
-                }
-
-                result.Append('.');
-                hasDecimalPoint = true;
-            }
-        }
-
-        return result.ToString();
     }
 
     private async void OnCopyPreviousTapped(object? sender, TappedEventArgs e)
@@ -681,21 +651,17 @@ public partial class AssetsView : ContentView
         var result = new Dictionary<string, long>(StringComparer.Ordinal);
         foreach (var item in amountEntries)
         {
-            if (!decimal.TryParse(item.Value.Text, NumberStyles.Number, CultureInfo.CurrentCulture, out var amount) &&
-                !decimal.TryParse(item.Value.Text, NumberStyles.Number, CultureInfo.InvariantCulture, out amount))
+            if (!MoneyInputParser.TryParseMinor(
+                    item.Value.Text,
+                    allowZero: true,
+                    out var amountMinor))
             {
                 ShowEditorError("Enter a valid value for every asset. Use 0.00 when an asset has no value.");
                 amounts = result;
                 return false;
             }
 
-            if (amount < 0 || amount > long.MaxValue / 100m)
-            {
-                ShowEditorError("Asset values must be zero or greater.");
-                amounts = result;
-                return false;
-            }
-            result[item.Key] = decimal.ToInt64(decimal.Round(amount * 100m, 0, MidpointRounding.AwayFromZero));
+            result[item.Key] = amountMinor;
         }
         amounts = result;
         EditorErrorLabel.IsVisible = false;
@@ -707,10 +673,12 @@ public partial class AssetsView : ContentView
         long total = 0;
         foreach (var entry in amountEntries.Values)
         {
-            if (decimal.TryParse(entry.Text, NumberStyles.Number, CultureInfo.CurrentCulture, out var amount) ||
-                decimal.TryParse(entry.Text, NumberStyles.Number, CultureInfo.InvariantCulture, out amount))
+            if (MoneyInputParser.TryParseMinor(
+                    entry.Text,
+                    allowZero: true,
+                    out var amountMinor))
             {
-                total += decimal.ToInt64(decimal.Round(Math.Max(0, amount) * 100m, 0, MidpointRounding.AwayFromZero));
+                total += amountMinor;
             }
         }
         EditorTotalLabel.Text = MoneyFormatter.FormatMinor(total, editorCurrencySymbol);

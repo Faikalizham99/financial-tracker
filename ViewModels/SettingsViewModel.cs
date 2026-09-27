@@ -1,6 +1,4 @@
-using System.ComponentModel;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using FinancialTracker.Helpers;
 using FinancialTracker.Models;
 using FinancialTracker.Services;
@@ -9,7 +7,7 @@ namespace FinancialTracker.ViewModels;
 
 public sealed class SettingsViewModel(
     SettingsService settingsService,
-    MonthlyBudgetService monthlyBudgetService) : INotifyPropertyChanged
+    MonthlyBudgetService monthlyBudgetService) : ObservableObject
 {
     private readonly SemaphoreSlim initializationLock = new(1, 1);
     private readonly SemaphoreSlim saveLock = new(1, 1);
@@ -40,8 +38,6 @@ public sealed class SettingsViewModel(
         new("Orange", "#C65D16"),
         new("Slate", "#475569")
     ];
-
-    public event PropertyChangedEventHandler? PropertyChanged;
 
     public string Name
     {
@@ -343,18 +339,4 @@ public sealed class SettingsViewModel(
         OnPropertyChanged(nameof(SelectedCurrencySymbol));
     }
 
-    private bool SetProperty<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
-    {
-        if (EqualityComparer<T>.Default.Equals(field, value))
-        {
-            return false;
-        }
-
-        field = value;
-        OnPropertyChanged(propertyName);
-        return true;
-    }
-
-    private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 }

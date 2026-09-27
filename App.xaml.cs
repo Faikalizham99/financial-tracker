@@ -27,8 +27,10 @@ public partial class App : Application
         {
             await mainPage.RefreshAfterResumeAsync();
         }
-        catch
+        catch (Exception exception)
         {
+            System.Diagnostics.Debug.WriteLine(
+                $"Refresh after app resume failed: {exception}");
             // The next resume or explicit data operation can retry safely.
         }
     }
