@@ -362,6 +362,7 @@ jobs:
         run: >-
           dotnet restore "$env:PROJECT_PATH"
           -p:TargetFramework="$env:TARGET_FRAMEWORK"
+          -p:RuntimeIdentifier="$env:RUNTIME_IDENTIFIER"
           -p:ApplicationDisplayVersion="$env:APP_DISPLAY_VERSION"
           -p:ApplicationVersion="$env:APP_BUILD_VERSION"
 
@@ -371,6 +372,7 @@ jobs:
           dotnet publish "$env:PROJECT_PATH"
           -f "$env:TARGET_FRAMEWORK"
           -c Release
+          -r "$env:RUNTIME_IDENTIFIER"
           --no-restore
           -p:WindowsPackageType=None
           -p:ApplicationDisplayVersion="$env:APP_DISPLAY_VERSION"
