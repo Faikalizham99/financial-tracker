@@ -301,13 +301,51 @@
                             <Path Grid.Column="2" WidthRequest="20" HeightRequest="20" Data="M 5,5 L 19,5 Q 21,5 21,7 L 21,19 Q 21,21 19,21 L 5,21 Q 3,21 3,19 L 3,7 Q 3,5 5,5 Z M 3,10 L 21,10 M 8,3 L 8,7 M 16,3 L 16,7" Stroke="{DynamicResource Accent}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" VerticalOptions="Center" InputTransparent="True" />
                         </Grid>
                     </Border>
-                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
-                        <Label Text="Enter a value for every asset. Zero is valid." Style="{StaticResource BodyMuted}" VerticalTextAlignment="Center" />
-                        <Border Grid.Column="1" Style="{StaticResource Pill}" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
-                            <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnCopyPreviousTapped" /></Border.GestureRecognizers>
-                            <Label Text="Copy previous" FontFamily="OpenSansSemibold" TextColor="{DynamicResource Accent}" />
-                        </Border>
-                    </Grid>
+                    <VerticalStackLayout Spacing="8">
+                        <Label Text="Enter a value for every asset. Zero is valid." Style="{StaticResource BodyMuted}" />
+                        <HorizontalStackLayout HorizontalOptions="End" Spacing="8">
+                            <Border
+                                x:Name="ClearMonthAction"
+                                IsVisible="False"
+                                Style="{StaticResource Pill}"
+                                SemanticProperties.Description="Remove this month's asset snapshot"
+                                helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                                <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnClearMonthTapped" /></Border.GestureRecognizers>
+                                <HorizontalStackLayout Spacing="5" InputTransparent="True">
+                                    <Path
+                                        WidthRequest="15"
+                                        HeightRequest="15"
+                                        Data="M 5,7 L 19,7 M 9,7 L 9,4 L 15,4 L 15,7 M 7,7 L 8,21 L 16,21 L 17,7 M 10.5,11 L 10.5,17 M 13.5,11 L 13.5,17"
+                                        Stroke="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}"
+                                        StrokeThickness="1.8"
+                                        StrokeLineCap="Round"
+                                        StrokeLineJoin="Round"
+                                        Fill="Transparent"
+                                        Aspect="Uniform" />
+                                    <Label
+                                        Text="Clear month"
+                                        FontFamily="OpenSansSemibold"
+                                        TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" />
+                                </HorizontalStackLayout>
+                            </Border>
+                            <Border Style="{StaticResource Pill}" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                                <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnCopyPreviousTapped" /></Border.GestureRecognizers>
+                                <HorizontalStackLayout Spacing="5" InputTransparent="True">
+                                    <Path
+                                        WidthRequest="15"
+                                        HeightRequest="15"
+                                        Data="M 8,7 L 19,7 Q 21,7 21,9 L 21,20 Q 21,22 19,22 L 8,22 Q 6,22 6,20 L 6,9 Q 6,7 8,7 Z M 6,17 L 4,17 Q 2,17 2,15 L 2,4 Q 2,2 4,2 L 15,2 Q 17,2 17,4 L 17,7"
+                                        Stroke="{DynamicResource Accent}"
+                                        StrokeThickness="1.8"
+                                        StrokeLineCap="Round"
+                                        StrokeLineJoin="Round"
+                                        Fill="Transparent"
+                                        Aspect="Uniform" />
+                                    <Label Text="Copy previous" FontFamily="OpenSansSemibold" TextColor="{DynamicResource Accent}" />
+                                </HorizontalStackLayout>
+                            </Border>
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
                 </VerticalStackLayout>
 
                 <ScrollView

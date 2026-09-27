@@ -158,6 +158,9 @@ public sealed class AssetPortfolioService(LocalDatabase database)
         return database.GetAssetSnapshotAsync(MonthKeyConverter.FromDate(previousMonth));
     }
 
+    public Task DeleteAsync(DateTime month) =>
+        database.DeleteAssetSnapshotAsync(MonthKeyConverter.FromDate(month));
+
     public Task SaveAsync(
         DateTime month,
         DateTime entryDate,

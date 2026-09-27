@@ -211,6 +211,25 @@ public sealed class LocalDatabase
                 }
             }));
 
+    public Task DeleteAssetSnapshotAsync(int monthKey) =>
+        ExecuteWithConnectionAsync(activeConnection =>
+            activeConnection.RunInTransactionAsync(transaction =>
+            {
+                var existing = transaction.Table<AssetSnapshotRecord>()
+                    .FirstOrDefault(item => item.MonthKey == monthKey);
+                if (existing is null)
+                {
+                    return;
+                }
+
+                transaction.Execute(
+                    "DELETE FROM AssetSnapshotValues WHERE SnapshotId = ?",
+                    existing.Id);
+                transaction.Execute(
+                    "DELETE FROM AssetSnapshots WHERE Id = ?",
+                    existing.Id);
+            }));
+
     public Task<TransactionDataSnapshot> GetTransactionSnapshotForStartupAsync(
         DateTime month,
         CancellationToken cancellationToken = default) =>

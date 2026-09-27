@@ -94,7 +94,19 @@
                                 <Border.GestureRecognizers>
                                     <TapGestureRecognizer Tapped="OnCopyPreviousTapped" />
                                 </Border.GestureRecognizers>
-                                <Label Text="{Binding CopyPreviousButtonText}" FontFamily="OpenSansSemibold" FontSize="12" TextColor="{DynamicResource Accent}" />
+                                <HorizontalStackLayout Spacing="5" InputTransparent="True">
+                                    <Path
+                                        WidthRequest="14"
+                                        HeightRequest="14"
+                                        Data="M 8,7 L 19,7 Q 21,7 21,9 L 21,20 Q 21,22 19,22 L 8,22 Q 6,22 6,20 L 6,9 Q 6,7 8,7 Z M 6,17 L 4,17 Q 2,17 2,15 L 2,4 Q 2,2 4,2 L 15,2 Q 17,2 17,4 L 17,7"
+                                        Stroke="{DynamicResource Accent}"
+                                        StrokeThickness="1.8"
+                                        StrokeLineCap="Round"
+                                        StrokeLineJoin="Round"
+                                        Fill="Transparent"
+                                        Aspect="Uniform" />
+                                    <Label Text="{Binding CopyPreviousButtonText}" FontFamily="OpenSansSemibold" FontSize="12" TextColor="{DynamicResource Accent}" />
+                                </HorizontalStackLayout>
                             </Border>
                         </Grid>
 

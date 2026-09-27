@@ -406,6 +406,7 @@ public partial class AssetsView : ContentView
                 : monthEnd;
 
             var existing = await portfolioService.GetSnapshotAsync(selectedMonth);
+            ClearMonthAction.IsVisible = existing is not null;
             EditorTitleLabel.Text = existing is null
                 ? "Add asset snapshot"
                 : "Edit asset snapshot";
