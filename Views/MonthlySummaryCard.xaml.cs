@@ -61,6 +61,7 @@ public partial class MonthlySummaryCard : ContentView
     private DateTime? cachedBudgetMonth;
     private DateTime cachedStartDate;
     private DateTime cachedEndDate;
+    private bool allowBudgetProgress = true;
     private int budgetLoadVersion;
 
     public MonthlySummaryCard()
@@ -101,7 +102,8 @@ public partial class MonthlySummaryCard : ContentView
     public void Refresh(
         IReadOnlyList<TransactionRecord> records,
         CurrencyOption selectedCurrency,
-        DateTime? displayedMonth = null)
+        DateTime? displayedMonth = null,
+        bool hasSummaryScopeFilters = false)
     {
         var month = displayedMonth ?? DateTime.Today;
         var normalizedMonth = new DateTime(month.Year, month.Month, 1);
@@ -112,7 +114,10 @@ public partial class MonthlySummaryCard : ContentView
             normalizedMonth,
             normalizedMonth.AddMonths(1).AddDays(-1),
             month.ToString("MMMM yyyy", CultureInfo.CurrentCulture),
-            $"Available for {month.ToString("MMMM", CultureInfo.CurrentCulture)}");
+            hasSummaryScopeFilters
+                ? $"Filtered results for {month.ToString("MMMM", CultureInfo.CurrentCulture)}"
+                : $"Available for {month.ToString("MMMM", CultureInfo.CurrentCulture)}",
+            allowBudget: !hasSummaryScopeFilters);
         if (requestVersion is int version)
         {
             _ = LoadBudgetAsync(normalizedMonth, version);
@@ -123,7 +128,8 @@ public partial class MonthlySummaryCard : ContentView
         IReadOnlyList<TransactionRecord> records,
         CurrencyOption selectedCurrency,
         DateTime startDate,
-        DateTime endDate)
+        DateTime endDate,
+        bool hasSummaryScopeFilters = false)
     {
         ClearBudgetContext();
         var normalizedStart = startDate.Date;
@@ -139,7 +145,10 @@ public partial class MonthlySummaryCard : ContentView
             normalizedStart,
             normalizedEnd,
             FormatRangeTitle(normalizedStart, normalizedEnd),
-            "Available for selected range");
+            hasSummaryScopeFilters
+                ? "Filtered results for selected range"
+                : "Available for selected range",
+            allowBudget: false);
     }
 
     public Task ReloadBudgetAsync()
@@ -159,12 +168,14 @@ public partial class MonthlySummaryCard : ContentView
         DateTime startDate,
         DateTime endDate,
         string title,
-        string availableCaption)
+        string availableCaption,
+        bool allowBudget)
     {
         cachedRecords = records;
         cachedCurrency = selectedCurrency;
         cachedStartDate = startDate;
         cachedEndDate = endDate;
+        allowBudgetProgress = allowBudget;
         SummaryMonthLabel.Text = title;
         SummaryAvailableCaptionLabel.Text = availableCaption;
         RefreshCachedSummary();
@@ -233,7 +244,7 @@ public partial class MonthlySummaryCard : ContentView
         long offsetIncomeMinor,
         string currencySymbol)
     {
-        if (cachedBudget is null)
+        if (!allowBudgetProgress || cachedBudget is null)
         {
             BudgetProgressSection.IsVisible = false;
             return;

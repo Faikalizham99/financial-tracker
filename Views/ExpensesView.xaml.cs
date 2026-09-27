@@ -985,17 +985,19 @@ public partial class ExpensesView : ContentView
         if (presentation.HasDateRange)
         {
             TransactionsMonthlySummary.RefreshRange(
-                transactionRecords,
+                presentation.FilteredRecords,
                 selectedCurrency,
                 selectedStartDate!.Value,
-                selectedEndDate!.Value);
+                selectedEndDate!.Value,
+                presentation.HasSummaryScopeFilters);
         }
         else
         {
             TransactionsMonthlySummary.Refresh(
-                transactionRecords,
+                presentation.FilteredRecords,
                 selectedCurrency,
-                displayedMonth);
+                displayedMonth,
+                presentation.HasSummaryScopeFilters);
         }
         MonthSwitcherLabel.Text = presentation.PeriodLabel;
         UpdateFilterChips();

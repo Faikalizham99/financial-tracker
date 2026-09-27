@@ -83,12 +83,15 @@ public sealed class ExpensesViewModel
         var periodLabel = hasDateRange
             ? FormatDateRange(startDate!.Value, endDate!.Value)
             : displayedMonth.ToString("MMMM yyyy", CultureInfo.CurrentCulture);
+        var hasSummaryScopeFilters = paymentFilter is not null || categoryFilter is not null;
 
         return new ExpensesPresentation(
             groups,
+            filteredRecords,
             emptyTitle,
             periodLabel,
-            hasDateRange);
+            hasDateRange,
+            hasSummaryScopeFilters);
     }
 
     private static IReadOnlyList<TransactionActivityGroup> BuildGroups(
@@ -177,6 +180,8 @@ public sealed class ExpensesViewModel
 
 public sealed record ExpensesPresentation(
     IReadOnlyList<TransactionActivityGroup> Groups,
+    IReadOnlyList<TransactionRecord> FilteredRecords,
     string EmptyTitle,
     string PeriodLabel,
-    bool HasDateRange);
+    bool HasDateRange,
+    bool HasSummaryScopeFilters);
