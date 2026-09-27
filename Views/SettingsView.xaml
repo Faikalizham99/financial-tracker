@@ -533,6 +533,55 @@
                 </Border>
             </VerticalStackLayout>
 
+            <VerticalStackLayout Spacing="13">
+                <Label Text="DANGER ZONE" Style="{StaticResource SectionLabel}" />
+                <Border
+                    Style="{StaticResource Card}"
+                    Stroke="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}"
+                    StrokeThickness="1.5">
+                    <VerticalStackLayout Spacing="14">
+                        <Grid ColumnDefinitions="42,*" ColumnSpacing="12">
+                            <Border
+                                WidthRequest="42"
+                                HeightRequest="42"
+                                Padding="10"
+                                BackgroundColor="{AppThemeBinding Light=#FDE8EC, Dark=#3B1B24}"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 14">
+                                <Path
+                                    Data="M 5,7 L 19,7 M 9,7 L 9,4 L 15,4 L 15,7 M 7,7 L 8,21 L 16,21 L 17,7 M 10.5,11 L 10.5,17 M 13.5,11 L 13.5,17"
+                                    Stroke="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}"
+                                    StrokeThickness="1.8"
+                                    StrokeLineCap="Round"
+                                    StrokeLineJoin="Round"
+                                    Fill="Transparent"
+                                    Aspect="Uniform" />
+                            </Border>
+                            <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
+                                <Label Text="Start from scratch" Style="{StaticResource CardTitle}" FontSize="16" />
+                                <Label
+                                    Text="Erase all transactions, budgets, asset snapshots and settings. A fresh profile named Ryomen Sukuna will be created."
+                                    Style="{StaticResource BodyMuted}"
+                                    FontSize="12" />
+                            </VerticalStackLayout>
+                        </Grid>
+
+                        <Button
+                            x:Name="ResetAllDataButton"
+                            Text="Erase all data"
+                            Clicked="OnResetAllDataClicked"
+                            HeightRequest="48"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}"
+                            TextColor="White"
+                            FontFamily="OpenSansSemibold"
+                            FontSize="14"
+                            BorderWidth="0"
+                            CornerRadius="16"
+                            SemanticProperties.Description="Permanently erase all Financial Tracker data" />
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+
             <VerticalStackLayout Spacing="3" HorizontalOptions="Center">
                 <Label
                     Text="Financial Tracker"

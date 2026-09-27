@@ -230,6 +230,21 @@ public sealed class LocalDatabase
                     existing.Id);
             }));
 
+    public Task ResetAllDataAsync() =>
+        ExecuteWithConnectionAsync(activeConnection =>
+            activeConnection.RunInTransactionAsync(transaction =>
+            {
+                transaction.Execute("DELETE FROM AssetSnapshotValues");
+                transaction.Execute("DELETE FROM AssetSnapshots");
+                transaction.Execute("DELETE FROM MonthlyBudgets");
+                transaction.Execute("DELETE FROM Transactions");
+                transaction.Execute("DELETE FROM AppSettings");
+                transaction.Execute(
+                    "DELETE FROM sqlite_sequence " +
+                    "WHERE name IN ('Transactions', 'AssetSnapshots', 'AssetSnapshotValues')");
+                transaction.Insert(new AppSettingsRecord());
+            }));
+
     public Task<TransactionDataSnapshot> GetTransactionSnapshotForStartupAsync(
         DateTime month,
         CancellationToken cancellationToken = default) =>

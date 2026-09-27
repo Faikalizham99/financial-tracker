@@ -13,8 +13,8 @@ public sealed class SettingsViewModel(
     private readonly SemaphoreSlim saveLock = new(1, 1);
     private AppSettingsRecord settings = new();
     private bool isInitialized;
-    private string name = "Faikal";
-    private string savedName = "Faikal";
+    private string name = AppSettingsRecord.DefaultName;
+    private string savedName = AppSettingsRecord.DefaultName;
     private CurrencyOption selectedCurrency = SupportedCurrencies[0];
     private string selectedTheme = AppearanceValueNormalizer.DefaultTheme;
     private string selectedAccentColorHex = AppearanceValueNormalizer.DefaultAccentColor;

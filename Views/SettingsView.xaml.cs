@@ -264,6 +264,7 @@ public partial class SettingsView : ContentView
         isDatabaseTransferInProgress = true;
         CreateBackupButton.IsEnabled = false;
         RestoreBackupButton.IsEnabled = false;
+        ResetAllDataButton.IsEnabled = false;
 
         var originalText = activeButton.Text;
         activeButton.Text = activeButtonText;
@@ -278,6 +279,7 @@ public partial class SettingsView : ContentView
             activeButton.Text = originalText;
             CreateBackupButton.IsEnabled = true;
             RestoreBackupButton.IsEnabled = true;
+            ResetAllDataButton.IsEnabled = true;
             isDatabaseTransferInProgress = false;
         }
     }

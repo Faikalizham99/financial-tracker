@@ -133,6 +133,7 @@ public partial class MainPage : ContentPage
         budgetSettingsViewModel.BudgetSaved += OnBudgetSaved;
         SettingsView.DatabaseBackupRequested += OnDatabaseBackupRequested;
         SettingsView.DatabaseRestoreRequested += OnDatabaseRestoreRequested;
+        SettingsView.DatabaseResetRequested += OnDatabaseResetRequested;
         settingsViewModel.PropertyChanged += OnSettingsPropertyChanged;
         includeInvestmentInTotals = Preferences.Default.Get(
             IncludeInvestmentInTotalsPreferenceKey,
