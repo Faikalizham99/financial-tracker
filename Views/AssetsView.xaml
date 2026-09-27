@@ -75,6 +75,7 @@
                                         StrokeThickness="0"
                                         StrokeShape="RoundRectangle 14"
                                         VerticalOptions="Center"
+                                        helpers:InteractionAnimations.IsPressFeedbackEnabled="True"
                                         SemanticProperties.Description="KWSP included in portfolio totals. Tap to exclude it.">
                                         <Border.GestureRecognizers>
                                             <TapGestureRecognizer Tapped="OnKwspToggleTapped" />
@@ -84,12 +85,34 @@
                                                 x:Name="KwspToggleThumb"
                                                 WidthRequest="24"
                                                 HeightRequest="24"
+                                                Padding="2"
                                                 TranslationX="22"
                                                 HorizontalOptions="Start"
                                                 VerticalOptions="Center"
                                                 BackgroundColor="White"
                                                 StrokeThickness="0"
-                                                StrokeShape="RoundRectangle 12" />
+                                                StrokeShape="RoundRectangle 12">
+                                                <Grid WidthRequest="20" HeightRequest="20">
+                                                    <Path
+                                                        x:Name="KwspToggleIcon"
+                                                        Data="M 4,10 L 20,10 L 18,20 L 6,20 Z M 8,14 L 16,14 M 9,17 L 15,17 M 12,3 C 14.2,3 16,4.8 16,7 C 16,9.2 14.2,11 12,11 C 9.8,11 8,9.2 8,7 C 8,4.8 9.8,3 12,3 Z"
+                                                        Stroke="{DynamicResource Accent}"
+                                                        StrokeThickness="1.8"
+                                                        StrokeLineCap="Round"
+                                                        StrokeLineJoin="Round"
+                                                        Fill="Transparent"
+                                                        Aspect="Uniform" />
+                                                    <Path
+                                                        x:Name="KwspExclusionSlash"
+                                                        IsVisible="False"
+                                                        Data="M 5,4 L 19,20"
+                                                        Stroke="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}"
+                                                        StrokeThickness="2.2"
+                                                        StrokeLineCap="Round"
+                                                        Fill="Transparent"
+                                                        Aspect="Uniform" />
+                                                </Grid>
+                                            </Border>
                                         </Grid>
                                     </Border>
                                 </HorizontalStackLayout>

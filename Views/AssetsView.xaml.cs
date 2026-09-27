@@ -3,6 +3,7 @@ using FinancialTracker.Helpers;
 using FinancialTracker.Models;
 using FinancialTracker.Services;
 using FinancialTracker.Views.Drawables;
+using Microsoft.Maui.Controls.Shapes;
 
 namespace FinancialTracker.Views;
 
@@ -234,11 +235,17 @@ public partial class AssetsView : ContentView
 
     private void UpdateKwspToggleVisuals()
     {
+        KwspExclusionSlash.IsVisible = !includeKwsp;
+
         if (includeKwsp)
         {
             ThemeResourceBindings.SetDynamic(
                 KwspToggleButton,
                 BackgroundColorProperty,
+                "Accent");
+            ThemeResourceBindings.SetDynamic(
+                KwspToggleIcon,
+                Shape.StrokeProperty,
                 "Accent");
         }
         else
@@ -248,6 +255,11 @@ public partial class AssetsView : ContentView
                 BackgroundColorProperty,
                 "SecondaryTextLight",
                 "ControlDividerDark");
+            ThemeResourceBindings.SetColor(
+                KwspToggleIcon,
+                Shape.StrokeProperty,
+                "SecondaryTextLight",
+                "SecondaryTextDark");
         }
 
         KwspToggleThumb.CancelAnimations();
