@@ -36,6 +36,7 @@ public sealed class AssetPortfolioService(LocalDatabase database)
                 null,
                 0,
                 null,
+                null,
                 [],
                 BuildTrend(snapshots),
                 BuildTrend(snapshots, AssetCatalog.KwspKey),
@@ -110,6 +111,12 @@ public sealed class AssetPortfolioService(LocalDatabase database)
         var previousAccessible = previousCompatible?.Values
             .Where(value => accessibleKeys.Contains(value.AssetKey))
             .Sum(value => value.AmountMinor);
+        long? accessibleChange = previousAccessible.HasValue
+            ? accessibleTotal - previousAccessible.Value
+            : null;
+        decimal? accessibleChangePercentage = accessibleChange.HasValue && previousAccessible is > 0
+            ? accessibleChange.Value * 100m / previousAccessible.Value
+            : null;
         var comparisonsWithoutKwsp = comparisons
             .Where(item => !item.Asset.Key.Equals(AssetCatalog.KwspKey, StringComparison.Ordinal))
             .ToList();
@@ -139,7 +146,8 @@ public sealed class AssetPortfolioService(LocalDatabase database)
             totalWithoutKwspChange,
             totalWithoutKwspPercentage,
             accessibleTotal,
-            previousAccessible.HasValue ? accessibleTotal - previousAccessible.Value : null,
+            accessibleChange,
+            accessibleChangePercentage,
             comparisons,
             BuildTrend(snapshots),
             BuildTrend(snapshots, AssetCatalog.KwspKey),

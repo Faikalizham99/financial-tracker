@@ -147,11 +147,12 @@
                             <Grid ColumnDefinitions="*,*" ColumnSpacing="18">
                                 <VerticalStackLayout Spacing="4">
                                     <Label Text="ACCESSIBLE ASSETS" Style="{StaticResource SectionLabel}" />
-                                    <Label x:Name="AccessibleLabel" Style="{StaticResource CardTitle}" FontSize="21" />
+                                    <Label x:Name="AccessibleLabel" Style="{StaticResource CardTitle}" FontSize="21" FontAutoScalingEnabled="False" LineBreakMode="NoWrap" MaxLines="1" />
                                 </VerticalStackLayout>
                                 <VerticalStackLayout Grid.Column="1" Spacing="4">
                                     <Label Text="ACCESSIBLE CHANGE" Style="{StaticResource SectionLabel}" />
-                                    <Label x:Name="AccessibleChangeLabel" Style="{StaticResource CardTitle}" FontSize="21" />
+                                    <Label x:Name="AccessibleChangeLabel" Style="{StaticResource CardTitle}" FontSize="21" FontAutoScalingEnabled="False" LineBreakMode="NoWrap" MaxLines="1" />
+                                    <Label x:Name="AccessibleChangePercentageLabel" Style="{StaticResource BodyMuted}" FontFamily="OpenSansSemibold" FontSize="12" FontAutoScalingEnabled="False" LineBreakMode="NoWrap" MaxLines="1" />
                                 </VerticalStackLayout>
                             </Grid>
                             <VerticalStackLayout Spacing="7">

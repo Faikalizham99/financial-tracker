@@ -158,8 +158,15 @@ public partial class AssetsView : ContentView
         TotalChangeLabel.Text = FormatChange(totalChange, totalChangePercentage, value.CurrencySymbol);
         TotalChangeLabel.TextColor = GetChangeColor(totalChange);
         AccessibleLabel.Text = MoneyFormatter.FormatMinor(value.AccessibleTotalMinor, value.CurrencySymbol);
+        AccessibleLabel.FontSize = GetAccessibleMetricFontSize(AccessibleLabel.Text);
         AccessibleChangeLabel.Text = FormatChange(value.AccessibleChangeMinor, null, value.CurrencySymbol);
+        AccessibleChangeLabel.FontSize = GetAccessibleMetricFontSize(AccessibleChangeLabel.Text);
         AccessibleChangeLabel.TextColor = GetChangeColor(value.AccessibleChangeMinor);
+        AccessibleChangePercentageLabel.Text = value.AccessibleChangePercentage.HasValue
+            ? $"({value.AccessibleChangePercentage.Value:+0.0;-0.0;0.0}%)"
+            : string.Empty;
+        AccessibleChangePercentageLabel.TextColor = GetChangeColor(value.AccessibleChangeMinor);
+        AccessibleChangePercentageLabel.IsVisible = value.AccessibleChangePercentage.HasValue;
         var accessibleShare = total > 0
             ? Math.Clamp((double)value.AccessibleTotalMinor / total, 0d, 1d)
             : 0d;
@@ -881,6 +888,22 @@ public partial class AssetsView : ContentView
             > 16 => 28,
             > 13 => 31,
             _ => 34
+        };
+    }
+
+    private static double GetAccessibleMetricFontSize(string text)
+    {
+        if (DeviceInfo.Idiom != DeviceIdiom.Phone)
+        {
+            return 21;
+        }
+
+        return text.Length switch
+        {
+            > 22 => 13,
+            > 18 => 15,
+            > 14 => 17,
+            _ => 19
         };
     }
 }

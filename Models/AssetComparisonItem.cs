@@ -27,6 +27,7 @@ public sealed record AssetPortfolio(
     decimal? TotalWithoutKwspChangePercentage,
     long AccessibleTotalMinor,
     long? AccessibleChangeMinor,
+    decimal? AccessibleChangePercentage,
     IReadOnlyList<AssetComparisonItem> Comparisons,
     IReadOnlyList<AssetTrendPoint> Trend,
     IReadOnlyList<AssetTrendPoint> TrendWithoutKwsp,
