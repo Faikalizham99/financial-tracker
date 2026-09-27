@@ -107,7 +107,10 @@
 
     <Style x:Key="NavLabel" TargetType="Label">
         <Setter Property="FontFamily" Value="OpenSansSemibold" />
-        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontSize" Value="{OnIdiom Phone=9, Tablet=11, Desktop=11}" />
+        <Setter Property="FontAutoScalingEnabled" Value="False" />
+        <Setter Property="LineBreakMode" Value="NoWrap" />
+        <Setter Property="MaxLines" Value="1" />
         <Setter Property="HorizontalTextAlignment" Value="Center" />
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" />
     </Style>

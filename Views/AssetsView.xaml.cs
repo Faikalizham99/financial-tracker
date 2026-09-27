@@ -447,6 +447,8 @@ public partial class AssetsView : ContentView
             entry.Text = existingValues.TryGetValue(asset.Key, out var value)
                 ? MoneyFormatter.FormatMinorValue(value.AmountMinor).Replace(",", string.Empty, StringComparison.Ordinal)
                 : "0.00";
+            entry.Focused += OnAmountEntryFocused;
+            entry.Unfocused += OnAmountEntryUnfocused;
             entry.TextChanged += OnAmountTextChanged;
             amountEntries[asset.Key] = entry;
             var currencyLabel = new Label
@@ -519,6 +521,28 @@ public partial class AssetsView : ContentView
         }
 
         UpdateEditorTotal();
+    }
+
+    private void OnAmountEntryFocused(object? sender, FocusEventArgs e)
+    {
+        if (sender is Entry entry &&
+            decimal.TryParse(
+                entry.Text,
+                NumberStyles.Number,
+                CultureInfo.InvariantCulture,
+                out var amount) &&
+            amount == 0)
+        {
+            entry.Text = string.Empty;
+        }
+    }
+
+    private void OnAmountEntryUnfocused(object? sender, FocusEventArgs e)
+    {
+        if (sender is Entry entry && string.IsNullOrWhiteSpace(entry.Text))
+        {
+            entry.Text = "0.00";
+        }
     }
 
     private static string SanitizeAmountText(string? value)
