@@ -101,13 +101,26 @@ public partial class AssetsView : ContentView
         var requestVersion = ++loadVersion;
         var requestedMonth = selectedMonth;
         var requestedCurrency = currencyProvider();
-        LoadingOverlay.IsVisible = true;
+        var isFirstLoad = portfolio is null;
+        if (isFirstLoad)
+        {
+            LoadingOverlay.IsVisible = true;
+        }
+
         try
         {
             MonthLabel.Text = requestedMonth.ToString("MMMM yyyy", CultureInfo.CurrentCulture);
-            var loadedPortfolio = await portfolioService.GetPortfolioAsync(
-                requestedMonth,
-                requestedCurrency);
+            var loadedPortfolio = await LoadingSkeletonDelayer.RunAsync(
+                () => portfolioService.GetPortfolioAsync(
+                    requestedMonth,
+                    requestedCurrency),
+                isVisible =>
+                {
+                    if (!isFirstLoad && requestVersion == loadVersion)
+                    {
+                        LoadingOverlay.IsVisible = isVisible;
+                    }
+                });
             if (requestVersion != loadVersion)
             {
                 return;

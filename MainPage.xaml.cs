@@ -60,7 +60,6 @@ public partial class MainPage : ContentPage
     private int draggedHomeSectionTargetIndex = -1;
     private double draggedHomeSectionOffset;
     private Point? homeSectionPointerStart;
-    private CancellationTokenSource? loadingSkeletonPulseCancellation;
     private CancellationTokenSource? transactionLockToastCancellation;
     private bool hasCompletedInitialDataLoad;
     private bool isInitialDataLoading;
@@ -79,6 +78,7 @@ public partial class MainPage : ContentPage
         IBackupFilePicker backupFilePicker)
     {
         InitializeComponent();
+        SelectLoadingSkeleton(selectedSectionIndex);
         navigationPages = [DashboardView, ExpensesView, AssetsView, SettingsView];
         navigationIcons = [DashboardIcon, ExpensesIcon, AssetsIcon, SettingsIcon];
         navigationTabs = [DashboardTab, ExpensesTab, AssetsTab, SettingsTab];

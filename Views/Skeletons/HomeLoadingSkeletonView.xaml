@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+    x:Class="FinancialTracker.Views.Skeletons.HomeLoadingSkeletonView"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:FinancialTracker.Controls">
+
+    <ScrollView VerticalScrollBarVisibility="Never">
+        <VerticalStackLayout Padding="24,30,24,126" Spacing="27">
+            <Grid ColumnDefinitions="*,58" ColumnSpacing="16">
+                <VerticalStackLayout Spacing="9">
+                    <controls:SkeletonBlock WidthRequest="210" HeightRequest="25" HorizontalOptions="Start" />
+                    <controls:SkeletonBlock WidthRequest="145" HeightRequest="25" HorizontalOptions="Start" />
+                    <controls:SkeletonBlock Margin="0,7,0,0" WidthRequest="238" HeightRequest="11" HorizontalOptions="Start" />
+                </VerticalStackLayout>
+                <controls:SkeletonBlock Grid.Column="1" WidthRequest="58" HeightRequest="58" />
+            </Grid>
+
+            <VerticalStackLayout Spacing="13">
+                <controls:SkeletonBlock WidthRequest="112" HeightRequest="10" HorizontalOptions="Start" />
+                <Border Style="{StaticResource Card}" HeightRequest="258">
+                    <VerticalStackLayout Spacing="17">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <controls:SkeletonBlock WidthRequest="160" HeightRequest="14" HorizontalOptions="Start" />
+                            <controls:SkeletonBlock Grid.Column="1" WidthRequest="48" HeightRequest="26" />
+                        </Grid>
+                        <controls:SkeletonBlock WidthRequest="250" HeightRequest="39" HorizontalOptions="Start" />
+                        <controls:SkeletonBlock WidthRequest="190" HeightRequest="12" HorizontalOptions="Start" />
+                        <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+                        <Grid ColumnDefinitions="*,1,*,1,*" ColumnSpacing="12">
+                            <controls:SkeletonBlock HeightRequest="43" />
+                            <BoxView Grid.Column="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+                            <controls:SkeletonBlock Grid.Column="2" HeightRequest="43" />
+                            <BoxView Grid.Column="3" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+                            <controls:SkeletonBlock Grid.Column="4" HeightRequest="43" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+
+            <Grid ColumnDefinitions="*,Auto">
+                <controls:SkeletonBlock WidthRequest="108" HeightRequest="10" HorizontalOptions="Start" VerticalOptions="Center" />
+                <controls:SkeletonBlock Grid.Column="1" WidthRequest="76" HeightRequest="28" />
+            </Grid>
+
+            <VerticalStackLayout Spacing="13">
+                <controls:SkeletonBlock WidthRequest="145" HeightRequest="10" HorizontalOptions="Start" />
+                <Border Style="{StaticResource SoftCard}" Padding="16">
+                    <Grid ColumnDefinitions="*,1,*,1,*" ColumnSpacing="12">
+                        <controls:SkeletonBlock HeightRequest="40" />
+                        <BoxView Grid.Column="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+                        <controls:SkeletonBlock Grid.Column="2" HeightRequest="40" />
+                        <BoxView Grid.Column="3" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+                        <controls:SkeletonBlock Grid.Column="4" HeightRequest="40" />
+                    </Grid>
+                </Border>
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="13">
+                <controls:SkeletonBlock WidthRequest="132" HeightRequest="10" HorizontalOptions="Start" />
+                <Border Style="{StaticResource SoftCard}" Padding="17">
+                    <VerticalStackLayout Spacing="12">
+                        <Grid ColumnDefinitions="5,*" ColumnSpacing="12">
+                            <controls:SkeletonBlock WidthRequest="5" HeightRequest="42" SkeletonRadius="3" />
+                            <VerticalStackLayout Grid.Column="1" Spacing="6">
+                                <controls:SkeletonBlock WidthRequest="165" HeightRequest="12" HorizontalOptions="Start" />
+                                <controls:SkeletonBlock HeightRequest="9" />
+                            </VerticalStackLayout>
+                        </Grid>
+                        <Grid ColumnDefinitions="5,*" ColumnSpacing="12">
+                            <controls:SkeletonBlock WidthRequest="5" HeightRequest="42" SkeletonRadius="3" />
+                            <VerticalStackLayout Grid.Column="1" Spacing="6">
+                                <controls:SkeletonBlock WidthRequest="135" HeightRequest="12" HorizontalOptions="Start" />
+                                <controls:SkeletonBlock WidthRequest="240" HeightRequest="9" HorizontalOptions="Start" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="13">
+                <Grid ColumnDefinitions="*,Auto">
+                    <controls:SkeletonBlock WidthRequest="125" HeightRequest="10" HorizontalOptions="Start" VerticalOptions="Center" />
+                    <controls:SkeletonBlock Grid.Column="1" WidthRequest="62" HeightRequest="26" />
+                </Grid>
+                <Border Style="{StaticResource SoftCard}" Padding="14,8">
+                    <VerticalStackLayout Spacing="0">
+                        <Grid Padding="0,8" ColumnDefinitions="42,*,78" ColumnSpacing="12">
+                            <controls:SkeletonBlock WidthRequest="38" HeightRequest="38" SkeletonRadius="12" />
+                            <VerticalStackLayout Grid.Column="1" Spacing="7" VerticalOptions="Center">
+                                <controls:SkeletonBlock WidthRequest="150" HeightRequest="12" HorizontalOptions="Start" />
+                                <controls:SkeletonBlock WidthRequest="105" HeightRequest="9" HorizontalOptions="Start" />
+                            </VerticalStackLayout>
+                            <controls:SkeletonBlock Grid.Column="2" WidthRequest="72" HeightRequest="12" HorizontalOptions="End" VerticalOptions="Center" />
+                        </Grid>
+                        <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+                        <Grid Padding="0,8" ColumnDefinitions="42,*,78" ColumnSpacing="12">
+                            <controls:SkeletonBlock WidthRequest="38" HeightRequest="38" SkeletonRadius="12" />
+                            <VerticalStackLayout Grid.Column="1" Spacing="7" VerticalOptions="Center">
+                                <controls:SkeletonBlock WidthRequest="125" HeightRequest="12" HorizontalOptions="Start" />
+                                <controls:SkeletonBlock WidthRequest="90" HeightRequest="9" HorizontalOptions="Start" />
+                            </VerticalStackLayout>
+                            <controls:SkeletonBlock Grid.Column="2" WidthRequest="64" HeightRequest="12" HorizontalOptions="End" VerticalOptions="Center" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentView>

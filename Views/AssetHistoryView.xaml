@@ -3,7 +3,9 @@
     x:Class="FinancialTracker.Views.AssetHistoryView"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:FinancialTracker.Controls"
     xmlns:helpers="clr-namespace:FinancialTracker.Helpers"
+    xmlns:skeletons="clr-namespace:FinancialTracker.Views.Skeletons"
     IsVisible="False">
 
     <Grid
@@ -210,12 +212,14 @@
             </VerticalStackLayout>
         </ScrollView>
 
-        <Grid x:Name="HistoryLoadingOverlay" IsVisible="False" BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}" Opacity="0.94" ZIndex="5">
-            <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="12">
-                <ActivityIndicator IsRunning="True" Color="{DynamicResource Accent}" />
-                <Label Text="Loading asset history…" Style="{StaticResource BodyMuted}" />
-            </VerticalStackLayout>
-        </Grid>
+        <controls:SkeletonPresenter
+            x:Name="HistoryLoadingOverlay"
+            IsVisible="False"
+            BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}"
+            ZIndex="5"
+            SemanticProperties.Description="Loading asset history">
+            <skeletons:AssetHistoryLoadingSkeletonView />
+        </controls:SkeletonPresenter>
 
         <Grid x:Name="HistoryErrorOverlay" IsVisible="False" BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}" ZIndex="6">
             <VerticalStackLayout Padding="28" Spacing="12" HorizontalOptions="Center" VerticalOptions="Center" MaximumWidthRequest="440">

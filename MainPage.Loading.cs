@@ -1,7 +1,12 @@
+using FinancialTracker.Helpers;
+using FinancialTracker.Views.Skeletons;
+
 namespace FinancialTracker;
 
 public partial class MainPage
 {
+    private readonly Dictionary<int, View> dataLoadingSkeletons = [];
+
     private void UpdateLoadingSkeletonForSelectedSection()
     {
         if (!isDataLoadingSkeletonShown)
@@ -9,126 +14,79 @@ public partial class MainPage
             return;
         }
 
-        var shouldShow = selectedSectionIndex <= 1;
-        HomeLoadingSkeleton.IsVisible = selectedSectionIndex == 0;
-        TransactionLoadingSkeleton.IsVisible = selectedSectionIndex == 1;
-        DataLoadingOverlay.IsVisible = shouldShow;
-        DataLoadingOverlay.Opacity = shouldShow ? 1 : 0;
-
-        if (shouldShow)
-        {
-            StartLoadingSkeletonPulse();
-        }
-        else
-        {
-            StopLoadingSkeletonPulse();
-        }
-    }
-
-    private void StartLoadingSkeletonPulse()
-    {
-        if (loadingSkeletonPulseCancellation is not null)
-        {
-            return;
-        }
-
-        loadingSkeletonPulseCancellation = new CancellationTokenSource();
-        _ = PulseLoadingSkeletonAsync(
-            loadingSkeletonPulseCancellation.Token);
+        SelectLoadingSkeleton(selectedSectionIndex);
+        DataLoadingOverlay.IsVisible = true;
+        DataLoadingOverlay.Opacity = 1;
     }
 
     private void ShowTransactionLoadingSkeleton()
     {
         isDataLoadingSkeletonShown = true;
         DataLoadingOverlay.CancelAnimations();
-        HomeLoadingSkeleton.IsVisible = false;
-        TransactionLoadingSkeleton.IsVisible = true;
+        SelectLoadingSkeleton(sectionIndex: 1);
         DataLoadingOverlay.Opacity = 1;
         DataLoadingOverlay.IsVisible = true;
-        StartLoadingSkeletonPulse();
     }
 
-    private bool ShowDataLoadingSkeletonForSelectedSection()
+    private void ShowDataLoadingSkeletonForSelectedSection()
     {
         isDataLoadingSkeletonShown = true;
         DataLoadingOverlay.CancelAnimations();
         DataLoadingOverlay.ZIndex = 140;
-        HomeLoadingSkeleton.IsVisible = selectedSectionIndex == 0;
-        TransactionLoadingSkeleton.IsVisible = selectedSectionIndex != 0;
+        SelectLoadingSkeleton(selectedSectionIndex);
         DataLoadingOverlay.Opacity = 1;
         DataLoadingOverlay.IsVisible = true;
-        StartLoadingSkeletonPulse();
-        return true;
+    }
+
+    private void SelectLoadingSkeleton(int sectionIndex)
+    {
+        if (!dataLoadingSkeletons.TryGetValue(sectionIndex, out var skeleton))
+        {
+            skeleton = sectionIndex switch
+            {
+                0 => new HomeLoadingSkeletonView(),
+                1 => new TransactionsLoadingSkeletonView(),
+                2 => new AssetsLoadingSkeletonView(),
+                3 => new SettingsLoadingSkeletonView(),
+                _ => throw new ArgumentOutOfRangeException(nameof(sectionIndex))
+            };
+            dataLoadingSkeletons[sectionIndex] = skeleton;
+        }
+
+        if (!ReferenceEquals(DataLoadingOverlay.Content, skeleton))
+        {
+            DataLoadingOverlay.Content = skeleton;
+        }
     }
 
     private async Task RunWithDataLoadingSkeletonAsync(Func<Task> operation)
     {
         await dataLoadingOperationLock.WaitAsync();
-        var isSkeletonVisible = false;
-
         try
         {
-            isSkeletonVisible = ShowDataLoadingSkeletonForSelectedSection();
-            if (isSkeletonVisible)
-            {
-                // Let the loading state reach the native compositor before an
-                // in-memory list rebuild or SQLite operation starts.
-                await Task.Yield();
-            }
+            await LoadingSkeletonDelayer.RunAsync(
+                operation,
+                async isVisible =>
+                {
+                    if (isVisible)
+                    {
+                        ShowDataLoadingSkeletonForSelectedSection();
+                        return;
+                    }
 
-            await operation();
+                    await HideLoadingSkeletonAsync();
+                });
         }
         finally
         {
-            try
-            {
-                if (isSkeletonVisible)
-                {
-                    await HideLoadingSkeletonAsync();
-                }
-            }
-            finally
-            {
-                DataLoadingOverlay.ZIndex = 20;
-                dataLoadingOperationLock.Release();
-            }
+            DataLoadingOverlay.ZIndex = 20;
+            dataLoadingOperationLock.Release();
         }
-    }
-
-    private async Task PulseLoadingSkeletonAsync(
-        CancellationToken cancellationToken)
-    {
-        while (!cancellationToken.IsCancellationRequested)
-        {
-            await DataLoadingSkeletonPulseLayer.FadeToAsync(
-                0.58,
-                520,
-                Easing.SinInOut);
-            if (cancellationToken.IsCancellationRequested)
-            {
-                break;
-            }
-
-            await DataLoadingSkeletonPulseLayer.FadeToAsync(
-                1,
-                520,
-                Easing.SinInOut);
-        }
-    }
-
-    private void StopLoadingSkeletonPulse()
-    {
-        loadingSkeletonPulseCancellation?.Cancel();
-        loadingSkeletonPulseCancellation?.Dispose();
-        loadingSkeletonPulseCancellation = null;
-        DataLoadingSkeletonPulseLayer.CancelAnimations();
-        DataLoadingSkeletonPulseLayer.Opacity = 1;
     }
 
     private async Task HideLoadingSkeletonAsync()
     {
         isDataLoadingSkeletonShown = false;
-        StopLoadingSkeletonPulse();
         DataLoadingOverlay.CancelAnimations();
 
         if (DataLoadingOverlay.IsVisible)

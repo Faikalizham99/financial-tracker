@@ -100,6 +100,7 @@ public partial class AssetHistoryView : ContentView
         HistoryBarChart.AbortAnimation(BarAnimationName);
         DonutChart.AbortAnimation(DonutAnimationName);
         DonutChart.AbortAnimation(DonutSelectionAnimationName);
+        HistoryLoadingOverlay.IsVisible = false;
         history = null;
         SetVisibility(false);
     }

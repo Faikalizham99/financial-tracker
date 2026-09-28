@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+    x:Class="FinancialTracker.Views.Skeletons.AssetHistoryLoadingSkeletonView"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:FinancialTracker.Controls">
+
+    <ScrollView VerticalScrollBarVisibility="Never">
+        <VerticalStackLayout
+            Padding="{OnIdiom Phone='18,22,18,34', Tablet='24,28,24,40', Desktop='24,28,24,40'}"
+            Spacing="18"
+            HorizontalOptions="Center"
+            MaximumWidthRequest="900">
+            <Grid ColumnDefinitions="44,*,Auto" ColumnSpacing="12">
+                <controls:SkeletonBlock WidthRequest="44" HeightRequest="44" />
+                <VerticalStackLayout Grid.Column="1" Spacing="7" VerticalOptions="Center">
+                    <controls:SkeletonBlock WidthRequest="190" HeightRequest="25" HorizontalOptions="Start" />
+                    <controls:SkeletonBlock WidthRequest="220" HeightRequest="10" HorizontalOptions="Start" />
+                </VerticalStackLayout>
+                <HorizontalStackLayout Grid.Column="2" Spacing="7" VerticalOptions="Center">
+                    <controls:SkeletonBlock WidthRequest="58" HeightRequest="10" IsVisible="{OnIdiom Phone=False, Tablet=True, Desktop=True}" />
+                    <controls:SkeletonBlock WidthRequest="50" HeightRequest="28" />
+                </HorizontalStackLayout>
+            </Grid>
+
+            <Border Style="{StaticResource SoftCard}" Padding="12">
+                <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                    <controls:SkeletonBlock HeightRequest="38" />
+                    <controls:SkeletonBlock Grid.Column="1" HeightRequest="38" />
+                    <controls:SkeletonBlock Grid.Column="2" HeightRequest="38" />
+                </Grid>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Padding="18">
+                <VerticalStackLayout Spacing="12">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <VerticalStackLayout Spacing="6">
+                            <controls:SkeletonBlock WidthRequest="145" HeightRequest="10" HorizontalOptions="Start" />
+                            <controls:SkeletonBlock WidthRequest="210" HeightRequest="9" HorizontalOptions="Start" />
+                        </VerticalStackLayout>
+                        <controls:SkeletonBlock Grid.Column="1" WidthRequest="130" HeightRequest="10" VerticalOptions="Center" />
+                    </Grid>
+                    <Grid HeightRequest="220" ColumnDefinitions="*,*,*,*,*,*" ColumnSpacing="9" VerticalOptions="End">
+                        <controls:SkeletonBlock HeightRequest="30" VerticalOptions="End" SkeletonRadius="6" />
+                        <controls:SkeletonBlock Grid.Column="1" HeightRequest="50" VerticalOptions="End" SkeletonRadius="6" />
+                        <controls:SkeletonBlock Grid.Column="2" HeightRequest="82" VerticalOptions="End" SkeletonRadius="6" />
+                        <controls:SkeletonBlock Grid.Column="3" HeightRequest="112" VerticalOptions="End" SkeletonRadius="6" />
+                        <controls:SkeletonBlock Grid.Column="4" HeightRequest="150" VerticalOptions="End" SkeletonRadius="6" />
+                        <controls:SkeletonBlock Grid.Column="5" HeightRequest="190" VerticalOptions="End" SkeletonRadius="6" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource SoftCard}" Padding="18">
+                <VerticalStackLayout Spacing="14">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <VerticalStackLayout Spacing="6">
+                            <controls:SkeletonBlock WidthRequest="115" HeightRequest="10" HorizontalOptions="Start" />
+                            <controls:SkeletonBlock WidthRequest="172" HeightRequest="9" HorizontalOptions="Start" />
+                        </VerticalStackLayout>
+                        <controls:SkeletonBlock Grid.Column="1" WidthRequest="72" HeightRequest="12" />
+                    </Grid>
+                    <controls:SkeletonBlock WidthRequest="245" HeightRequest="31" HorizontalOptions="Start" />
+                    <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="18" RowSpacing="14">
+                        <controls:SkeletonBlock HeightRequest="42" />
+                        <controls:SkeletonBlock Grid.Column="1" HeightRequest="42" />
+                        <controls:SkeletonBlock Grid.Row="1" HeightRequest="42" />
+                        <controls:SkeletonBlock Grid.Row="1" Grid.Column="1" HeightRequest="42" />
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+
+            <Border Style="{StaticResource Card}" Padding="18">
+                <VerticalStackLayout Spacing="14">
+                    <VerticalStackLayout Spacing="6">
+                        <controls:SkeletonBlock WidthRequest="138" HeightRequest="10" HorizontalOptions="Start" />
+                        <controls:SkeletonBlock WidthRequest="205" HeightRequest="9" HorizontalOptions="Start" />
+                    </VerticalStackLayout>
+                    <Grid
+                        RowDefinitions="{OnIdiom Phone='Auto,Auto', Tablet='Auto', Desktop='Auto'}"
+                        ColumnDefinitions="{OnIdiom Phone='*', Tablet='280,*', Desktop='300,*'}"
+                        RowSpacing="14"
+                        ColumnSpacing="22">
+                        <Grid WidthRequest="240" HeightRequest="240" HorizontalOptions="Center">
+                            <controls:SkeletonBlock />
+                            <Border Margin="38" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" StrokeThickness="0" StrokeShape="RoundRectangle 999" />
+                        </Grid>
+                        <VerticalStackLayout
+                            Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
+                            Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}"
+                            Spacing="12"
+                            VerticalOptions="Center">
+                            <controls:SkeletonBlock HeightRequest="18" />
+                            <controls:SkeletonBlock HeightRequest="18" />
+                            <controls:SkeletonBlock HeightRequest="18" />
+                            <controls:SkeletonBlock HeightRequest="18" />
+                            <controls:SkeletonBlock HeightRequest="18" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </VerticalStackLayout>
+            </Border>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentView>

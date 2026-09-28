@@ -3,7 +3,9 @@
     x:Class="FinancialTracker.Views.AssetsView"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:FinancialTracker.Controls"
     xmlns:helpers="clr-namespace:FinancialTracker.Helpers"
+    xmlns:skeletons="clr-namespace:FinancialTracker.Views.Skeletons"
     xmlns:views="clr-namespace:FinancialTracker.Views">
 
     <Grid>
@@ -270,12 +272,14 @@
             </VerticalStackLayout>
         </ScrollView>
 
-        <Grid x:Name="LoadingOverlay" IsVisible="False" BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}" Opacity="0.92" ZIndex="5">
-            <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="12">
-                <ActivityIndicator IsRunning="True" Color="{DynamicResource Accent}" />
-                <Label Text="Loading assets…" Style="{StaticResource BodyMuted}" />
-            </VerticalStackLayout>
-        </Grid>
+        <controls:SkeletonPresenter
+            x:Name="LoadingOverlay"
+            IsVisible="False"
+            BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}"
+            ZIndex="5"
+            SemanticProperties.Description="Loading assets">
+            <skeletons:AssetsLoadingSkeletonView />
+        </controls:SkeletonPresenter>
 
         <Grid
             x:Name="EditorOverlay"

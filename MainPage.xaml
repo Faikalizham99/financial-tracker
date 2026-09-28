@@ -10,12 +10,6 @@
     Shell.NavBarIsVisible="False">
 
     <ContentPage.Resources>
-        <Style x:Key="SkeletonLine" TargetType="Border">
-            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}" />
-            <Setter Property="StrokeThickness" Value="0" />
-            <Setter Property="StrokeShape" Value="RoundRectangle 999" />
-        </Style>
-
         <DataTemplate x:Key="CategorySummaryTemplate" x:DataType="models:CategorySummaryItem">
             <Grid Padding="0,10" RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="42,*,Auto,Auto" ColumnSpacing="10" RowSpacing="7">
                 <Border Grid.RowSpan="2" WidthRequest="38" HeightRequest="38" StrokeThickness="0" StrokeShape="RoundRectangle 12" VerticalOptions="Center">
@@ -232,87 +226,14 @@
 
         <views:SettingsView x:Name="SettingsView" IsVisible="False" />
 
-        <!-- Displayed only when the app has no cached transaction data yet. -->
-        <Grid
+        <!-- Initial loading and blocking data operations use a layout-matched skeleton. -->
+        <controls:SkeletonPresenter
             x:Name="DataLoadingOverlay"
             IsVisible="True"
             Opacity="1"
             ZIndex="20"
             BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}"
-            SemanticProperties.Description="Loading financial data">
-            <Grid x:Name="DataLoadingSkeletonPulseLayer">
-                <ScrollView x:Name="HomeLoadingSkeleton" IsVisible="False" VerticalScrollBarVisibility="Never">
-                    <VerticalStackLayout Padding="24,30,24,126" Spacing="27">
-                        <Grid ColumnDefinitions="*,58" ColumnSpacing="16">
-                            <VerticalStackLayout Spacing="9">
-                                <Border Style="{StaticResource SkeletonLine}" WidthRequest="210" HeightRequest="25" HorizontalOptions="Start" />
-                                <Border Style="{StaticResource SkeletonLine}" WidthRequest="140" HeightRequest="25" HorizontalOptions="Start" />
-                                <Border Margin="0,7,0,0" Style="{StaticResource SkeletonLine}" WidthRequest="235" HeightRequest="11" HorizontalOptions="Start" />
-                            </VerticalStackLayout>
-                            <Border Grid.Column="1" WidthRequest="58" HeightRequest="58" BackgroundColor="{DynamicResource AccentTint}" StrokeThickness="0" StrokeShape="RoundRectangle 29" />
-                        </Grid>
-
-                        <VerticalStackLayout Spacing="13">
-                            <Border Style="{StaticResource SkeletonLine}" WidthRequest="105" HeightRequest="10" HorizontalOptions="Start" />
-                            <Border HeightRequest="258" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="2" StrokeShape="RoundRectangle 28">
-                                <VerticalStackLayout Padding="20" Spacing="18">
-                                    <Border Style="{StaticResource SkeletonLine}" WidthRequest="180" HeightRequest="15" HorizontalOptions="Start" />
-                                    <Border Style="{StaticResource SkeletonLine}" WidthRequest="250" HeightRequest="42" HorizontalOptions="Start" />
-                                    <Border Style="{StaticResource SkeletonLine}" WidthRequest="195" HeightRequest="14" HorizontalOptions="Start" />
-                                    <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
-                                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="18">
-                                        <Border Style="{StaticResource SkeletonLine}" HeightRequest="42" />
-                                        <Border Grid.Column="1" Style="{StaticResource SkeletonLine}" HeightRequest="42" />
-                                        <Border Grid.Column="2" Style="{StaticResource SkeletonLine}" HeightRequest="42" />
-                                    </Grid>
-                                </VerticalStackLayout>
-                            </Border>
-                        </VerticalStackLayout>
-
-                        <VerticalStackLayout Spacing="13">
-                            <Border Style="{StaticResource SkeletonLine}" WidthRequest="150" HeightRequest="10" HorizontalOptions="Start" />
-                            <Border HeightRequest="115" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" StrokeThickness="1" StrokeShape="RoundRectangle 22" />
-                        </VerticalStackLayout>
-                    </VerticalStackLayout>
-                </ScrollView>
-
-                <ScrollView x:Name="TransactionLoadingSkeleton" VerticalScrollBarVisibility="Never">
-                    <VerticalStackLayout Padding="24,30,24,126" Spacing="25">
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
-                            <Border Style="{StaticResource SkeletonLine}" WidthRequest="185" HeightRequest="31" HorizontalOptions="Start" VerticalOptions="Center" />
-                            <HorizontalStackLayout Grid.Column="1" Spacing="10">
-                                <Border Style="{StaticResource SkeletonLine}" WidthRequest="118" HeightRequest="16" VerticalOptions="Center" />
-                                <Border WidthRequest="44" HeightRequest="44" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="2" StrokeShape="RoundRectangle 22" />
-                            </HorizontalStackLayout>
-                        </Grid>
-
-                        <Border HeightRequest="268" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="2" StrokeShape="RoundRectangle 28">
-                            <VerticalStackLayout Padding="20" Spacing="18">
-                                <Border Style="{StaticResource SkeletonLine}" WidthRequest="180" HeightRequest="15" HorizontalOptions="Start" />
-                                <Border Style="{StaticResource SkeletonLine}" WidthRequest="250" HeightRequest="42" HorizontalOptions="Start" />
-                                <Border Style="{StaticResource SkeletonLine}" WidthRequest="195" HeightRequest="14" HorizontalOptions="Start" />
-                                <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
-                                <Grid ColumnDefinitions="*,*" ColumnSpacing="18">
-                                    <Border Style="{StaticResource SkeletonLine}" HeightRequest="48" />
-                                    <Border Grid.Column="1" Style="{StaticResource SkeletonLine}" HeightRequest="48" />
-                                </Grid>
-                            </VerticalStackLayout>
-                        </Border>
-
-                        <VerticalStackLayout Spacing="13">
-                            <Border Style="{StaticResource SkeletonLine}" WidthRequest="72" HeightRequest="10" HorizontalOptions="Start" />
-                            <Border HeightRequest="112" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" StrokeThickness="1" StrokeShape="RoundRectangle 22" />
-                        </VerticalStackLayout>
-
-                        <VerticalStackLayout Spacing="13">
-                            <Border Style="{StaticResource SkeletonLine}" WidthRequest="135" HeightRequest="10" HorizontalOptions="Start" />
-                            <Border HeightRequest="150" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="2" StrokeShape="RoundRectangle 24" />
-                        </VerticalStackLayout>
-                    </VerticalStackLayout>
-                </ScrollView>
-            </Grid>
-
-        </Grid>
+            SemanticProperties.Description="Loading financial data" />
 
         <!-- Bottom dock: navigation and a separate add button. -->
         <Grid

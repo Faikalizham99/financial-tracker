@@ -3,18 +3,12 @@
     x:Class="FinancialTracker.Views.BudgetSettingsView"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:FinancialTracker.Controls"
     xmlns:helpers="clr-namespace:FinancialTracker.Helpers"
     xmlns:models="clr-namespace:FinancialTracker.Models"
+    xmlns:skeletons="clr-namespace:FinancialTracker.Views.Skeletons"
     IsVisible="False"
     BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}">
-
-    <ContentView.Resources>
-        <Style x:Key="BudgetSkeletonLine" TargetType="Border">
-            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}" />
-            <Setter Property="StrokeThickness" Value="0" />
-            <Setter Property="StrokeShape" Value="RoundRectangle 999" />
-        </Style>
-    </ContentView.Resources>
 
     <Grid>
         <Grid x:Name="PageContent" Padding="24,30,24,24" RowDefinitions="Auto,Auto,*">
@@ -194,13 +188,13 @@
                     </CollectionView>
                 </Grid>
 
-                <Grid IsVisible="{Binding IsLoading}" BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}" ZIndex="10" InputTransparent="False">
-                    <VerticalStackLayout Spacing="14">
-                        <Border Style="{StaticResource BudgetSkeletonLine}" WidthRequest="220" HeightRequest="44" HorizontalOptions="Center" />
-                        <Border Style="{StaticResource BudgetSkeletonLine}" HeightRequest="170" />
-                        <Border Style="{StaticResource BudgetSkeletonLine}" HeightRequest="170" />
-                    </VerticalStackLayout>
-                </Grid>
+                <controls:SkeletonPresenter
+                    IsVisible="{Binding IsLoading}"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}"
+                    ZIndex="10"
+                    SemanticProperties.Description="Loading budget settings">
+                    <skeletons:BudgetSettingsLoadingSkeletonView />
+                </controls:SkeletonPresenter>
             </Grid>
         </Grid>
 
