@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+    x:Class="FinancialTracker.Views.AssetHistoryView"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:helpers="clr-namespace:FinancialTracker.Helpers"
+    IsVisible="False">
+
+    <Grid
+        x:Name="HistoryRoot"
+        SizeChanged="OnHistoryRootSizeChanged"
+        BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}">
+        <ScrollView VerticalScrollBarVisibility="Never">
+            <VerticalStackLayout
+                x:Name="HistoryContent"
+                Padding="{OnIdiom Phone='18,22,18,34', Tablet='24,28,24,40', Desktop='24,28,24,40'}"
+                Spacing="18"
+                HorizontalOptions="Center">
+
+                <Grid ColumnDefinitions="44,*,Auto" ColumnSpacing="12">
+                    <Border
+                        WidthRequest="44"
+                        HeightRequest="44"
+                        Padding="11"
+                        Style="{StaticResource Pill}"
+                        helpers:InteractionAnimations.IsPressFeedbackEnabled="True"
+                        SemanticProperties.Description="Back to assets">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnCloseTapped" />
+                        </Border.GestureRecognizers>
+                        <Path
+                            Data="M 15,4 L 7,12 L 15,20"
+                            Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}"
+                            StrokeThickness="2.3"
+                            StrokeLineCap="Round"
+                            StrokeLineJoin="Round"
+                            Fill="Transparent"
+                            Aspect="Uniform" />
+                    </Border>
+                    <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
+                        <Label
+                            Text="Asset history"
+                            Style="{StaticResource PageTitle}"
+                            FontSize="{OnIdiom Phone=27, Tablet=32, Desktop=32}"
+                            FontAutoScalingEnabled="False"
+                            LineBreakMode="NoWrap"
+                            MaxLines="1" />
+                        <Label Text="Explore your portfolio month by month" Style="{StaticResource BodyMuted}" FontSize="12" />
+                    </VerticalStackLayout>
+                    <HorizontalStackLayout Grid.Column="2" Spacing="7" VerticalOptions="Center">
+                        <Label
+                            x:Name="HistoryKwspModeLabel"
+                            Text="With KWSP"
+                            Style="{StaticResource BodyMuted}"
+                            FontFamily="OpenSansSemibold"
+                            FontSize="11"
+                            IsVisible="{OnIdiom Phone=False, Tablet=True, Desktop=True}"
+                            VerticalTextAlignment="Center" />
+                        <Border
+                            x:Name="HistoryKwspToggleButton"
+                            WidthRequest="50"
+                            HeightRequest="28"
+                            Padding="2"
+                            BackgroundColor="{DynamicResource Accent}"
+                            StrokeThickness="0"
+                            StrokeShape="RoundRectangle 14"
+                            helpers:InteractionAnimations.IsPressFeedbackEnabled="True"
+                            SemanticProperties.Description="KWSP included in asset history. Tap to exclude it.">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnKwspToggleTapped" />
+                            </Border.GestureRecognizers>
+                            <Border
+                                x:Name="HistoryKwspToggleThumb"
+                                WidthRequest="24"
+                                HeightRequest="24"
+                                Padding="3"
+                                TranslationX="22"
+                                HorizontalOptions="Start"
+                                BackgroundColor="White"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 12">
+                                <Grid>
+                                    <Path
+                                        x:Name="HistoryKwspToggleIcon"
+                                        Data="M 4,10 L 20,10 L 18,20 L 6,20 Z M 8,14 L 16,14 M 9,17 L 15,17 M 12,3 C 14.2,3 16,4.8 16,7 C 16,9.2 14.2,11 12,11 C 9.8,11 8,9.2 8,7 C 8,4.8 9.8,3 12,3 Z"
+                                        Stroke="{DynamicResource Accent}"
+                                        StrokeThickness="1.8"
+                                        StrokeLineCap="Round"
+                                        StrokeLineJoin="Round"
+                                        Fill="Transparent"
+                                        Aspect="Uniform" />
+                                    <Path
+                                        x:Name="HistoryKwspExclusionSlash"
+                                        IsVisible="False"
+                                        Data="M 5,4 L 19,20"
+                                        Stroke="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}"
+                                        StrokeThickness="2.2"
+                                        StrokeLineCap="Round"
+                                        Fill="Transparent"
+                                        Aspect="Uniform" />
+                                </Grid>
+                            </Border>
+                        </Border>
+                    </HorizontalStackLayout>
+                </Grid>
+
+                <Border Style="{StaticResource SoftCard}" Padding="12">
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                        <Border x:Name="SixMonthRangeButton" Style="{StaticResource Pill}" Padding="12,9" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                            <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnSixMonthsTapped" /></Border.GestureRecognizers>
+                            <Label x:Name="SixMonthRangeLabel" Text="6M" FontFamily="OpenSansSemibold" HorizontalTextAlignment="Center" InputTransparent="True" />
+                        </Border>
+                        <Border x:Name="TwelveMonthRangeButton" Grid.Column="1" Style="{StaticResource Pill}" Padding="12,9" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                            <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnTwelveMonthsTapped" /></Border.GestureRecognizers>
+                            <Label x:Name="TwelveMonthRangeLabel" Text="12M" FontFamily="OpenSansSemibold" HorizontalTextAlignment="Center" InputTransparent="True" />
+                        </Border>
+                        <Border x:Name="AllRangeButton" Grid.Column="2" Style="{StaticResource Pill}" Padding="12,9" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                            <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnAllMonthsTapped" /></Border.GestureRecognizers>
+                            <Label x:Name="AllRangeLabel" Text="All" FontFamily="OpenSansSemibold" HorizontalTextAlignment="Center" InputTransparent="True" />
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource Card}" Padding="18">
+                    <VerticalStackLayout Spacing="12">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="MONTHLY PORTFOLIO" Style="{StaticResource SectionLabel}" />
+                                <Label Text="Tap a month to inspect its snapshot" Style="{StaticResource BodyMuted}" FontSize="12" />
+                            </VerticalStackLayout>
+                            <Label x:Name="HistoryRangeCaption" Grid.Column="1" Style="{StaticResource BodyMuted}" FontFamily="OpenSansSemibold" FontSize="12" VerticalTextAlignment="Center" />
+                        </Grid>
+                        <ScrollView x:Name="HistoryChartScroll" Orientation="Horizontal" HorizontalScrollBarVisibility="Never" SizeChanged="OnHistoryChartScrollSizeChanged">
+                            <GraphicsView
+                                x:Name="HistoryBarChart"
+                                HeightRequest="220"
+                                MinimumWidthRequest="320"
+                                StartInteraction="OnHistoryBarInteraction"
+                                SemanticProperties.Description="Monthly asset values. Tap a month to show its details." />
+                        </ScrollView>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource SoftCard}">
+                    <VerticalStackLayout Spacing="14">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <VerticalStackLayout Spacing="2">
+                                <Label x:Name="SelectedMonthLabel" Text="Selected month" Style="{StaticResource SectionLabel}" />
+                                <Label x:Name="SelectedSnapshotDateLabel" Style="{StaticResource BodyMuted}" FontSize="12" />
+                            </VerticalStackLayout>
+                            <Label x:Name="SelectedChangeLabel" Grid.Column="1" FontFamily="OpenSansSemibold" FontSize="13" VerticalTextAlignment="Center" LineBreakMode="NoWrap" MaxLines="1" />
+                        </Grid>
+                        <Label
+                            x:Name="NoSnapshotLabel"
+                            Text="No asset snapshot was recorded for this month."
+                            Style="{StaticResource BodyMuted}"
+                            HorizontalTextAlignment="Center"
+                            Margin="0,16" />
+                        <VerticalStackLayout x:Name="SelectedSnapshotDetails" Spacing="14" IsVisible="False">
+                            <Label x:Name="SelectedTotalLabel" FontFamily="OpenSansSemibold" FontSize="30" FontAutoScalingEnabled="False" LineBreakMode="NoWrap" MaxLines="1" />
+                            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="18" RowSpacing="14">
+                                <VerticalStackLayout Spacing="3">
+                                    <Label Text="ACCESSIBLE ASSETS" Style="{StaticResource SectionLabel}" FontSize="11" />
+                                    <Label x:Name="SelectedAccessibleLabel" Style="{StaticResource CardTitle}" FontSize="18" LineBreakMode="NoWrap" MaxLines="1" />
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Grid.Column="1" Spacing="3">
+                                    <Label Text="KWSP" Style="{StaticResource SectionLabel}" FontSize="11" />
+                                    <Label x:Name="SelectedKwspLabel" Style="{StaticResource CardTitle}" FontSize="18" LineBreakMode="NoWrap" MaxLines="1" />
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Grid.Row="1" Spacing="3">
+                                    <Label Text="CHANGE" Style="{StaticResource SectionLabel}" FontSize="11" />
+                                    <Label x:Name="SelectedChangeAmountLabel" Style="{StaticResource CardTitle}" FontSize="18" LineBreakMode="NoWrap" MaxLines="1" />
+                                </VerticalStackLayout>
+                                <VerticalStackLayout Grid.Row="1" Grid.Column="1" Spacing="3">
+                                    <Label Text="PERCENTAGE" Style="{StaticResource SectionLabel}" FontSize="11" />
+                                    <Label x:Name="SelectedChangePercentageLabel" Style="{StaticResource CardTitle}" FontSize="18" LineBreakMode="NoWrap" MaxLines="1" />
+                                </VerticalStackLayout>
+                            </Grid>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border x:Name="CompositionCard" Style="{StaticResource Card}" Padding="18" IsVisible="False">
+                    <VerticalStackLayout Spacing="14">
+                        <VerticalStackLayout Spacing="3">
+                            <Label Text="ASSET COMPOSITION" Style="{StaticResource SectionLabel}" />
+                            <Label Text="Tap a segment to highlight an asset" Style="{StaticResource BodyMuted}" FontSize="12" />
+                        </VerticalStackLayout>
+                        <Grid
+                            RowDefinitions="{OnIdiom Phone='Auto,Auto', Tablet='Auto', Desktop='Auto'}"
+                            ColumnDefinitions="{OnIdiom Phone='*', Tablet='280,*', Desktop='300,*'}"
+                            RowSpacing="14"
+                            ColumnSpacing="22">
+                            <GraphicsView
+                                x:Name="DonutChart"
+                                WidthRequest="{OnIdiom Phone=240, Tablet=260, Desktop=280}"
+                                HeightRequest="{OnIdiom Phone=240, Tablet=260, Desktop=280}"
+                                HorizontalOptions="Center"
+                                StartInteraction="OnDonutInteraction"
+                                SemanticProperties.Description="Asset composition chart. Tap a segment to select an asset." />
+                            <VerticalStackLayout
+                                x:Name="CompositionLegend"
+                                Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
+                                Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}"
+                                Spacing="8"
+                                VerticalOptions="Center" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <Grid x:Name="HistoryLoadingOverlay" IsVisible="False" BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}" Opacity="0.94" ZIndex="5">
+            <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="12">
+                <ActivityIndicator IsRunning="True" Color="{DynamicResource Accent}" />
+                <Label Text="Loading asset history…" Style="{StaticResource BodyMuted}" />
+            </VerticalStackLayout>
+        </Grid>
+
+        <Grid x:Name="HistoryErrorOverlay" IsVisible="False" BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}" ZIndex="6">
+            <VerticalStackLayout Padding="28" Spacing="12" HorizontalOptions="Center" VerticalOptions="Center" MaximumWidthRequest="440">
+                <Label Text="Asset history unavailable" Style="{StaticResource CardTitle}" HorizontalTextAlignment="Center" />
+                <Label x:Name="HistoryErrorLabel" Text="Your asset history could not be loaded. Please try again." Style="{StaticResource BodyMuted}" HorizontalTextAlignment="Center" />
+                <Button Text="Close" Clicked="OnCloseButtonClicked" BackgroundColor="{DynamicResource Accent}" TextColor="{DynamicResource AccentForeground}" CornerRadius="16" Padding="24,12" />
+            </VerticalStackLayout>
+        </Grid>
+    </Grid>
+</ContentView>

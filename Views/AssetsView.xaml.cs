@@ -42,6 +42,7 @@ public partial class AssetsView : ContentView
         InitializeComponent();
         TrendChart.Drawable = trendChartDrawable;
         AccessibleShareChart.Drawable = accessibleShareDrawable;
+        HistoryView.VisibilityChanged += OnHistoryVisibilityChanged;
     }
 
     public Func<DateTime, DateTime, DateTime, Task<DateTime?>>? DatePickerRequested { get; set; }
@@ -54,6 +55,7 @@ public partial class AssetsView : ContentView
     {
         portfolioService = service;
         currencyProvider = selectedCurrencyProvider;
+        HistoryView.Configure(service, selectedCurrencyProvider);
     }
 
     public async Task RefreshAsync()
@@ -66,10 +68,17 @@ public partial class AssetsView : ContentView
 
     public void InvalidateCurrency() => hasLoaded = false;
 
-    public bool HasOpenOverlay => EditorOverlay.IsVisible || MonthPicker.IsOpen;
+    public bool HasOpenOverlay =>
+        HistoryView.IsOpen || EditorOverlay.IsVisible || MonthPicker.IsOpen;
 
     public async Task HandleBackAsync()
     {
+        if (HistoryView.IsOpen)
+        {
+            HistoryView.Close();
+            return;
+        }
+
         if (MonthPicker.IsOpen)
         {
             await MonthPicker.DismissAsync();
@@ -386,6 +395,21 @@ public partial class AssetsView : ContentView
     }
 
     private async void OnEditTapped(object? sender, TappedEventArgs e) => await OpenEditorAsync();
+
+    private async void OnTrendTapped(object? sender, TappedEventArgs e)
+    {
+        if (portfolio?.HasSnapshot != true)
+        {
+            return;
+        }
+
+        var feedback = InteractionAnimations.PulseAsync(sender);
+        await HistoryView.OpenAsync(selectedMonth, includeKwsp);
+        await feedback;
+    }
+
+    private void OnHistoryVisibilityChanged(bool isVisible) =>
+        EditorVisibilityChanged?.Invoke(isVisible);
 
     private async Task OpenEditorAsync()
     {

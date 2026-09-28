@@ -227,9 +227,30 @@
                     </VerticalStackLayout>
 
                     <VerticalStackLayout Spacing="14">
-                        <Border Style="{StaticResource SoftCard}">
-                            <VerticalStackLayout Spacing="8">
-                                <Label Text="TREND" Style="{StaticResource SectionLabel}" />
+                        <Border
+                            Style="{StaticResource SoftCard}"
+                            helpers:InteractionAnimations.IsPressFeedbackEnabled="True"
+                            SemanticProperties.Description="Open detailed asset history">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Tapped="OnTrendTapped" />
+                            </Border.GestureRecognizers>
+                            <VerticalStackLayout Spacing="8" InputTransparent="True">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                    <Label Text="TREND" Style="{StaticResource SectionLabel}" />
+                                    <HorizontalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
+                                        <Label Text="View details" FontFamily="OpenSansSemibold" FontSize="12" TextColor="{DynamicResource Accent}" />
+                                        <Path
+                                            WidthRequest="12"
+                                            HeightRequest="12"
+                                            Data="M 7,4 L 15,12 L 7,20"
+                                            Stroke="{DynamicResource Accent}"
+                                            StrokeThickness="2"
+                                            StrokeLineCap="Round"
+                                            StrokeLineJoin="Round"
+                                            Fill="Transparent"
+                                            Aspect="Uniform" />
+                                    </HorizontalStackLayout>
+                                </Grid>
                                 <GraphicsView
                                     x:Name="TrendChart"
                                     HeightRequest="82"
@@ -383,6 +404,7 @@
             </Grid>
         </Grid>
 
+        <views:AssetHistoryView x:Name="HistoryView" ZIndex="25" />
         <views:MonthYearPickerSheet x:Name="MonthPicker" ZIndex="30" />
     </Grid>
 </ContentView>

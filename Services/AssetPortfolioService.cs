@@ -152,6 +152,48 @@ public sealed class AssetPortfolioService(LocalDatabase database)
     public Task<AssetSnapshotData?> GetSnapshotAsync(DateTime month) =>
         database.GetAssetSnapshotAsync(MonthKeyConverter.FromDate(month));
 
+    public async Task<AssetHistoryData> GetHistoryAsync(
+        DateTime throughMonth,
+        CurrencyOption fallbackCurrency)
+    {
+        var normalizedMonth = new DateTime(throughMonth.Year, throughMonth.Month, 1);
+        var snapshots = await database.GetAssetSnapshotsThroughAsync(
+            MonthKeyConverter.FromDate(normalizedMonth),
+            int.MaxValue).ConfigureAwait(false);
+        var points = snapshots
+            .OrderBy(item => item.Snapshot.MonthKey)
+            .Select(item =>
+            {
+                var assets = item.Values
+                    .Select(value => new AssetHistoryBreakdownItem(
+                        AssetCatalog.GetHistoricalItem(value.AssetKey),
+                        value.AmountMinor))
+                    .OrderBy(value => value.Asset.DisplayOrder)
+                    .ThenBy(value => value.Asset.DisplayName, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+                return new AssetHistoryPoint(
+                    MonthKeyConverter.ToDate(item.Snapshot.MonthKey),
+                    item.Snapshot.EntryDate,
+                    assets.Sum(value => value.AmountMinor),
+                    assets
+                        .Where(value => !value.Asset.Key.Equals(AssetCatalog.KwspKey, StringComparison.Ordinal))
+                        .Sum(value => value.AmountMinor),
+                    assets
+                        .Where(value => value.Asset.IsAccessible)
+                        .Sum(value => value.AmountMinor),
+                    assets
+                        .Where(value => value.Asset.Key.Equals(AssetCatalog.KwspKey, StringComparison.Ordinal))
+                        .Sum(value => value.AmountMinor),
+                    assets);
+            })
+            .ToList();
+
+        return new AssetHistoryData(
+            fallbackCurrency.Symbol,
+            normalizedMonth,
+            points);
+    }
+
     public Task<AssetSnapshotData?> GetPreviousMonthSnapshotAsync(DateTime month)
     {
         var previousMonth = new DateTime(month.Year, month.Month, 1).AddMonths(-1);

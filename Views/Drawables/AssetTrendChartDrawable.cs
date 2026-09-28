@@ -105,7 +105,7 @@ public sealed class AssetTrendChartDrawable : IDrawable
             var x = dirtyRect.Left + (index * (columnWidth + BarSpacing));
             var y = dirtyRect.Top + plotHeight - barHeight;
 
-            canvas.FillColor = GetMonthColor(point.MonthNumber);
+            canvas.FillColor = GetMonthColor(point.MonthNumber, UseDarkPalette);
             canvas.FillRoundedRectangle(x, y, columnWidth, barHeight, 5f);
             canvas.DrawString(
                 point.Label,
@@ -124,9 +124,9 @@ public sealed class AssetTrendChartDrawable : IDrawable
     private float Interpolate(float start, float target) =>
         start + ((target - start) * AnimationProgress);
 
-    private Color GetMonthColor(int monthNumber)
+    internal static Color GetMonthColor(int monthNumber, bool useDarkPalette)
     {
-        var palette = UseDarkPalette ? DarkMonthColors : LightMonthColors;
+        var palette = useDarkPalette ? DarkMonthColors : LightMonthColors;
         return palette[Math.Clamp(monthNumber, 1, 12) - 1];
     }
 
