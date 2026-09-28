@@ -130,6 +130,10 @@ public sealed class LocalDatabase
         ExecuteWithConnectionAsync(
             activeConnection => activeConnection.InsertOrReplaceAsync(budget));
 
+    public Task DeleteMonthlyBudgetAsync(int monthKey) =>
+        ExecuteWithConnectionAsync(
+            activeConnection => activeConnection.DeleteAsync<MonthlyBudgetRecord>(monthKey));
+
     public Task<AssetSnapshotData?> GetAssetSnapshotAsync(int monthKey) =>
         ExecuteWithConnectionAsync(async activeConnection =>
         {

@@ -22,6 +22,7 @@ public sealed class BudgetSettingsViewModel(
     private bool isLoading;
     private bool isSaving;
     private bool isCopyingPrevious;
+    private bool isClearingMonth;
     private string copyPreviousMessage = string.Empty;
     private bool hasCopyPreviousError;
     private int selectedMonthLoadVersion;
@@ -114,7 +115,7 @@ public sealed class BudgetSettingsViewModel(
     {
         get
         {
-            if (IsLoading || IsSaving ||
+            if (IsLoading || IsSaving || IsClearingMonth ||
                 !TryParseAmount(IncludingInvestmentText, out var includingMinor) ||
                 !TryParseAmount(ExcludingInvestmentText, out var excludingMinor) ||
                 includingMinor < excludingMinor)
@@ -141,7 +142,15 @@ public sealed class BudgetSettingsViewModel(
         !IsLoading &&
         !IsSaving &&
         !IsCopyingPrevious &&
+        !IsClearingMonth &&
         SelectedMonth > new DateTime(MinimumBudgetYear, 1, 1);
+
+    public bool CanClearMonth =>
+        HasSavedBudget &&
+        !IsLoading &&
+        !IsSaving &&
+        !IsCopyingPrevious &&
+        !IsClearingMonth;
 
     public bool IsCopyingPrevious
     {
@@ -151,6 +160,7 @@ public sealed class BudgetSettingsViewModel(
             if (SetProperty(ref isCopyingPrevious, value))
             {
                 OnPropertyChanged(nameof(CanCopyPrevious));
+                OnPropertyChanged(nameof(CanClearMonth));
                 OnPropertyChanged(nameof(CopyPreviousButtonText));
             }
         }
@@ -159,6 +169,23 @@ public sealed class BudgetSettingsViewModel(
     public string CopyPreviousButtonText => IsCopyingPrevious
         ? "Copyingâ€¦"
         : "Copy previous";
+
+    public bool IsClearingMonth
+    {
+        get => isClearingMonth;
+        private set
+        {
+            if (SetProperty(ref isClearingMonth, value))
+            {
+                NotifyEditingStateChanged();
+                OnPropertyChanged(nameof(ClearMonthButtonText));
+            }
+        }
+    }
+
+    public string ClearMonthButtonText => IsClearingMonth
+        ? "Clearing\u2026"
+        : "Clear month";
 
     public string CopyPreviousMessage
     {
@@ -351,6 +378,41 @@ public sealed class BudgetSettingsViewModel(
         }
     }
 
+    public async Task ClearSelectedMonthAsync()
+    {
+        if (!CanClearMonth)
+        {
+            return;
+        }
+
+        await operationLock.WaitAsync();
+        try
+        {
+            IsClearingMonth = true;
+            await monthlyBudgetService.DeleteAsync(SelectedMonth);
+            savedIncludingInvestmentMinor = null;
+            savedExcludingInvestmentMinor = null;
+            includingInvestmentText = string.Empty;
+            excludingInvestmentText = string.Empty;
+            SetCopyPreviousMessage(string.Empty, isError: false);
+            OnPropertyChanged(nameof(IncludingInvestmentText));
+            OnPropertyChanged(nameof(ExcludingInvestmentText));
+
+            if (HistoryYear == SelectedMonth.Year && HistoryMonths.Count > 0)
+            {
+                await LoadHistoryYearAsync(HistoryYear);
+            }
+
+            BudgetSaved?.Invoke(this, EventArgs.Empty);
+        }
+        finally
+        {
+            IsClearingMonth = false;
+            operationLock.Release();
+            NotifyEditingStateChanged();
+        }
+    }
+
     private async Task LoadSelectedMonthAsync()
     {
         var requestVersion = ++selectedMonthLoadVersion;
@@ -386,6 +448,7 @@ public sealed class BudgetSettingsViewModel(
         OnPropertyChanged(nameof(SaveButtonText));
         OnPropertyChanged(nameof(SelectedMonthStatus));
         OnPropertyChanged(nameof(CanCopyPrevious));
+        OnPropertyChanged(nameof(CanClearMonth));
     }
 
     private void SetCopyPreviousMessage(string message, bool isError)

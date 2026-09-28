@@ -60,7 +60,7 @@
 
                         <Label Text="{Binding SelectedMonthStatus}" Style="{StaticResource BodyMuted}" FontSize="12" HorizontalTextAlignment="Center" />
 
-                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <VerticalStackLayout Spacing="8">
                             <Label
                                 Text="{Binding CopyPreviousMessage}"
                                 IsVisible="{Binding HasCopyPreviousMessage}"
@@ -74,35 +74,67 @@
                                     </DataTrigger>
                                 </Label.Triggers>
                             </Label>
-                            <Border
-                                Grid.Column="1"
-                                Style="{StaticResource Pill}"
-                                IsEnabled="{Binding CanCopyPrevious}"
-                                helpers:InteractionAnimations.IsPressFeedbackEnabled="True"
-                                SemanticProperties.Description="Copy both budget amounts from the previous month">
-                                <Border.Triggers>
-                                    <DataTrigger TargetType="Border" Binding="{Binding CanCopyPrevious}" Value="False">
-                                        <Setter Property="Opacity" Value="0.48" />
-                                    </DataTrigger>
-                                </Border.Triggers>
-                                <Border.GestureRecognizers>
-                                    <TapGestureRecognizer Tapped="OnCopyPreviousTapped" />
-                                </Border.GestureRecognizers>
-                                <HorizontalStackLayout Spacing="5" InputTransparent="True">
-                                    <Path
-                                        WidthRequest="14"
-                                        HeightRequest="14"
-                                        Data="M 8,7 L 19,7 Q 21,7 21,9 L 21,20 Q 21,22 19,22 L 8,22 Q 6,22 6,20 L 6,9 Q 6,7 8,7 Z M 6,17 L 4,17 Q 2,17 2,15 L 2,4 Q 2,2 4,2 L 15,2 Q 17,2 17,4 L 17,7"
-                                        Stroke="{DynamicResource Accent}"
-                                        StrokeThickness="1.8"
-                                        StrokeLineCap="Round"
-                                        StrokeLineJoin="Round"
-                                        Fill="Transparent"
-                                        Aspect="Uniform" />
-                                    <Label Text="{Binding CopyPreviousButtonText}" FontFamily="OpenSansSemibold" FontSize="12" TextColor="{DynamicResource Accent}" />
-                                </HorizontalStackLayout>
-                            </Border>
-                        </Grid>
+                            <HorizontalStackLayout HorizontalOptions="End" Spacing="8">
+                                <Border
+                                    Style="{StaticResource Pill}"
+                                    IsEnabled="{Binding CanClearMonth}"
+                                    helpers:InteractionAnimations.IsPressFeedbackEnabled="True"
+                                    SemanticProperties.Description="Remove both saved budgets for the selected month">
+                                    <Border.Triggers>
+                                        <DataTrigger TargetType="Border" Binding="{Binding CanClearMonth}" Value="False">
+                                            <Setter Property="Opacity" Value="0.48" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnClearMonthTapped" />
+                                    </Border.GestureRecognizers>
+                                    <HorizontalStackLayout Spacing="5" InputTransparent="True">
+                                        <Path
+                                            WidthRequest="14"
+                                            HeightRequest="14"
+                                            Data="M 5,7 L 19,7 M 9,7 L 9,4 L 15,4 L 15,7 M 7,7 L 8,21 L 16,21 L 17,7 M 10.5,11 L 10.5,17 M 13.5,11 L 13.5,17"
+                                            Stroke="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}"
+                                            StrokeThickness="1.8"
+                                            StrokeLineCap="Round"
+                                            StrokeLineJoin="Round"
+                                            Fill="Transparent"
+                                            Aspect="Uniform" />
+                                        <Label
+                                            Text="{Binding ClearMonthButtonText}"
+                                            FontFamily="OpenSansSemibold"
+                                            FontSize="12"
+                                            TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" />
+                                    </HorizontalStackLayout>
+                                </Border>
+                                <Border
+                                    Style="{StaticResource Pill}"
+                                    IsEnabled="{Binding CanCopyPrevious}"
+                                    helpers:InteractionAnimations.IsPressFeedbackEnabled="True"
+                                    SemanticProperties.Description="Copy both budget amounts from the previous month">
+                                    <Border.Triggers>
+                                        <DataTrigger TargetType="Border" Binding="{Binding CanCopyPrevious}" Value="False">
+                                            <Setter Property="Opacity" Value="0.48" />
+                                        </DataTrigger>
+                                    </Border.Triggers>
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnCopyPreviousTapped" />
+                                    </Border.GestureRecognizers>
+                                    <HorizontalStackLayout Spacing="5" InputTransparent="True">
+                                        <Path
+                                            WidthRequest="14"
+                                            HeightRequest="14"
+                                            Data="M 8,7 L 19,7 Q 21,7 21,9 L 21,20 Q 21,22 19,22 L 8,22 Q 6,22 6,20 L 6,9 Q 6,7 8,7 Z M 6,17 L 4,17 Q 2,17 2,15 L 2,4 Q 2,2 4,2 L 15,2 Q 17,2 17,4 L 17,7"
+                                            Stroke="{DynamicResource Accent}"
+                                            StrokeThickness="1.8"
+                                            StrokeLineCap="Round"
+                                            StrokeLineJoin="Round"
+                                            Fill="Transparent"
+                                            Aspect="Uniform" />
+                                        <Label Text="{Binding CopyPreviousButtonText}" FontFamily="OpenSansSemibold" FontSize="12" TextColor="{DynamicResource Accent}" />
+                                    </HorizontalStackLayout>
+                                </Border>
+                            </HorizontalStackLayout>
+                        </VerticalStackLayout>
 
                         <Border Style="{StaticResource Card}">
                             <VerticalStackLayout Spacing="13">

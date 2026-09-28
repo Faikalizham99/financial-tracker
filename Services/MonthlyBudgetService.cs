@@ -63,6 +63,16 @@ public sealed class MonthlyBudgetService(LocalDatabase database)
             UpdatedAtUtc = DateTime.UtcNow
         });
 
+    public async Task DeleteAsync(DateTime month)
+    {
+        var monthKey = MonthKeyConverter.FromDate(month);
+        await database.DeleteMonthlyBudgetAsync(monthKey).ConfigureAwait(false);
+        lock (cacheLock)
+        {
+            cache[monthKey] = Task.FromResult<MonthlyBudgetRecord?>(null);
+        }
+    }
+
     public void InvalidateCache()
     {
         lock (cacheLock)

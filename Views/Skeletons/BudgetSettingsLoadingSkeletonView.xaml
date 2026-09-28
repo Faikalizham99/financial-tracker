@@ -15,9 +15,10 @@
 
             <controls:SkeletonBlock WidthRequest="210" HeightRequest="10" HorizontalOptions="Center" />
 
-            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                 <controls:SkeletonBlock WidthRequest="190" HeightRequest="10" HorizontalOptions="Start" VerticalOptions="Center" />
-                <controls:SkeletonBlock Grid.Column="1" WidthRequest="122" HeightRequest="31" />
+                <controls:SkeletonBlock Grid.Column="1" WidthRequest="96" HeightRequest="31" />
+                <controls:SkeletonBlock Grid.Column="2" WidthRequest="122" HeightRequest="31" />
             </Grid>
 
             <Border Style="{StaticResource Card}">
