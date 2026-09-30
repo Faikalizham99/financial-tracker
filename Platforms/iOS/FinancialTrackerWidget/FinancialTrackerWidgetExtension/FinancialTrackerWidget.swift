@@ -64,7 +64,7 @@ private struct FinancialTrackerWidgetView: View {
 
                 if family != .systemSmall {
                     Text("Financial Tracker")
-                        .font(.system(.headline, design: .rounded, weight: .semibold))
+                        .font(.system(.headline, design: .rounded).weight(.semibold))
                         .foregroundStyle(WidgetAppearance.ink)
                         .lineLimit(1)
                 }
@@ -73,7 +73,7 @@ private struct FinancialTrackerWidgetView: View {
             Spacer(minLength: 0)
 
             Text(family == .systemSmall ? "Financial\nTracker" : "Widget test")
-                .font(.system(family == .systemSmall ? .title3 : .title2, design: .rounded, weight: .bold))
+                .font(.system(family == .systemSmall ? .title3 : .title2, design: .rounded).weight(.bold))
                 .foregroundStyle(WidgetAppearance.ink)
                 .lineLimit(2)
                 .minimumScaleFactor(0.75)
@@ -84,7 +84,7 @@ private struct FinancialTrackerWidgetView: View {
                     .frame(width: 7, height: 7)
 
                 Text("Ready")
-                    .font(.system(.caption, design: .rounded, weight: .medium))
+                    .font(.system(.caption, design: .rounded).weight(.medium))
                     .foregroundStyle(WidgetAppearance.secondaryInk)
             }
         }
