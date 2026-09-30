@@ -133,13 +133,74 @@
                             <Label x:Name="HistoryRangeCaption" Grid.Column="1" Style="{StaticResource BodyMuted}" FontFamily="OpenSansSemibold" FontSize="12" VerticalTextAlignment="Center" />
                         </Grid>
                         <ScrollView x:Name="HistoryChartScroll" Orientation="Horizontal" HorizontalScrollBarVisibility="Never" SizeChanged="OnHistoryChartScrollSizeChanged">
-                            <GraphicsView
-                                x:Name="HistoryBarChart"
+                            <Grid
+                                x:Name="HistoryChartCanvas"
                                 HeightRequest="220"
-                                MinimumWidthRequest="320"
-                                StartInteraction="OnHistoryBarInteraction"
-                                SemanticProperties.Description="Monthly asset values. Tap a month to show its details." />
+                                MinimumWidthRequest="320">
+                                <GraphicsView
+                                    x:Name="HistoryBarChart"
+                                    StartInteraction="OnHistoryBarInteraction"
+                                    SemanticProperties.Description="Monthly asset values shown as bars. Tap a month to show its details." />
+                                <GraphicsView
+                                    x:Name="HistoryLineChart"
+                                    IsVisible="False"
+                                    StartInteraction="OnHistoryLineInteraction"
+                                    SemanticProperties.Description="Monthly asset trend shown as a line. Tap a point to show its details." />
+                            </Grid>
                         </ScrollView>
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Border
+                                Grid.Column="1"
+                                Style="{StaticResource SoftCard}"
+                                Padding="3"
+                                VerticalOptions="Center">
+                                <Grid ColumnDefinitions="44,44" ColumnSpacing="3">
+                                    <Border
+                                        x:Name="HistoryBarChartKindButton"
+                                        Style="{StaticResource FlatSelectedCategorySegmentTab}"
+                                        Padding="10,8"
+                                        helpers:InteractionAnimations.IsPressFeedbackEnabled="True"
+                                        SemanticProperties.Description="Show monthly portfolio as bars">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="OnHistoryChartKindTapped" CommandParameter="Bar" />
+                                        </Border.GestureRecognizers>
+                                        <Path
+                                            x:Name="HistoryBarChartKindIcon"
+                                            WidthRequest="22"
+                                            HeightRequest="22"
+                                            HorizontalOptions="Center"
+                                            VerticalOptions="Center"
+                                            Data="M 4,20 L 4,12 L 8,12 L 8,20 Z M 10,20 L 10,7 L 14,7 L 14,20 Z M 16,20 L 16,3 L 20,3 L 20,20 Z"
+                                            Fill="{DynamicResource Accent}"
+                                            Aspect="Uniform" />
+                                    </Border>
+                                    <Border
+                                        x:Name="HistoryLineChartKindButton"
+                                        Grid.Column="1"
+                                        Style="{StaticResource CategorySegmentTab}"
+                                        Padding="10,8"
+                                        helpers:InteractionAnimations.IsPressFeedbackEnabled="True"
+                                        SemanticProperties.Description="Show monthly portfolio as a line">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer Tapped="OnHistoryChartKindTapped" CommandParameter="Line" />
+                                        </Border.GestureRecognizers>
+                                        <Path
+                                            x:Name="HistoryLineChartKindIcon"
+                                            WidthRequest="22"
+                                            HeightRequest="22"
+                                            HorizontalOptions="Center"
+                                            VerticalOptions="Center"
+                                            Data="M 3,18 L 8,13 L 12,15 L 17,7 L 21,5"
+                                            Stroke="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}"
+                                            StrokeThickness="2.2"
+                                            StrokeLineCap="Round"
+                                            StrokeLineJoin="Round"
+                                            Fill="Transparent"
+                                            Aspect="Uniform" />
+                                    </Border>
+                                </Grid>
+                            </Border>
+                        </Grid>
                     </VerticalStackLayout>
                 </Border>
 

@@ -46,8 +46,27 @@ public partial class AssetHistoryView
             return;
         }
 
+        SelectHistoryMonth(barChartDrawable.SelectedMonthKey);
+    }
+
+    private void OnHistoryLineInteraction(object? sender, TouchEventArgs e)
+    {
+        if (e.Touches.Length == 0 ||
+            !lineChartDrawable.Select(
+                e.Touches[0],
+                (float)HistoryLineChart.Width,
+                (float)HistoryLineChart.Height))
+        {
+            return;
+        }
+
+        SelectHistoryMonth(lineChartDrawable.SelectedMonthKey);
+    }
+
+    private void SelectHistoryMonth(int? selectedMonthKey)
+    {
         var selectedPoint = barChartDrawable.SourcePoints.FirstOrDefault(
-            item => MonthKeyConverter.FromDate(item.Month) == barChartDrawable.SelectedMonthKey);
+            item => MonthKeyConverter.FromDate(item.Month) == selectedMonthKey);
         if (selectedPoint is null)
         {
             return;
@@ -55,10 +74,14 @@ public partial class AssetHistoryView
 
         selectedMonth = selectedPoint.Month;
         donutChartDrawable.ClearSelection();
+        barChartDrawable.SelectedMonthKey = selectedMonthKey;
+        lineChartDrawable.SelectedMonthKey = selectedMonthKey;
         barChartDrawable.AnimationProgress = 1f;
+        lineChartDrawable.AnimationProgress = 1f;
         HistoryBarChart.Invalidate();
+        HistoryLineChart.Invalidate();
         RenderSelectedMonth(animateDonut: true);
-        AnimateCharts(animate: true, animateBar: false, animateDonut: true);
+        AnimateCharts(animate: true, animatePortfolio: false, animateDonut: true);
     }
 
     private void OnDonutInteraction(object? sender, TouchEventArgs e)
@@ -117,7 +140,7 @@ public partial class AssetHistoryView
                     return;
                 }
 
-                var selectedCenter = HistoryBarChart.Width * (index.Value + 0.5d) / points.Count;
+                var selectedCenter = HistoryChartCanvas.Width * (index.Value + 0.5d) / points.Count;
                 var targetX = Math.Max(0, selectedCenter - (HistoryChartScroll.Width / 2d));
                 await HistoryChartScroll.ScrollToAsync(targetX, 0, false);
             }

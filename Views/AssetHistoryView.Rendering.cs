@@ -37,14 +37,13 @@ public partial class AssetHistoryView
             })
             .ToList();
 
-        barChartDrawable.SelectedMonthKey = MonthKeyConverter.FromDate(selectedMonth);
-        barChartDrawable.SetPoints(chartPoints, animateCharts);
+        SetHistoryChartPoints(chartPoints, animateCharts);
         HistoryRangeCaption.Text = chartPoints.Count == 0
             ? string.Empty
             : $"{chartPoints[0].Month:MMM yyyy} – {chartPoints[^1].Month:MMM yyyy}";
         UpdateChartWidth(chartPoints.Count);
         RenderSelectedMonth(animateCharts);
-        AnimateCharts(animateCharts, animateBar: true, animateDonut: true);
+        AnimateCharts(animateCharts, animatePortfolio: true, animateDonut: true);
         QueueChartScrollToSelection();
     }
 
@@ -356,6 +355,7 @@ public partial class AssetHistoryView
         barChartDrawable.LabelColor = secondary;
         barChartDrawable.EmptyColor = divider;
         barChartDrawable.SelectionColor = accent;
+        ApplyLineChartTheme(isDark, secondary, divider, accent);
         donutChartDrawable.TrackColor = divider;
         donutChartDrawable.SurfaceColor = cardSurface;
         donutChartDrawable.PrimaryTextColor = primary;
@@ -432,34 +432,24 @@ public partial class AssetHistoryView
                 : "KWSP excluded from asset history. Tap to include it.");
     }
 
-    private void AnimateCharts(bool animate, bool animateBar, bool animateDonut)
+    private void AnimateCharts(bool animate, bool animatePortfolio, bool animateDonut)
     {
-        HistoryBarChart.AbortAnimation(BarAnimationName);
         DonutChart.AbortAnimation(DonutAnimationName);
         if (!animate)
         {
-            barChartDrawable.AnimationProgress = 1f;
+            AnimatePortfolioChart(animate: false);
             donutChartDrawable.AnimationProgress = 1f;
-            HistoryBarChart.Invalidate();
             DonutChart.Invalidate();
             return;
         }
 
-        if (animateBar)
+        if (animatePortfolio)
         {
-            HistoryBarChart.Animate(
-                BarAnimationName,
-                progress =>
-                {
-                    barChartDrawable.AnimationProgress = (float)progress;
-                    HistoryBarChart.Invalidate();
-                },
-                length: ChartAnimationLength,
-                easing: Easing.CubicOut);
+            AnimatePortfolioChart(animate: true);
         }
         else
         {
-            HistoryBarChart.Invalidate();
+            AnimatePortfolioChart(animate: false);
         }
 
         if (animateDonut)
@@ -483,7 +473,7 @@ public partial class AssetHistoryView
     private void UpdateChartWidth(int pointCount)
     {
         var availableWidth = Math.Max(320d, HistoryChartScroll.Width);
-        HistoryBarChart.WidthRequest = Math.Max(availableWidth, pointCount * 58d);
+        HistoryChartCanvas.WidthRequest = Math.Max(availableWidth, pointCount * 58d);
     }
 
     private long GetDisplayedTotal(AssetHistoryPoint point) =>

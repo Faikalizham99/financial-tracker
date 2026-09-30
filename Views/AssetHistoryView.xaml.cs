@@ -33,6 +33,7 @@ public partial class AssetHistoryView : ContentView
     {
         InitializeComponent();
         HistoryBarChart.Drawable = barChartDrawable;
+        InitializeChartKinds();
         DonutChart.Drawable = donutChartDrawable;
     }
 
@@ -58,6 +59,7 @@ public partial class AssetHistoryView : ContentView
         selectedMonth = new DateTime(throughMonth.Year, throughMonth.Month, 1);
         includeKwsp = initiallyIncludeKwsp;
         selectedRange = HistoryRange.SixMonths;
+        ResetHistoryChartKind();
         HistoryErrorOverlay.IsVisible = false;
         SetVisibility(true);
         HistoryLoadingOverlay.IsVisible = true;
@@ -97,7 +99,7 @@ public partial class AssetHistoryView : ContentView
     public void Close()
     {
         ++loadVersion;
-        HistoryBarChart.AbortAnimation(BarAnimationName);
+        AbortHistoryChartAnimations();
         DonutChart.AbortAnimation(DonutAnimationName);
         DonutChart.AbortAnimation(DonutSelectionAnimationName);
         HistoryLoadingOverlay.IsVisible = false;
