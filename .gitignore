@@ -71,6 +71,7 @@ xcuserdata/
 *.xcuserstate
 *.xcworkspace/xcuserdata/
 *.xcodeproj/xcuserdata/
+Platforms/iOS/FinancialTrackerWidget/FinancialTrackerWidget.xcodeproj/
 .DS_Store
 .AppleDouble
 .LSOverride
