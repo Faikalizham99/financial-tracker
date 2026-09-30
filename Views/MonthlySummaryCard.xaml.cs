@@ -21,6 +21,15 @@ public partial class MonthlySummaryCard : ContentView
             propertyChanged: static (bindable, _, newValue) =>
                 ((MonthlySummaryCard)bindable).TransactionCountPanel.IsVisible = (bool)newValue);
 
+    public static readonly BindableProperty ShowStatisticsActionProperty =
+        BindableProperty.Create(
+            nameof(ShowStatisticsAction),
+            typeof(bool),
+            typeof(MonthlySummaryCard),
+            false,
+            propertyChanged: static (bindable, _, newValue) =>
+                ((MonthlySummaryCard)bindable).StatisticsActionSection.IsVisible = (bool)newValue);
+
     public static readonly BindableProperty IsTransactionEditingLockedProperty =
         BindableProperty.Create(
             nameof(IsTransactionEditingLocked),
@@ -74,11 +83,18 @@ public partial class MonthlySummaryCard : ContentView
 
     public event EventHandler? TransactionEditingLockToggleRequested;
     public event EventHandler? InvestmentInclusionToggleRequested;
+    public event EventHandler? StatisticsRequested;
 
     public bool ShowTransactionCount
     {
         get => (bool)GetValue(ShowTransactionCountProperty);
         set => SetValue(ShowTransactionCountProperty, value);
+    }
+
+    public bool ShowStatisticsAction
+    {
+        get => (bool)GetValue(ShowStatisticsActionProperty);
+        set => SetValue(ShowStatisticsActionProperty, value);
     }
 
     public bool IsTransactionEditingLocked
@@ -429,6 +445,13 @@ public partial class MonthlySummaryCard : ContentView
     {
         var feedback = InteractionAnimations.PulseAsync(InvestmentToggleButton);
         InvestmentInclusionToggleRequested?.Invoke(this, EventArgs.Empty);
+        await feedback;
+    }
+
+    private async void OnStatisticsTapped(object? sender, TappedEventArgs e)
+    {
+        var feedback = InteractionAnimations.PulseAsync(sender);
+        StatisticsRequested?.Invoke(this, EventArgs.Empty);
         await feedback;
     }
 

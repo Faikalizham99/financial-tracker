@@ -177,6 +177,15 @@
         </Setter>
     </Style>
 
+    <!-- Use this variant inside containers that change layout while selecting a
+         segment. It preserves the selected treatment without a native shadow
+         layer that can briefly render as a dark rectangle on some platforms. -->
+    <Style x:Key="FlatSelectedCategorySegmentTab" TargetType="Border" BasedOn="{StaticResource CategorySegmentTab}">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark=#242426}" />
+        <Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource DividerLight}, Dark=#353539}" />
+        <Setter Property="StrokeThickness" Value="1.5" />
+    </Style>
+
     <Style x:Key="CategorySegmentLabel" TargetType="Label" BasedOn="{StaticResource BodyMuted}">
         <Setter Property="FontSize" Value="13" />
         <Setter Property="HorizontalTextAlignment" Value="Center" />

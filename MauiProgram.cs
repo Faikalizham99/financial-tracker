@@ -47,8 +47,11 @@ public static class MauiProgram
         builder.Services.AddSingleton<MonthlyBudgetService>();
         builder.Services.AddSingleton<AssetPortfolioService>();
         builder.Services.AddSingleton<TransactionDataStore>();
+        builder.Services.AddSingleton<TransactionStatisticsService>();
         builder.Services.AddSingleton<SettingsViewModel>();
         builder.Services.AddSingleton<BudgetSettingsViewModel>();
+        builder.Services.AddSingleton<TransactionStatisticsViewModel>();
+        builder.Services.AddSingleton<TransactionStatisticsDetailViewModel>();
 #if WINDOWS
         builder.Services.AddSingleton<IBackupFileSaver, WindowsBackupFileSaver>();
 #else

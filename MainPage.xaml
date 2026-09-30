@@ -348,10 +348,14 @@
             x:Name="BudgetSettingsOverlay"
             ZIndex="115" />
 
+        <views:TransactionStatisticsView
+            x:Name="TransactionStatisticsOverlay"
+            ZIndex="120" />
+
         <views:AddTransactionView
             x:Name="AddTransactionOverlay"
             IsVisible="False"
-            ZIndex="100" />
+            ZIndex="140" />
 
         <views:TransactionSearchView
             x:Name="TransactionSearchView"
@@ -359,7 +363,7 @@
 
         <views:CalendarDatePickerSheet
             x:Name="CalendarPicker"
-            ZIndex="130" />
+            ZIndex="145" />
 
         <Grid
             x:Name="ArrangeHomeOverlay"

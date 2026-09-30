@@ -94,7 +94,10 @@
                 </Border>
             </Grid>
 
-            <views:MonthlySummaryCard x:Name="TransactionsMonthlySummary" ShowTransactionCount="True" />
+            <views:MonthlySummaryCard
+                x:Name="TransactionsMonthlySummary"
+                ShowTransactionCount="True"
+                ShowStatisticsAction="True" />
 
             <VerticalStackLayout Spacing="9">
                 <Grid Margin="2,0" ColumnDefinitions="*,Auto">

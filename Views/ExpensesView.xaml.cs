@@ -12,6 +12,7 @@ public partial class ExpensesView : ContentView
     public event Action<int>? QuickEditTransactionRequested;
     public event Action<int>? DeleteTransactionRequested;
     public event Action? SearchRequested;
+    public event Action<DateTime>? StatisticsRequested;
     public event EventHandler? TransactionEditingLockToggleRequested;
     public event EventHandler? InvestmentInclusionToggleRequested;
     public Func<DateTime, DateTime, DateTime, Task<DateTime?>>? DatePickerRequested { get; set; }
@@ -77,6 +78,7 @@ public partial class ExpensesView : ContentView
             OnTransactionEditingLockToggleRequested;
         TransactionsMonthlySummary.InvestmentInclusionToggleRequested +=
             OnInvestmentInclusionToggleRequested;
+        TransactionsMonthlySummary.StatisticsRequested += OnStatisticsRequested;
         UpdateMonthSwitcherLabel();
         UpdateFilterChips();
     }
@@ -118,6 +120,9 @@ public partial class ExpensesView : ContentView
 
     private void OnInvestmentInclusionToggleRequested(object? sender, EventArgs e) =>
         InvestmentInclusionToggleRequested?.Invoke(this, EventArgs.Empty);
+
+    private void OnStatisticsRequested(object? sender, EventArgs e) =>
+        StatisticsRequested?.Invoke(displayedMonth);
 
     public void SetIncludeInvestmentInTotals(bool includeInvestment) =>
         TransactionsMonthlySummary.IncludeInvestmentInTotals = includeInvestment;

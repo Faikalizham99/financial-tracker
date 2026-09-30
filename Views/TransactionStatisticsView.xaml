@@ -1,0 +1,308 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+    x:Class="FinancialTracker.Views.TransactionStatisticsView"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:controls="clr-namespace:FinancialTracker.Controls"
+    xmlns:helpers="clr-namespace:FinancialTracker.Helpers"
+    xmlns:models="clr-namespace:FinancialTracker.Models"
+    xmlns:skeletons="clr-namespace:FinancialTracker.Views.Skeletons"
+    xmlns:views="clr-namespace:FinancialTracker.Views"
+    IsVisible="False">
+
+    <Grid
+        x:Name="StatisticsRoot"
+        SizeChanged="OnStatisticsRootSizeChanged"
+        BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}">
+        <ScrollView x:Name="StatisticsScrollView" VerticalScrollBarVisibility="Never">
+            <VerticalStackLayout
+                x:Name="StatisticsContent"
+                Padding="{OnIdiom Phone='18,22,18,38', Tablet='24,28,24,44', Desktop='24,28,24,44'}"
+                Spacing="18"
+                HorizontalOptions="Center">
+
+                <Grid ColumnDefinitions="44,*,Auto" ColumnSpacing="12">
+                    <Border
+                        WidthRequest="44"
+                        HeightRequest="44"
+                        Padding="11"
+                        Style="{StaticResource Pill}"
+                        helpers:InteractionAnimations.IsPressFeedbackEnabled="True"
+                        SemanticProperties.Description="Back to transactions">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnCloseTapped" />
+                        </Border.GestureRecognizers>
+                        <Path
+                            Data="M 15,4 L 7,12 L 15,20"
+                            Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}"
+                            StrokeThickness="2.3"
+                            StrokeLineCap="Round"
+                            StrokeLineJoin="Round"
+                            Fill="Transparent"
+                            Aspect="Uniform" />
+                    </Border>
+                    <VerticalStackLayout Grid.Column="1" Spacing="1" VerticalOptions="Center">
+                        <Label
+                            Text="Statistics"
+                            Style="{StaticResource PageTitle}"
+                            FontSize="{OnIdiom Phone=28, Tablet=32, Desktop=32}"
+                            FontAutoScalingEnabled="False"
+                            LineBreakMode="NoWrap"
+                            MaxLines="1" />
+                        <Label Text="Monthly cash-flow details" Style="{StaticResource BodyMuted}" FontSize="12" />
+                    </VerticalStackLayout>
+                    <Border Grid.Column="2" Padding="12,8" Style="{StaticResource Pill}" VerticalOptions="Center">
+                        <Label
+                            Text="{Binding SourceMonthLabel}"
+                            FontFamily="OpenSansSemibold"
+                            FontSize="12"
+                            TextColor="{DynamicResource Accent}"
+                            LineBreakMode="NoWrap" />
+                    </Border>
+                </Grid>
+
+                <Border Style="{StaticResource SoftCard}" Padding="5">
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="5">
+                        <Border x:Name="AllModeButton" Style="{StaticResource FlatSelectedCategorySegmentTab}" Padding="10,9" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                            <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnModeTapped" CommandParameter="All" /></Border.GestureRecognizers>
+                            <Label x:Name="AllModeLabel" Text="All" Style="{StaticResource SelectedCategorySegmentLabel}" />
+                        </Border>
+                        <Border x:Name="ExpenseModeButton" Grid.Column="1" Style="{StaticResource CategorySegmentTab}" Padding="10,9" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                            <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnModeTapped" CommandParameter="Expense" /></Border.GestureRecognizers>
+                            <Label x:Name="ExpenseModeLabel" Text="Expense" Style="{StaticResource CategorySegmentLabel}" />
+                        </Border>
+                        <Border x:Name="IncomeModeButton" Grid.Column="2" Style="{StaticResource CategorySegmentTab}" Padding="10,9" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                            <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnModeTapped" CommandParameter="Income" /></Border.GestureRecognizers>
+                            <Label x:Name="IncomeModeLabel" Text="Income" Style="{StaticResource CategorySegmentLabel}" />
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource Card}" Padding="{OnIdiom Phone=17, Tablet=20, Desktop=20}">
+                    <VerticalStackLayout Spacing="15">
+                        <VerticalStackLayout Spacing="3">
+                            <Label x:Name="HeroTitleLabel" Text="{Binding HeroTitle}" Style="{StaticResource SectionLabel}" />
+                            <Label
+                                x:Name="HeroAmountLabel"
+                                Text="{Binding HeroAmountText}"
+                                FontFamily="OpenSansSemibold"
+                                FontSize="{OnIdiom Phone=32, Tablet=38, Desktop=38}"
+                                FontAutoScalingEnabled="False"
+                                LineBreakMode="NoWrap"
+                                MaxLines="1" />
+                            <Label Text="{Binding HeroComparisonText}" Style="{StaticResource BodyMuted}" FontSize="12" LineBreakMode="WordWrap" />
+                            <Label Text="{Binding HeroDailyText}" Style="{StaticResource BodyMuted}" FontSize="12" />
+                        </VerticalStackLayout>
+
+                        <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <VerticalStackLayout Spacing="2">
+                                <Label Text="{Binding ChartHeading}" Style="{StaticResource SectionLabel}" />
+                                <Label Text="{Binding ChartHint}" Style="{StaticResource BodyMuted}" FontSize="11" />
+                            </VerticalStackLayout>
+                            <Label
+                                Grid.Column="1"
+                                Text="{Binding ChartContextText}"
+                                FontFamily="OpenSansSemibold"
+                                FontSize="{OnIdiom Phone=10, Tablet=12, Desktop=12}"
+                                TextColor="{DynamicResource Accent}"
+                                LineBreakMode="TailTruncation"
+                                MaxLines="1"
+                                MaximumWidthRequest="{OnIdiom Phone=175, Tablet=320, Desktop=360}"
+                                HorizontalTextAlignment="End"
+                                VerticalTextAlignment="Center" />
+                        </Grid>
+                        <Grid
+                            HeightRequest="{OnIdiom Phone=262, Tablet=277, Desktop=277}"
+                            MinimumWidthRequest="280"
+                            RowDefinitions="*,Auto"
+                            RowSpacing="8">
+                            <Grid Grid.RowSpan="2">
+                                <Grid.Triggers>
+                                    <DataTrigger
+                                        TargetType="Grid"
+                                        Binding="{Binding ShowsChartKindSelector}"
+                                        Value="True">
+                                        <Setter Property="Grid.RowSpan" Value="1" />
+                                    </DataTrigger>
+                                </Grid.Triggers>
+                                <GraphicsView
+                                    x:Name="MonthlyChart"
+                                    StartInteraction="OnChartInteraction"
+                                    SemanticProperties.Description="Cash flow for the last six months. Tap a bar to preview its value." />
+                                <GraphicsView
+                                    x:Name="RunningTotalChart"
+                                    IsVisible="False"
+                                    InputTransparent="True"
+                                    SemanticProperties.Description="Running total compared with the previous month." />
+                                <GraphicsView
+                                    x:Name="CompositionChart"
+                                    IsVisible="False"
+                                    StartInteraction="OnCompositionChartInteraction"
+                                    SemanticProperties.Description="Transaction composition. Tap a segment to highlight its breakdown." />
+                            </Grid>
+                            <Border
+                                x:Name="ChartKindSelector"
+                                Grid.Row="1"
+                                Style="{StaticResource SoftCard}"
+                                Padding="3"
+                                HorizontalOptions="End"
+                                VerticalOptions="Center"
+                                IsVisible="{Binding ShowsChartKindSelector}"
+                                ZIndex="2">
+                                <Grid ColumnDefinitions="44,44,44" ColumnSpacing="3">
+                                    <Border x:Name="BarChartKindButton" Style="{StaticResource FlatSelectedCategorySegmentTab}" Padding="10,8" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                                        <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnChartKindTapped" CommandParameter="Bar" /></Border.GestureRecognizers>
+                                        <Path x:Name="BarChartKindIcon" WidthRequest="22" HeightRequest="22" HorizontalOptions="Center" VerticalOptions="Center" Data="M 4,20 L 4,12 L 8,12 L 8,20 Z M 10,20 L 10,7 L 14,7 L 14,20 Z M 16,20 L 16,3 L 20,3 L 20,20 Z" Fill="{DynamicResource Accent}" Aspect="Uniform" />
+                                    </Border>
+                                    <Border x:Name="RunningChartKindButton" Grid.Column="1" Style="{StaticResource CategorySegmentTab}" Padding="10,8" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                                        <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnChartKindTapped" CommandParameter="RunningTotal" /></Border.GestureRecognizers>
+                                        <Path x:Name="RunningChartKindIcon" WidthRequest="22" HeightRequest="22" HorizontalOptions="Center" VerticalOptions="Center" Data="M 3,18 L 8,13 L 12,15 L 17,7 L 21,5" Stroke="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" StrokeThickness="2" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" />
+                                    </Border>
+                                    <Border x:Name="CompositionChartKindButton" Grid.Column="2" Style="{StaticResource CategorySegmentTab}" Padding="9,7" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                                        <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnChartKindTapped" CommandParameter="Composition" /></Border.GestureRecognizers>
+                                        <Path x:Name="CompositionChartKindIcon" WidthRequest="22" HeightRequest="22" HorizontalOptions="Center" VerticalOptions="Center" Data="M 12,3 A 9,9 0 1 0 21,12 L 12,12 Z M 14,3.3 A 9,9 0 0 1 20.7,10 L 14,10 Z" Stroke="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" StrokeThickness="1.8" Fill="Transparent" Aspect="Uniform" />
+                                    </Border>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource SoftCard}" Padding="{OnIdiom Phone=16, Tablet=19, Desktop=19}">
+                    <VerticalStackLayout Spacing="17">
+                        <VerticalStackLayout Spacing="7">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                <Label Text="Income" Style="{StaticResource CardTitle}" FontSize="17" />
+                                <Label Grid.Column="1" Text="{Binding IncomeAmountText}" FontFamily="OpenSansSemibold" FontSize="17" TextColor="{AppThemeBinding Light={StaticResource PositiveLight}, Dark={StaticResource PositiveDark}}" />
+                            </Grid>
+                            <GraphicsView x:Name="IncomeProgressBar" HeightRequest="8" InputTransparent="True" />
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                <Label Text="{Binding IncomeDailyText}" Style="{StaticResource BodyMuted}" FontSize="11" />
+                                <Label Grid.Column="1" Text="{Binding IncomeComparisonText}" Style="{StaticResource BodyMuted}" FontSize="11" HorizontalTextAlignment="End" />
+                            </Grid>
+                        </VerticalStackLayout>
+
+                        <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+
+                        <VerticalStackLayout Spacing="7">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                <Label Text="Expense" Style="{StaticResource CardTitle}" FontSize="17" />
+                                <Label Grid.Column="1" Text="{Binding ExpenseAmountText}" FontFamily="OpenSansSemibold" FontSize="17" TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" />
+                            </Grid>
+                            <GraphicsView x:Name="ExpenseProgressBar" HeightRequest="8" InputTransparent="True" />
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                <Label Text="{Binding ExpenseDailyText}" Style="{StaticResource BodyMuted}" FontSize="11" />
+                                <Label Grid.Column="1" Text="{Binding ExpenseComparisonText}" Style="{StaticResource BodyMuted}" FontSize="11" HorizontalTextAlignment="End" />
+                            </Grid>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource Card}" Padding="0">
+                    <VerticalStackLayout Spacing="0">
+                        <VerticalStackLayout Padding="{OnIdiom Phone='16,16,16,13', Tablet='19,19,19,15', Desktop='19,19,19,15'}" Spacing="13">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                <Label Text="{Binding BreakdownTitle}" Style="{StaticResource SectionLabel}" VerticalTextAlignment="Center" />
+                                <Label Grid.Column="1" Text="{Binding BreakdownTotalText}" FontFamily="OpenSansSemibold" FontSize="15" VerticalTextAlignment="Center" />
+                            </Grid>
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                                <Border x:Name="CategoryBreakdownButton" Style="{StaticResource FlatSelectedCategorySegmentTab}" Padding="10,8" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                                    <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnBreakdownTapped" CommandParameter="Category" /></Border.GestureRecognizers>
+                                    <Label x:Name="CategoryBreakdownLabel" Text="Category" Style="{StaticResource SelectedCategorySegmentLabel}" />
+                                </Border>
+                                <Border x:Name="PaymentBreakdownButton" Grid.Column="1" Style="{StaticResource CategorySegmentTab}" Padding="10,8" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                                    <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnBreakdownTapped" CommandParameter="PaymentMethod" /></Border.GestureRecognizers>
+                                    <Label x:Name="PaymentBreakdownLabel" Text="Payment method" Style="{StaticResource CategorySegmentLabel}" />
+                                </Border>
+                            </Grid>
+                        </VerticalStackLayout>
+
+                        <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+
+                        <Label
+                            Text="No transactions are available for this breakdown."
+                            IsVisible="{Binding HasNoBreakdownItems}"
+                            Style="{StaticResource BodyMuted}"
+                            Padding="20,30"
+                            HorizontalTextAlignment="Center" />
+
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding BreakdownItems}" Spacing="0">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="models:TransactionStatisticsBreakdownItem">
+                                    <VerticalStackLayout Spacing="0">
+                                        <Grid Padding="{OnIdiom Phone='15,13', Tablet='19,14', Desktop='19,14'}" ColumnDefinitions="44,*,Auto" ColumnSpacing="12" BackgroundColor="Transparent" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                                            <Grid.GestureRecognizers>
+                                                <TapGestureRecognizer Tapped="OnBreakdownItemTapped" CommandParameter="{Binding .}" />
+                                            </Grid.GestureRecognizers>
+                                            <Grid.Triggers>
+                                                <DataTrigger TargetType="Grid" Binding="{Binding IsSelected}" Value="True">
+                                                    <Setter Property="BackgroundColor" Value="{DynamicResource AccentTint}" />
+                                                </DataTrigger>
+                                            </Grid.Triggers>
+                                            <Border WidthRequest="42" HeightRequest="42" StrokeThickness="0" StrokeShape="RoundRectangle 13">
+                                                <Image Source="{Binding IconAsset}" Aspect="AspectFill" />
+                                            </Border>
+                                            <VerticalStackLayout Grid.Column="1" Spacing="5" VerticalOptions="Center">
+                                                <Label Text="{Binding Title}" FontFamily="OpenSansSemibold" FontSize="14" LineBreakMode="TailTruncation" MaxLines="1" />
+                                                <ProgressBar Progress="{Binding Share}" ProgressColor="{Binding ChartColor}" BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}" HeightRequest="4" />
+                                                <Label Text="{Binding DetailText}" Style="{StaticResource BodyMuted}" FontSize="10" LineBreakMode="TailTruncation" MaxLines="1" />
+                                            </VerticalStackLayout>
+                                            <VerticalStackLayout Grid.Column="2" Spacing="4" VerticalOptions="Center">
+                                                <Label Text="{Binding AmountText}" FontFamily="OpenSansSemibold" FontSize="14" HorizontalTextAlignment="End" LineBreakMode="NoWrap" />
+                                                <Label Text="{Binding ChangeText}" Style="{StaticResource BodyMuted}" FontSize="10" HorizontalTextAlignment="End" LineBreakMode="NoWrap">
+                                                    <Label.Triggers>
+                                                        <DataTrigger TargetType="Label" Binding="{Binding IsFavorable}" Value="True">
+                                                            <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource PositiveLight}, Dark={StaticResource PositiveDark}}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger TargetType="Label" Binding="{Binding IsUnfavorable}" Value="True">
+                                                            <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" />
+                                                        </DataTrigger>
+                                                    </Label.Triggers>
+                                                </Label>
+                                            </VerticalStackLayout>
+                                        </Grid>
+                                        <BoxView
+                                            Margin="15,0"
+                                            HeightRequest="1"
+                                            IsVisible="{Binding ShowDivider}"
+                                            BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+                                    </VerticalStackLayout>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <controls:SkeletonPresenter
+            x:Name="StatisticsLoadingOverlay"
+            IsVisible="False"
+            BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}"
+            ZIndex="5"
+            SemanticProperties.Description="Loading transaction statistics">
+            <skeletons:TransactionStatisticsLoadingSkeletonView />
+        </controls:SkeletonPresenter>
+
+        <Grid
+            x:Name="StatisticsErrorOverlay"
+            IsVisible="False"
+            Padding="24"
+            ZIndex="6"
+            BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}">
+            <Border Style="{StaticResource Card}" MaximumWidthRequest="500" HorizontalOptions="Center" VerticalOptions="Center">
+                <VerticalStackLayout Spacing="12">
+                    <Label Text="Statistics unavailable" Style="{StaticResource CardTitle}" FontSize="18" HorizontalTextAlignment="Center" />
+                    <Label Text="Your transaction statistics could not be loaded. Close this page and try again." Style="{StaticResource BodyMuted}" HorizontalTextAlignment="Center" />
+                    <Button Text="Back to transactions" Clicked="OnCloseButtonClicked" BackgroundColor="{DynamicResource Accent}" TextColor="{DynamicResource AccentForeground}" CornerRadius="16" />
+                </VerticalStackLayout>
+            </Border>
+        </Grid>
+
+        <views:TransactionStatisticsDetailView
+            x:Name="StatisticsDetailView"
+            ZIndex="10" />
+    </Grid>
+</ContentView>

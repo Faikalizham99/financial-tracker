@@ -31,14 +31,24 @@ public partial class TransactionActivityRow : ContentView
         propertyChanged: static (bindable, _, newValue) =>
             ((TransactionActivityRow)bindable).UpdateDoubleTapRecognizers((bool)newValue));
 
+    public static readonly BindableProperty EnableSingleTapEditProperty = BindableProperty.Create(
+        nameof(EnableSingleTapEdit),
+        typeof(bool),
+        typeof(TransactionActivityRow),
+        false,
+        propertyChanged: static (bindable, _, newValue) =>
+            ((TransactionActivityRow)bindable).UpdateSingleTapRecognizers((bool)newValue));
+
     private CancellationTokenSource? measurementCancellation;
     private bool isToggleAnimating;
     private bool isDoubleTapHandling;
+    private bool isSingleTapHandling;
 
     public TransactionActivityRow()
     {
         InitializeComponent();
         UpdateDoubleTapRecognizers(false);
+        UpdateSingleTapRecognizers(false);
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
     }
@@ -64,6 +74,12 @@ public partial class TransactionActivityRow : ContentView
         set => SetValue(EnableDoubleTapEditProperty, value);
     }
 
+    public bool EnableSingleTapEdit
+    {
+        get => (bool)GetValue(EnableSingleTapEditProperty);
+        set => SetValue(EnableSingleTapEditProperty, value);
+    }
+
     protected override void OnBindingContextChanged()
     {
         base.OnBindingContextChanged();
@@ -82,7 +98,18 @@ public partial class TransactionActivityRow : ContentView
 
     private async void OnDescriptionTapped(object? sender, TappedEventArgs e)
     {
-        if (BindingContext is not TransactionActivityItem item ||
+        if (BindingContext is not TransactionActivityItem item)
+        {
+            return;
+        }
+
+        if (EnableSingleTapEdit)
+        {
+            await RequestSingleTapEditAsync(item);
+            return;
+        }
+
+        if (
             !item.CanExpandDescription ||
             isToggleAnimating)
         {
@@ -107,6 +134,33 @@ public partial class TransactionActivityRow : ContentView
         {
             DescriptionHeader.Opacity = 1;
             isToggleAnimating = false;
+        }
+    }
+
+    private async void OnRowSingleTapped(object? sender, TappedEventArgs e)
+    {
+        if (EnableSingleTapEdit && BindingContext is TransactionActivityItem item)
+        {
+            await RequestSingleTapEditAsync(item);
+        }
+    }
+
+    private async Task RequestSingleTapEditAsync(TransactionActivityItem item)
+    {
+        if (isSingleTapHandling)
+        {
+            return;
+        }
+
+        isSingleTapHandling = true;
+        try
+        {
+            EditRequested?.Invoke(this, new TransactionEditRequestedEventArgs(item));
+            await InteractionAnimations.PulseAsync(RowRoot);
+        }
+        finally
+        {
+            isSingleTapHandling = false;
         }
     }
 
@@ -139,6 +193,16 @@ public partial class TransactionActivityRow : ContentView
         SemanticProperties.SetDescription(
             RowRoot,
             isEnabled ? "Double-tap to edit transaction" : string.Empty);
+    }
+
+    private void UpdateSingleTapRecognizers(bool isEnabled)
+    {
+        UpdateGestureRecognizer(IconEditZone, IconSingleTapRecognizer, isEnabled);
+        UpdateGestureRecognizer(DetailEditZone, DetailSingleTapRecognizer, isEnabled);
+        UpdateGestureRecognizer(AmountEditZone, AmountSingleTapRecognizer, isEnabled);
+        SemanticProperties.SetDescription(
+            RowRoot,
+            isEnabled ? "Tap to edit transaction" : string.Empty);
     }
 
     private static void UpdateGestureRecognizer(
@@ -198,6 +262,12 @@ public partial class TransactionActivityRow : ContentView
     {
         if (BindingContext is not TransactionActivityItem item || DescriptionLabel.Width <= 0)
         {
+            return;
+        }
+
+        if (EnableSingleTapEdit)
+        {
+            item.SetDescriptionExpandable(false);
             return;
         }
 

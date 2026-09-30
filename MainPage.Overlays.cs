@@ -5,6 +5,22 @@ public partial class MainPage
     private async void OnTransactionSearchRequested() =>
         await TransactionSearchView.OpenAsync();
 
+    private async void OnTransactionStatisticsRequested(DateTime month) =>
+        await TransactionStatisticsOverlay.OpenAsync(
+            month,
+            settingsViewModel.SelectedCurrency,
+            includeInvestmentInTotals);
+
+    private async void OnTransactionStatisticsEditRequested(int transactionId) =>
+        await OpenTransactionForEditAsync(transactionId, allowWhileLocked: true);
+
+    private void OnTransactionStatisticsVisibilityChanged(bool isVisible)
+    {
+        BottomNavigationDock.Opacity = isVisible ? 0 : 1;
+        BottomNavigationDock.InputTransparent = isVisible;
+        BottomNavigationDock.IsVisible = !isVisible;
+    }
+
     private async Task OnTransactionSearchResultSelected(
         int transactionId,
         DateTime transactionDate)

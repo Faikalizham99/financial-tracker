@@ -23,6 +23,9 @@
             <Grid x:Name="IconEditZone" ColumnDefinitions="38,14,38">
                 <Grid.GestureRecognizers>
                     <TapGestureRecognizer
+                        x:Name="IconSingleTapRecognizer"
+                        Tapped="OnRowSingleTapped" />
+                    <TapGestureRecognizer
                         x:Name="IconDoubleTapRecognizer"
                         NumberOfTapsRequired="2"
                         Tapped="OnRowDoubleTapped" />
@@ -90,6 +93,9 @@
                     MaxLines="1">
                     <Label.GestureRecognizers>
                         <TapGestureRecognizer
+                            x:Name="DetailSingleTapRecognizer"
+                            Tapped="OnRowSingleTapped" />
+                        <TapGestureRecognizer
                             x:Name="DetailDoubleTapRecognizer"
                             NumberOfTapsRequired="2"
                             Tapped="OnRowDoubleTapped" />
@@ -104,6 +110,9 @@
                 HorizontalOptions="End"
                 VerticalOptions="Center">
                 <VerticalStackLayout.GestureRecognizers>
+                    <TapGestureRecognizer
+                        x:Name="AmountSingleTapRecognizer"
+                        Tapped="OnRowSingleTapped" />
                     <TapGestureRecognizer
                         x:Name="AmountDoubleTapRecognizer"
                         NumberOfTapsRequired="2"

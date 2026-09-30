@@ -70,6 +70,8 @@ public partial class MainPage : ContentPage
     public MainPage(
         SettingsViewModel settingsViewModel,
         BudgetSettingsViewModel budgetSettingsViewModel,
+        TransactionStatisticsViewModel transactionStatisticsViewModel,
+        TransactionStatisticsDetailViewModel transactionStatisticsDetailViewModel,
         MonthlyBudgetService monthlyBudgetService,
         AssetPortfolioService assetPortfolioService,
         TransactionDataStore transactionDataStore,
@@ -102,6 +104,8 @@ public partial class MainPage : ContentPage
         ApplyHomeSectionOrder();
         BindingContext = settingsViewModel;
         BudgetSettingsOverlay.BindingContext = budgetSettingsViewModel;
+        TransactionStatisticsOverlay.ConfigureDetailView(transactionStatisticsDetailViewModel);
+        TransactionStatisticsOverlay.BindingContext = transactionStatisticsViewModel;
         DashboardMonthlySummary.BudgetProvider = monthlyBudgetService.GetAsync;
         ExpensesView.SetBudgetProvider(monthlyBudgetService.GetAsync);
         AssetsView.Configure(assetPortfolioService, () => settingsViewModel.SelectedCurrency);
@@ -116,6 +120,7 @@ public partial class MainPage : ContentPage
         ExpensesView.QuickEditTransactionRequested += OnTransactionQuickEditRequested;
         ExpensesView.DeleteTransactionRequested += OnTransactionDeleteRequested;
         ExpensesView.SearchRequested += OnTransactionSearchRequested;
+        ExpensesView.StatisticsRequested += OnTransactionStatisticsRequested;
         ExpensesView.TransactionEditingLockToggleRequested +=
             OnTransactionEditingLockToggleRequested;
         DashboardMonthlySummary.TransactionEditingLockToggleRequested +=
@@ -130,6 +135,10 @@ public partial class MainPage : ContentPage
         AssetsView.EditorVisibilityChanged += OnAssetsEditorVisibilityChanged;
         SettingsView.BudgetSettingsRequested += OnBudgetSettingsRequested;
         BudgetSettingsOverlay.VisibilityChanged += OnBudgetSettingsVisibilityChanged;
+        TransactionStatisticsOverlay.VisibilityChanged +=
+            OnTransactionStatisticsVisibilityChanged;
+        TransactionStatisticsOverlay.TransactionEditRequested +=
+            OnTransactionStatisticsEditRequested;
         budgetSettingsViewModel.BudgetSaved += OnBudgetSaved;
         SettingsView.DatabaseBackupRequested += OnDatabaseBackupRequested;
         SettingsView.DatabaseRestoreRequested += OnDatabaseRestoreRequested;
@@ -168,6 +177,12 @@ public partial class MainPage : ContentPage
         if (AssetsView.HasOpenOverlay)
         {
             _ = AssetsView.HandleBackAsync();
+            return true;
+        }
+
+        if (TransactionStatisticsOverlay.IsOpen)
+        {
+            _ = TransactionStatisticsOverlay.HandleBackAsync();
             return true;
         }
 
@@ -237,7 +252,13 @@ public partial class MainPage : ContentPage
         });
     }
 
-    private Task OnTransactionSavedAsync() => RefreshTransactionViewsAsync();
+    private async Task OnTransactionSavedAsync()
+    {
+        await RefreshTransactionViewsAsync();
+        await TransactionStatisticsOverlay.RefreshAsync(
+            settingsViewModel.SelectedCurrency,
+            includeInvestmentInTotals);
+    }
 
     private async void OnSettingsPropertyChanged(
         object? sender,
