@@ -1,24 +1,29 @@
+using FinancialTracker.Data;
+using FinancialTracker.Helpers;
 using FinancialTracker.Models;
 
 namespace FinancialTracker.Services;
 
 public sealed class WidgetSnapshotCoordinator(
     IWidgetSnapshotPublisher publisher,
-    MonthlyBudgetService monthlyBudgetService)
+    LocalDatabase database)
 {
     private readonly object synchronization = new();
     private WidgetSnapshot? lastPublishedSnapshot;
     private int publishRequestVersion;
 
     public void QueuePublish(
-        IReadOnlyList<TransactionRecord> records,
         CurrencyOption currency,
         bool includeInvestment,
         DateTime month)
     {
+        if (!publisher.IsSupported)
+        {
+            return;
+        }
+
         var requestVersion = Interlocked.Increment(ref publishRequestVersion);
         _ = PublishIfCurrentAsync(
-            records.ToArray(),
             currency,
             includeInvestment,
             month,
@@ -26,22 +31,41 @@ public sealed class WidgetSnapshotCoordinator(
     }
 
     private async Task PublishIfCurrentAsync(
-        IReadOnlyList<TransactionRecord> records,
         CurrencyOption currency,
         bool includeInvestment,
         DateTime month,
         int requestVersion)
     {
-        MonthlyBudgetRecord? budget;
+        await Task.Yield();
+        if (requestVersion != Volatile.Read(ref publishRequestVersion))
+        {
+            return;
+        }
+
+        IReadOnlyList<TransactionRecord> records;
+        IReadOnlyList<MonthlyBudgetRecord> budgets;
         try
         {
-            budget = await monthlyBudgetService.GetAsync(month).ConfigureAwait(false);
+            var normalizedMonth = new DateTime(month.Year, month.Month, 1);
+            var firstMonth = normalizedMonth.AddMonths(
+                1 - WidgetSnapshotBuilder.HistoryMonthCount);
+            records = await database.GetTransactionsAsync(
+                firstMonth,
+                normalizedMonth.AddMonths(1)).ConfigureAwait(false);
+            if (requestVersion != Volatile.Read(ref publishRequestVersion))
+            {
+                return;
+            }
+
+            budgets = await database.GetMonthlyBudgetsAsync(
+                MonthKeyConverter.FromDate(firstMonth),
+                MonthKeyConverter.FromDate(normalizedMonth)).ConfigureAwait(false);
         }
         catch (Exception exception)
         {
             System.Diagnostics.Debug.WriteLine(
-                $"Widget budget loading failed: {exception}");
-            budget = null;
+                $"Widget history loading failed: {exception}");
+            return;
         }
 
         if (requestVersion != Volatile.Read(ref publishRequestVersion))
@@ -51,10 +75,10 @@ public sealed class WidgetSnapshotCoordinator(
 
         var snapshot = WidgetSnapshotBuilder.Build(
             records,
+            budgets,
             currency,
             includeInvestment,
             month,
-            budget,
             DateTimeOffset.UtcNow);
 
         lock (synchronization)
@@ -80,8 +104,10 @@ public sealed class WidgetSnapshotCoordinator(
         WidgetSnapshot? previous,
         WidgetSnapshot current) =>
         previous is not null &&
-        previous == current with
+        previous.Months.SequenceEqual(current.Months) &&
+        previous with
         {
-            UpdatedAtUnixSeconds = previous.UpdatedAtUnixSeconds
-        };
+            Months = current.Months,
+            UpdatedAtUnixSeconds = current.UpdatedAtUnixSeconds
+        } == current;
 }

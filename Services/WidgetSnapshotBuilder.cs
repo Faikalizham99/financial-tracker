@@ -6,43 +6,53 @@ namespace FinancialTracker.Services;
 
 public static class WidgetSnapshotBuilder
 {
-    private const int SchemaVersion = 3;
+    private const int SchemaVersion = 4;
+    public const int HistoryMonthCount = 12;
 
     public static WidgetSnapshot Build(
         IReadOnlyList<TransactionRecord> records,
+        IReadOnlyList<MonthlyBudgetRecord> budgets,
         CurrencyOption currency,
         bool includeInvestment,
-        DateTime month,
-        MonthlyBudgetRecord? budget,
+        DateTime currentMonth,
         DateTimeOffset updatedAt)
     {
-        var normalizedMonth = new DateTime(month.Year, month.Month, 1);
-        var withInvestment = BuildSummary(
-            records,
-            currency.Symbol,
-            includeInvestment: true,
-            normalizedMonth,
-            budget);
-        var withoutInvestment = BuildSummary(
-            records,
-            currency.Symbol,
-            includeInvestment: false,
-            normalizedMonth,
-            budget);
+        var normalizedCurrentMonth = new DateTime(
+            currentMonth.Year,
+            currentMonth.Month,
+            1);
+        var recordsByMonth = records
+            .GroupBy(record => MonthKeyConverter.FromDate(record.TransactionDate))
+            .ToDictionary(group => group.Key, group => (IReadOnlyList<TransactionRecord>)
+                group.ToList());
+        var budgetsByMonth = budgets.ToDictionary(budget => budget.MonthKey);
+        var months = new List<WidgetMonthSnapshot>(HistoryMonthCount);
+
+        for (var offset = HistoryMonthCount - 1; offset >= 0; offset--)
+        {
+            var month = normalizedCurrentMonth.AddMonths(-offset);
+            var monthKey = MonthKeyConverter.FromDate(month);
+            recordsByMonth.TryGetValue(monthKey, out var monthRecords);
+            budgetsByMonth.TryGetValue(monthKey, out var budget);
+            months.Add(BuildMonth(
+                month,
+                monthRecords ?? [],
+                budget,
+                currency.Symbol));
+        }
+
+        var current = months[^1];
         var selectedSummary = includeInvestment
-            ? withInvestment
-            : withoutInvestment;
-        var transactionCount = records.Count(record =>
-            record.TransactionDate.Year == normalizedMonth.Year &&
-            record.TransactionDate.Month == normalizedMonth.Month);
+            ? current.WithInvestment
+            : current.WithoutInvestment;
 
         return new WidgetSnapshot(
             SchemaVersion,
-            normalizedMonth.ToString("MMMM yyyy", CultureInfo.CurrentCulture),
+            current.MonthText,
             selectedSummary.AvailableText,
             selectedSummary.IncomeText,
             selectedSummary.ExpenseText,
-            transactionCount,
+            current.TransactionCount,
             selectedSummary.HasBudget,
             selectedSummary.BudgetSpentText,
             selectedSummary.BudgetLimitText,
@@ -50,16 +60,37 @@ public static class WidgetSnapshotBuilder
             selectedSummary.BudgetRemainingText,
             selectedSummary.BudgetProgress,
             includeInvestment,
-            withInvestment,
-            withoutInvestment,
+            current.WithInvestment,
+            current.WithoutInvestment,
+            current.MonthKey,
+            months,
             updatedAt.ToUnixTimeSeconds());
     }
+
+    private static WidgetMonthSnapshot BuildMonth(
+        DateTime month,
+        IReadOnlyList<TransactionRecord> records,
+        MonthlyBudgetRecord? budget,
+        string currencySymbol) =>
+        new(
+            MonthKeyConverter.FromDate(month),
+            month.ToString("MMMM yyyy", CultureInfo.CurrentCulture),
+            records.Count,
+            BuildSummary(
+                records,
+                currencySymbol,
+                includeInvestment: true,
+                budget),
+            BuildSummary(
+                records,
+                currencySymbol,
+                includeInvestment: false,
+                budget));
 
     private static WidgetSummary BuildSummary(
         IReadOnlyList<TransactionRecord> records,
         string currencySymbol,
         bool includeInvestment,
-        DateTime normalizedMonth,
         MonthlyBudgetRecord? budget)
     {
         long incomeMinor = 0;
@@ -68,13 +99,6 @@ public static class WidgetSnapshotBuilder
 
         foreach (var record in records)
         {
-            var transactionDate = record.TransactionDate.Date;
-            if (transactionDate.Year != normalizedMonth.Year ||
-                transactionDate.Month != normalizedMonth.Month)
-            {
-                continue;
-            }
-
             if (!includeInvestment &&
                 record.Category.Equals(
                     TransactionCatalog.InvestmentCategoryKey,

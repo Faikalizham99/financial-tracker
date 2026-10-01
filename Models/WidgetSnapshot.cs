@@ -18,4 +18,6 @@ public sealed record WidgetSnapshot(
     [property: JsonPropertyName("includeInvestment")] bool IncludeInvestment,
     [property: JsonPropertyName("withInvestment")] WidgetSummary WithInvestment,
     [property: JsonPropertyName("withoutInvestment")] WidgetSummary WithoutInvestment,
+    [property: JsonPropertyName("currentMonthKey")] int CurrentMonthKey,
+    [property: JsonPropertyName("months")] IReadOnlyList<WidgetMonthSnapshot> Months,
     [property: JsonPropertyName("updatedAtUnixSeconds")] long UpdatedAtUnixSeconds);

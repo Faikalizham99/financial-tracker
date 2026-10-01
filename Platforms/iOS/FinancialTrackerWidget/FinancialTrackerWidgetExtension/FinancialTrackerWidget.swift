@@ -14,6 +14,8 @@ private enum WidgetSettings {
     static let snapshotFileName = "financial_tracker_widget.json"
     static let investmentPreferenceFileName =
         "financial_tracker_widget_include_investment.txt"
+    static let selectedMonthFileName =
+        "financial_tracker_widget_selected_month.txt"
     static let amountsHiddenKey = "financial_tracker_widget_amounts_hidden"
     static let widgetKind = "FinancialTrackerWidget"
 }
@@ -40,6 +42,18 @@ private struct FinancialTrackerSummary: Codable {
     let budgetProgress: Double
 }
 
+private struct FinancialTrackerMonthSnapshot: Codable {
+    let monthKey: Int
+    let monthText: String
+    let transactionCount: Int
+    let withInvestment: FinancialTrackerSummary
+    let withoutInvestment: FinancialTrackerSummary
+
+    func summary(includeInvestment: Bool) -> FinancialTrackerSummary {
+        includeInvestment ? withInvestment : withoutInvestment
+    }
+}
+
 private struct FinancialTrackerSnapshot: Codable {
     let version: Int
     let monthText: String
@@ -56,6 +70,8 @@ private struct FinancialTrackerSnapshot: Codable {
     let includeInvestment: Bool?
     let withInvestment: FinancialTrackerSummary?
     let withoutInvestment: FinancialTrackerSummary?
+    let currentMonthKey: Int?
+    let months: [FinancialTrackerMonthSnapshot]?
     let updatedAtUnixSeconds: Int64
 
     static var placeholder: FinancialTrackerSnapshot {
@@ -75,6 +91,8 @@ private struct FinancialTrackerSnapshot: Codable {
             includeInvestment: true,
             withInvestment: previewSummary,
             withoutInvestment: previewSummary,
+            currentMonthKey: previewMonth.monthKey,
+            months: [previewMonth],
             updatedAtUnixSeconds: Int64(Date().timeIntervalSince1970)
         )
     }
@@ -90,6 +108,22 @@ private struct FinancialTrackerSnapshot: Codable {
             budgetUsageText: "10.2% USED",
             budgetRemainingText: "RM 2,245.00 left",
             budgetProgress: 0.102
+        )
+    }
+
+    private static var previewMonth: FinancialTrackerMonthSnapshot {
+        let components = Calendar.current.dateComponents(
+            [.year, .month],
+            from: Date()
+        )
+        let monthKey = (components.year ?? 2000) * 100 +
+            (components.month ?? 1)
+        return FinancialTrackerMonthSnapshot(
+            monthKey: monthKey,
+            monthText: Date().formatted(.dateTime.month(.wide).year()),
+            transactionCount: 9,
+            withInvestment: previewSummary,
+            withoutInvestment: previewSummary
         )
     }
 
@@ -109,6 +143,20 @@ private struct FinancialTrackerSnapshot: Codable {
         return includeInvestment
             ? (withInvestment ?? legacySummary)
             : (withoutInvestment ?? legacySummary)
+    }
+
+    var resolvedCurrentMonthKey: Int {
+        currentMonthKey ?? months?.last?.monthKey ?? 0
+    }
+
+    func month(for monthKey: Int) -> FinancialTrackerMonthSnapshot? {
+        months?.first(where: { $0.monthKey == monthKey })
+    }
+
+    func resolvedSelectedMonthKey(_ requestedMonthKey: Int) -> Int {
+        month(for: requestedMonthKey) == nil
+            ? resolvedCurrentMonthKey
+            : requestedMonthKey
     }
 }
 
@@ -175,7 +223,7 @@ private enum SharedWidgetStorage {
             return failure(.invalidSnapshot)
         }
 
-        guard (1...3).contains(snapshot.version) else {
+        guard (1...4).contains(snapshot.version) else {
             return failure(.unsupportedVersion)
         }
 
@@ -238,6 +286,50 @@ private enum SharedWidgetStorage {
         do {
             try (includeInvestment ? "true" : "false").write(
                 to: preferenceUrl,
+                atomically: true,
+                encoding: .utf8
+            )
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    static func loadSelectedMonthKey(fallback: Int) -> Int {
+        guard let containerUrl = availableContainerUrl() else {
+            return fallback
+        }
+
+        let selectionUrl = containerUrl.appendingPathComponent(
+            WidgetSettings.selectedMonthFileName,
+            isDirectory: false
+        )
+        guard let storedValue = try? String(
+            contentsOf: selectionUrl,
+            encoding: .utf8
+        ),
+        let monthKey = Int(storedValue.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )) else {
+            return fallback
+        }
+
+        return monthKey
+    }
+
+    @discardableResult
+    static func writeSelectedMonthKey(_ monthKey: Int) -> Bool {
+        guard let containerUrl = availableContainerUrl() else {
+            return false
+        }
+
+        let selectionUrl = containerUrl.appendingPathComponent(
+            WidgetSettings.selectedMonthFileName,
+            isDirectory: false
+        )
+        do {
+            try String(monthKey).write(
+                to: selectionUrl,
                 atomically: true,
                 encoding: .utf8
             )
@@ -338,15 +430,70 @@ struct ToggleInvestmentInclusionIntent: AppIntent {
     }
 }
 
+@available(iOS 17.0, *)
+struct SelectWidgetMonthIntent: AppIntent {
+    static var title: LocalizedStringResource = "Select Financial Month"
+    static var description = IntentDescription(
+        "Show a different month in the Financial Tracker widget."
+    )
+    static var openAppWhenRun = false
+
+    @Parameter(title: "Month Key")
+    var monthKey: Int
+
+    init() {
+        monthKey = 0
+    }
+
+    init(monthKey: Int) {
+        self.monthKey = monthKey
+    }
+
+    func perform() async throws -> some IntentResult {
+        SharedWidgetStorage.writeSelectedMonthKey(monthKey)
+        WidgetCenter.shared.reloadTimelines(ofKind: WidgetSettings.widgetKind)
+        return .result()
+    }
+}
+
 private struct FinancialTrackerEntry: TimelineEntry {
     let date: Date
     let snapshot: FinancialTrackerSnapshot
     let loadState: WidgetSnapshotLoadState
     let amountsHidden: Bool
     let includeInvestment: Bool
+    let selectedMonthKey: Int
 
-    var summary: FinancialTrackerSummary {
-        snapshot.summary(includeInvestment: includeInvestment)
+    var currentMonth: FinancialTrackerMonthSnapshot? {
+        snapshot.month(for: snapshot.resolvedCurrentMonthKey)
+    }
+
+    var selectedMonth: FinancialTrackerMonthSnapshot? {
+        snapshot.month(for: selectedMonthKey) ?? currentMonth
+    }
+
+    var previousMonthKey: Int? {
+        adjacentMonthKey(offset: -1)
+    }
+
+    var nextMonthKey: Int? {
+        adjacentMonthKey(offset: 1)
+    }
+
+    private func adjacentMonthKey(offset: Int) -> Int? {
+        guard let months = snapshot.months,
+              let selectedIndex = months.firstIndex(where: {
+                  $0.monthKey == selectedMonthKey
+              }) else {
+            return nil
+        }
+
+        let adjacentIndex = selectedIndex + offset
+        guard months.indices.contains(adjacentIndex) else {
+            return nil
+        }
+
+        return months[adjacentIndex].monthKey
     }
 
     var refreshedTimeText: String {
@@ -365,7 +512,9 @@ private struct FinancialTrackerProvider: TimelineProvider {
             snapshot: .placeholder,
             loadState: .loaded,
             amountsHidden: false,
-            includeInvestment: true
+            includeInvestment: true,
+            selectedMonthKey: FinancialTrackerSnapshot.placeholder
+                .resolvedCurrentMonthKey
         )
     }
 
@@ -376,6 +525,9 @@ private struct FinancialTrackerProvider: TimelineProvider {
         let result = context.isPreview
             ? WidgetSnapshotLoadResult.placeholder
             : SharedWidgetStorage.loadSnapshot()
+        let requestedMonthKey = SharedWidgetStorage.loadSelectedMonthKey(
+            fallback: result.snapshot.resolvedCurrentMonthKey
+        )
         completion(FinancialTrackerEntry(
             date: Date(),
             snapshot: result.snapshot,
@@ -383,6 +535,9 @@ private struct FinancialTrackerProvider: TimelineProvider {
             amountsHidden: SharedWidgetStorage.loadAmountsHidden(),
             includeInvestment: SharedWidgetStorage.loadIncludeInvestment(
                 fallback: result.snapshot.includeInvestment ?? true
+            ),
+            selectedMonthKey: result.snapshot.resolvedSelectedMonthKey(
+                requestedMonthKey
             )
         ))
     }
@@ -393,6 +548,9 @@ private struct FinancialTrackerProvider: TimelineProvider {
     ) {
         let now = Date()
         let result = SharedWidgetStorage.loadSnapshot()
+        let requestedMonthKey = SharedWidgetStorage.loadSelectedMonthKey(
+            fallback: result.snapshot.resolvedCurrentMonthKey
+        )
         let entry = FinancialTrackerEntry(
             date: now,
             snapshot: result.snapshot,
@@ -400,6 +558,9 @@ private struct FinancialTrackerProvider: TimelineProvider {
             amountsHidden: SharedWidgetStorage.loadAmountsHidden(),
             includeInvestment: SharedWidgetStorage.loadIncludeInvestment(
                 fallback: result.snapshot.includeInvestment ?? true
+            ),
+            selectedMonthKey: result.snapshot.resolvedSelectedMonthKey(
+                requestedMonthKey
             )
         )
         let nextFallbackRefresh = Calendar.current.date(
@@ -414,10 +575,72 @@ private struct FinancialTrackerProvider: TimelineProvider {
     }
 }
 
+private struct WidgetBrandMark: View {
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 9, style: .continuous)
+                .fill(WidgetAppearance.accent.opacity(0.18))
+
+            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                .stroke(WidgetAppearance.ink, lineWidth: 1.6)
+                .frame(width: 20, height: 14)
+                .offset(y: 2)
+
+            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                .fill(WidgetAppearance.background)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 2, style: .continuous)
+                        .stroke(WidgetAppearance.ink, lineWidth: 1.4)
+                )
+                .frame(width: 7, height: 5)
+                .offset(x: 7, y: 2)
+
+            Path { path in
+                path.move(to: CGPoint(x: 7, y: 21))
+                path.addLine(to: CGPoint(x: 12, y: 17))
+                path.addLine(to: CGPoint(x: 16, y: 19))
+                path.addLine(to: CGPoint(x: 24, y: 10))
+            }
+            .stroke(
+                WidgetAppearance.positive,
+                style: StrokeStyle(
+                    lineWidth: 2,
+                    lineCap: .round,
+                    lineJoin: .round
+                )
+            )
+
+            Circle()
+                .fill(WidgetAppearance.positive)
+                .frame(width: 3.5, height: 3.5)
+                .position(x: 24, y: 10)
+        }
+        .frame(width: 32, height: 32)
+        .accessibilityHidden(true)
+    }
+}
+
 private struct FinancialTrackerWidgetView: View {
     @Environment(\.widgetFamily) private var family
 
     let entry: FinancialTrackerEntry
+
+    private var activeMonth: FinancialTrackerMonthSnapshot? {
+        family == .systemLarge ? entry.selectedMonth : entry.currentMonth
+    }
+
+    private var activeSummary: FinancialTrackerSummary {
+        activeMonth?.summary(includeInvestment: entry.includeInvestment) ??
+            entry.snapshot.summary(includeInvestment: entry.includeInvestment)
+    }
+
+    private var activeMonthText: String {
+        activeMonth?.monthText ?? entry.snapshot.monthText
+    }
+
+    private var activeTransactionCount: Int {
+        activeMonth?.transactionCount ?? entry.snapshot.transactionCount
+    }
 
     var body: some View {
         if #available(iOS 17.0, *) {
@@ -448,13 +671,7 @@ private struct FinancialTrackerWidgetView: View {
 
     private var header: some View {
         HStack(spacing: 8) {
-            Image("financial_tracker_widget_icon")
-                .resizable()
-                .scaledToFill()
-                .frame(width: 32, height: 32)
-                .clipShape(
-                    RoundedRectangle(cornerRadius: 9, style: .continuous)
-                )
+            WidgetBrandMark()
 
             VStack(alignment: .leading, spacing: 1) {
                 Text("Financial Tracker")
@@ -573,7 +790,7 @@ private struct FinancialTrackerWidgetView: View {
                 .tracking(0.8)
                 .foregroundStyle(WidgetAppearance.secondaryInk)
 
-            Text(displayedAmount(entry.summary.availableText))
+            Text(displayedAmount(activeSummary.availableText))
                 .font(.system(.title3, design: .rounded).weight(.bold))
                 .monospacedDigit()
                 .foregroundStyle(WidgetAppearance.ink)
@@ -597,7 +814,7 @@ private struct FinancialTrackerWidgetView: View {
                         .tracking(0.8)
                         .foregroundStyle(WidgetAppearance.secondaryInk)
 
-                    Text(displayedAmount(entry.summary.availableText))
+                    Text(displayedAmount(activeSummary.availableText))
                         .font(.system(.title2, design: .rounded).weight(.bold))
                         .monospacedDigit()
                         .foregroundStyle(WidgetAppearance.ink)
@@ -618,15 +835,85 @@ private struct FinancialTrackerWidgetView: View {
             HStack(spacing: 10) {
                 metric(
                     title: "INCOME",
-                    value: displayedAmount(entry.summary.incomeText),
+                    value: displayedAmount(activeSummary.incomeText),
                     color: WidgetAppearance.positive
                 )
                 metric(
                     title: "EXPENSE",
-                    value: displayedAmount(entry.summary.expenseText),
+                    value: displayedAmount(activeSummary.expenseText),
                     color: WidgetAppearance.negative
                 )
             }
+        }
+    }
+
+    private var monthLabel: some View {
+        Label(activeMonthText, systemImage: "calendar")
+            .font(.system(.subheadline, design: .rounded).weight(.semibold))
+            .foregroundStyle(WidgetAppearance.secondaryInk)
+            .lineLimit(1)
+    }
+
+    @ViewBuilder
+    private var monthSelector: some View {
+        HStack(spacing: 3) {
+            monthArrowButton(
+                targetMonthKey: entry.previousMonthKey,
+                systemName: "chevron.left",
+                accessibilityLabel: "Show previous month"
+            )
+
+            if #available(iOS 17.0, *) {
+                Button(intent: SelectWidgetMonthIntent(
+                    monthKey: entry.snapshot.resolvedCurrentMonthKey
+                )) {
+                    monthLabel
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Return to current month")
+            } else {
+                monthLabel
+            }
+
+            monthArrowButton(
+                targetMonthKey: entry.nextMonthKey,
+                systemName: "chevron.right",
+                accessibilityLabel: "Show next month"
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func monthArrowButton(
+        targetMonthKey: Int?,
+        systemName: String,
+        accessibilityLabel: String
+    ) -> some View {
+        if let targetMonthKey = targetMonthKey {
+            if #available(iOS 17.0, *) {
+                Button(intent: SelectWidgetMonthIntent(monthKey: targetMonthKey)) {
+                    Image(systemName: systemName)
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(WidgetAppearance.secondaryInk)
+                        .frame(width: 22, height: 24)
+                        .background(
+                            Circle()
+                                .fill(WidgetAppearance.secondaryInk.opacity(0.08))
+                        )
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(accessibilityLabel)
+            } else {
+                Image(systemName: systemName)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(WidgetAppearance.secondaryInk)
+                    .frame(width: 22, height: 24)
+            }
+        } else {
+            Image(systemName: systemName)
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(WidgetAppearance.secondaryInk.opacity(0.24))
+                .frame(width: 22, height: 24)
         }
     }
 
@@ -634,12 +921,9 @@ private struct FinancialTrackerWidgetView: View {
         VStack(alignment: .leading, spacing: 11) {
             HStack(alignment: .top, spacing: 12) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Label(entry.snapshot.monthText, systemImage: "calendar")
-                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                        .foregroundStyle(WidgetAppearance.secondaryInk)
-                        .lineLimit(1)
+                    monthSelector
 
-                    Text(displayedAmount(entry.summary.availableText))
+                    Text(displayedAmount(activeSummary.availableText))
                         .font(.system(.largeTitle, design: .rounded).weight(.semibold))
                         .monospacedDigit()
                         .foregroundStyle(WidgetAppearance.ink)
@@ -647,7 +931,9 @@ private struct FinancialTrackerWidgetView: View {
                         .minimumScaleFactor(0.62)
 
                     HStack(spacing: 5) {
-                        Text("Available for \(entry.snapshot.monthText)")
+                        Text(activeTransactionCount == 0
+                            ? "No activity for \(activeMonthText)"
+                            : "Available for \(activeMonthText)")
                             .font(.caption)
                             .foregroundStyle(WidgetAppearance.secondaryInk)
                             .lineLimit(1)
@@ -665,7 +951,7 @@ private struct FinancialTrackerWidgetView: View {
                         .foregroundStyle(WidgetAppearance.secondaryInk)
                         .lineLimit(1)
 
-                    Text(entry.snapshot.transactionCount.formatted())
+                    Text(activeTransactionCount.formatted())
                         .font(.system(.title2, design: .rounded).weight(.bold))
                         .monospacedDigit()
                         .foregroundStyle(WidgetAppearance.ink)
@@ -678,7 +964,7 @@ private struct FinancialTrackerWidgetView: View {
             HStack(spacing: 16) {
                 largeMetric(
                     title: "TOTAL INCOME",
-                    value: displayedAmount(entry.summary.incomeText),
+                    value: displayedAmount(activeSummary.incomeText),
                     symbol: "arrow.up.right",
                     color: WidgetAppearance.positive
                 )
@@ -689,7 +975,7 @@ private struct FinancialTrackerWidgetView: View {
 
                 largeMetric(
                     title: "TOTAL EXPENSE",
-                    value: displayedAmount(entry.summary.expenseText),
+                    value: displayedAmount(activeSummary.expenseText),
                     symbol: "arrow.down.right",
                     color: WidgetAppearance.negative
                 )
@@ -742,7 +1028,7 @@ private struct FinancialTrackerWidgetView: View {
 
     @ViewBuilder
     private var budgetSummary: some View {
-        if entry.summary.hasBudget {
+        if activeSummary.hasBudget {
             VStack(alignment: .leading, spacing: 7) {
                 HStack(alignment: .firstTextBaseline) {
                     Text("NET SPENDING / BUDGET")
@@ -754,7 +1040,7 @@ private struct FinancialTrackerWidgetView: View {
 
                     Text(entry.amountsHidden
                         ? "•••"
-                        : entry.summary.budgetUsageText)
+                        : activeSummary.budgetUsageText)
                         .font(.system(size: 9, weight: .semibold))
                         .foregroundStyle(WidgetAppearance.accent)
                         .lineLimit(1)
@@ -762,7 +1048,7 @@ private struct FinancialTrackerWidgetView: View {
 
                 Text(entry.amountsHidden
                     ? "•••••• / ••••••"
-                    : "\(entry.summary.budgetSpentText) / \(entry.summary.budgetLimitText)")
+                    : "\(activeSummary.budgetSpentText) / \(activeSummary.budgetLimitText)")
                     .font(.system(.subheadline, design: .rounded).weight(.semibold))
                     .monospacedDigit()
                     .foregroundStyle(WidgetAppearance.ink)
@@ -772,13 +1058,13 @@ private struct FinancialTrackerWidgetView: View {
                 ProgressView(
                     value: entry.amountsHidden
                         ? 0
-                        : min(max(entry.summary.budgetProgress, 0), 1)
+                        : min(max(activeSummary.budgetProgress, 0), 1)
                 )
                 .tint(WidgetAppearance.accent)
 
                 Text(entry.amountsHidden
                     ? "••••••"
-                    : entry.summary.budgetRemainingText)
+                    : activeSummary.budgetRemainingText)
                     .font(.caption2)
                     .foregroundStyle(WidgetAppearance.secondaryInk)
                     .frame(maxWidth: .infinity, alignment: .trailing)

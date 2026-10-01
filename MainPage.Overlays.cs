@@ -97,7 +97,6 @@ public partial class MainPage
         if (transactionDataStore.IsLoaded)
         {
             widgetSnapshotCoordinator.QueuePublish(
-                transactionDataStore.DashboardRecords,
                 settingsViewModel.SelectedCurrency,
                 includeInvestmentInTotals,
                 DateTime.Today);

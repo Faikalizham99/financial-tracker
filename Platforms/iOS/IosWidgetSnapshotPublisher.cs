@@ -10,6 +10,8 @@ public sealed class IosWidgetSnapshotPublisher : IWidgetSnapshotPublisher
 {
     private readonly WidgetKit.WidgetCenterProxy widgetCenter = new();
 
+    public bool IsSupported => true;
+
     public bool TryPublish(WidgetSnapshot snapshot)
     {
         try
