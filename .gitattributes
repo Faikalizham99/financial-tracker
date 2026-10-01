@@ -1,3 +1,4 @@
 .github/workflows/ios-build.yml text eol=lf
 Platforms/iOS/Entitlements.plist text eol=lf
 Platforms/iOS/FinancialTrackerWidget/** text eol=lf
+Platforms/iOS/FinancialTrackerWidget/FinancialTrackerWidgetExtension/Assets/*.png -text

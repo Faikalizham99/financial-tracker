@@ -34,6 +34,7 @@ public partial class MainPage : ContentPage
     private readonly MonthlyBudgetService monthlyBudgetService;
     private readonly TransactionDataStore transactionDataStore;
     private readonly WidgetSnapshotCoordinator widgetSnapshotCoordinator;
+    private readonly IWidgetSettingsStore widgetSettingsStore;
     private readonly LocalDatabase localDatabase;
     private readonly IBackupFileSaver backupFileSaver;
     private readonly IBackupFilePicker backupFilePicker;
@@ -77,6 +78,7 @@ public partial class MainPage : ContentPage
         AssetPortfolioService assetPortfolioService,
         TransactionDataStore transactionDataStore,
         WidgetSnapshotCoordinator widgetSnapshotCoordinator,
+        IWidgetSettingsStore widgetSettingsStore,
         LocalDatabase localDatabase,
         IBackupFileSaver backupFileSaver,
         IBackupFilePicker backupFilePicker)
@@ -100,6 +102,7 @@ public partial class MainPage : ContentPage
         this.monthlyBudgetService = monthlyBudgetService;
         this.transactionDataStore = transactionDataStore;
         this.widgetSnapshotCoordinator = widgetSnapshotCoordinator;
+        this.widgetSettingsStore = widgetSettingsStore;
         this.localDatabase = localDatabase;
         this.backupFileSaver = backupFileSaver;
         this.backupFilePicker = backupFilePicker;
@@ -147,9 +150,24 @@ public partial class MainPage : ContentPage
         SettingsView.DatabaseRestoreRequested += OnDatabaseRestoreRequested;
         SettingsView.DatabaseResetRequested += OnDatabaseResetRequested;
         settingsViewModel.PropertyChanged += OnSettingsPropertyChanged;
-        includeInvestmentInTotals = Preferences.Default.Get(
+        var savedIncludeInvestment = Preferences.Default.Get(
             IncludeInvestmentInTotalsPreferenceKey,
             true);
+        if (widgetSettingsStore.TryReadIncludeInvestment(
+                out var sharedIncludeInvestment))
+        {
+            includeInvestmentInTotals = sharedIncludeInvestment;
+            Preferences.Default.Set(
+                IncludeInvestmentInTotalsPreferenceKey,
+                sharedIncludeInvestment);
+        }
+        else
+        {
+            includeInvestmentInTotals = savedIncludeInvestment;
+            widgetSettingsStore.TryWriteIncludeInvestment(
+                savedIncludeInvestment);
+        }
+
         UpdateInvestmentInclusionState();
         Loaded += OnLoaded;
     }
@@ -240,6 +258,7 @@ public partial class MainPage : ContentPage
 
     internal async Task RefreshAfterResumeAsync()
     {
+        SynchronizeInvestmentInclusionFromWidget();
         if (!hasCompletedInitialDataLoad)
         {
             await EnsureInitialDataLoadedAsync();

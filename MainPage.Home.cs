@@ -501,7 +501,7 @@ public partial class MainPage
         DashboardActivityCard.IsVisible = hasRecentActivity;
         DashboardEmptyActivityState.IsVisible = !hasRecentActivity;
         DashboardViewAllButton.IsVisible = hasRecentActivity;
-        widgetSnapshotCoordinator.PublishIfChanged(
+        widgetSnapshotCoordinator.QueuePublish(
             records,
             selectedCurrency,
             includeInvestmentInTotals,

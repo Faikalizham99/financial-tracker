@@ -53,10 +53,16 @@ public static class MauiProgram
         builder.Services.AddSingleton<
             IWidgetSnapshotPublisher,
             IosWidgetSnapshotPublisher>();
+        builder.Services.AddSingleton<
+            IWidgetSettingsStore,
+            IosWidgetSettingsStore>();
 #else
         builder.Services.AddSingleton<
             IWidgetSnapshotPublisher,
             NoOpWidgetSnapshotPublisher>();
+        builder.Services.AddSingleton<
+            IWidgetSettingsStore,
+            NoOpWidgetSettingsStore>();
 #endif
         builder.Services.AddSingleton<SettingsViewModel>();
         builder.Services.AddSingleton<BudgetSettingsViewModel>();

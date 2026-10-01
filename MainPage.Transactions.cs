@@ -36,14 +36,32 @@ public partial class MainPage
         Preferences.Default.Set(
             IncludeInvestmentInTotalsPreferenceKey,
             includeInvestmentInTotals);
+        widgetSettingsStore.TryWriteIncludeInvestment(
+            includeInvestmentInTotals);
         UpdateInvestmentInclusionState();
     }
 
-    private void UpdateInvestmentInclusionState()
+    private void SynchronizeInvestmentInclusionFromWidget()
+    {
+        if (!widgetSettingsStore.TryReadIncludeInvestment(
+                out var sharedIncludeInvestment) ||
+            sharedIncludeInvestment == includeInvestmentInTotals)
+        {
+            return;
+        }
+
+        includeInvestmentInTotals = sharedIncludeInvestment;
+        Preferences.Default.Set(
+            IncludeInvestmentInTotalsPreferenceKey,
+            sharedIncludeInvestment);
+        UpdateInvestmentInclusionState(refreshDashboard: false);
+    }
+
+    private void UpdateInvestmentInclusionState(bool refreshDashboard = true)
     {
         DashboardMonthlySummary.IncludeInvestmentInTotals = includeInvestmentInTotals;
         ExpensesView.SetIncludeInvestmentInTotals(includeInvestmentInTotals);
-        if (transactionDataStore.IsLoaded)
+        if (refreshDashboard && transactionDataStore.IsLoaded)
         {
             RefreshDashboard(
                 transactionDataStore.DashboardRecords,
