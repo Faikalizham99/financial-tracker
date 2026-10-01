@@ -3,7 +3,14 @@ import SwiftUI
 import WidgetKit
 
 private enum WidgetSettings {
-    static let appGroupIdentifier = "group.com.faikalizham.financial-tracker"
+    static let appGroupIdentifiers = [
+        "group.com.faikalizham.financial-tracker",
+        "group.f4c6f25ba5674ecb.1",
+        "group.f4c6f25ba5674ecb.2",
+        "group.f4c6f25ba5674ecb.3",
+        "group.f4c6f25ba5674ecb.4",
+        "group.f4c6f25ba5674ecb.5"
+    ]
     static let snapshotFileName = "financial_tracker_widget.json"
     static let widgetKind = "FinancialTrackerWidget"
 }
@@ -86,9 +93,7 @@ private struct WidgetSnapshotLoadResult {
 
 private enum SharedWidgetStorage {
     static func loadSnapshot() -> WidgetSnapshotLoadResult {
-        guard let containerUrl = FileManager.default.containerURL(
-            forSecurityApplicationGroupIdentifier: WidgetSettings.appGroupIdentifier
-        ) else {
+        guard let containerUrl = availableContainerUrl() else {
             return failure(.appGroupUnavailable)
         }
 
@@ -119,6 +124,18 @@ private enum SharedWidgetStorage {
             snapshot: snapshot,
             state: .loaded
         )
+    }
+
+    private static func availableContainerUrl() -> URL? {
+        for identifier in WidgetSettings.appGroupIdentifiers {
+            if let containerUrl = FileManager.default.containerURL(
+                forSecurityApplicationGroupIdentifier: identifier
+            ) {
+                return containerUrl
+            }
+        }
+
+        return nil
     }
 
     private static func failure(

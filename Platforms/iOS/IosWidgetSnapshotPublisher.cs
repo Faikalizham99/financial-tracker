@@ -14,13 +14,12 @@ public sealed class IosWidgetSnapshotPublisher : IWidgetSnapshotPublisher
     {
         try
         {
-            var containerUrl = NSFileManager.DefaultManager.GetContainerUrl(
-                WidgetConstants.AppGroupIdentifier);
-            if (containerUrl?.Path is not string containerPath)
+            var containerPath = GetAvailableContainerPath();
+            if (containerPath is null)
             {
                 Debug.WriteLine(
-                    "Widget App Group container is unavailable: " +
-                    WidgetConstants.AppGroupIdentifier);
+                    "No configured Widget App Group container is available: " +
+                    string.Join(", ", WidgetConstants.AppGroupIdentifiers));
                 return false;
             }
 
@@ -43,5 +42,20 @@ public sealed class IosWidgetSnapshotPublisher : IWidgetSnapshotPublisher
             Debug.WriteLine($"Widget snapshot publishing failed: {exception}");
             return false;
         }
+    }
+
+    private static string? GetAvailableContainerPath()
+    {
+        foreach (var identifier in WidgetConstants.AppGroupIdentifiers)
+        {
+            var containerUrl = NSFileManager.DefaultManager.GetContainerUrl(
+                identifier);
+            if (containerUrl?.Path is string containerPath)
+            {
+                return containerPath;
+            }
+        }
+
+        return null;
     }
 }
