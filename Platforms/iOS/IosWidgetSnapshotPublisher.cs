@@ -8,11 +8,6 @@ namespace FinancialTracker.Platforms.iOS;
 
 public sealed class IosWidgetSnapshotPublisher : IWidgetSnapshotPublisher
 {
-    private static readonly JsonSerializerOptions SerializerOptions = new()
-    {
-        WriteIndented = false
-    };
-
     private readonly WidgetKit.WidgetCenterProxy widgetCenter = new();
 
     public bool TryPublish(WidgetSnapshot snapshot)
@@ -34,7 +29,9 @@ public sealed class IosWidgetSnapshotPublisher : IWidgetSnapshotPublisher
                 containerPath,
                 WidgetConstants.SnapshotFileName);
             var temporaryPath = snapshotPath + ".tmp";
-            var json = JsonSerializer.Serialize(snapshot, SerializerOptions);
+            var json = JsonSerializer.Serialize(
+                snapshot,
+                WidgetJsonSerializerContext.Default.WidgetSnapshot);
 
             File.WriteAllText(temporaryPath, json);
             File.Move(temporaryPath, snapshotPath, overwrite: true);

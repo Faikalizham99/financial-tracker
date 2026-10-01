@@ -46,32 +46,88 @@ private struct FinancialTrackerSnapshot: Codable {
     }
 }
 
+private enum WidgetSnapshotLoadState {
+    case loaded
+    case appGroupUnavailable
+    case snapshotMissing
+    case snapshotUnreadable
+    case invalidSnapshot
+    case unsupportedVersion
+
+    var message: String {
+        switch self {
+        case .loaded:
+            return ""
+        case .appGroupUnavailable:
+            return "No App Group"
+        case .snapshotMissing:
+            return "Open app to sync"
+        case .snapshotUnreadable:
+            return "Snapshot unreadable"
+        case .invalidSnapshot:
+            return "Invalid snapshot"
+        case .unsupportedVersion:
+            return "Update required"
+        }
+    }
+}
+
+private struct WidgetSnapshotLoadResult {
+    let snapshot: FinancialTrackerSnapshot
+    let state: WidgetSnapshotLoadState
+
+    static var placeholder: WidgetSnapshotLoadResult {
+        WidgetSnapshotLoadResult(
+            snapshot: .placeholder,
+            state: .loaded
+        )
+    }
+}
+
 private enum SharedWidgetStorage {
-    static func loadSnapshot() -> FinancialTrackerSnapshot? {
-        guard
-            let containerUrl = FileManager.default.containerURL(
-                forSecurityApplicationGroupIdentifier: WidgetSettings.appGroupIdentifier
-            )
-        else {
-            return nil
+    static func loadSnapshot() -> WidgetSnapshotLoadResult {
+        guard let containerUrl = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: WidgetSettings.appGroupIdentifier
+        ) else {
+            return failure(.appGroupUnavailable)
         }
 
         let snapshotUrl = containerUrl.appendingPathComponent(
             WidgetSettings.snapshotFileName,
             isDirectory: false
         )
-        guard
-            let data = try? Data(contentsOf: snapshotUrl),
-            let snapshot = try? JSONDecoder().decode(
-                FinancialTrackerSnapshot.self,
-                from: data
-            ),
-            snapshot.version == 1
-        else {
-            return nil
+        guard FileManager.default.fileExists(atPath: snapshotUrl.path) else {
+            return failure(.snapshotMissing)
         }
 
-        return snapshot
+        guard let data = try? Data(contentsOf: snapshotUrl) else {
+            return failure(.snapshotUnreadable)
+        }
+
+        guard let snapshot = try? JSONDecoder().decode(
+            FinancialTrackerSnapshot.self,
+            from: data
+        ) else {
+            return failure(.invalidSnapshot)
+        }
+
+        guard snapshot.version == 1 else {
+            return failure(.unsupportedVersion)
+        }
+
+        return WidgetSnapshotLoadResult(
+            snapshot: snapshot,
+            state: .loaded
+        )
+    }
+
+    private static func failure(
+        _ state: WidgetSnapshotLoadState
+    ) -> WidgetSnapshotLoadResult {
+        WidgetSnapshotLoadResult(
+            snapshot: .placeholder,
+            state: state
+        )
     }
 }
 
@@ -92,7 +148,7 @@ struct RefreshFinancialTrackerIntent: AppIntent {
 private struct FinancialTrackerEntry: TimelineEntry {
     let date: Date
     let snapshot: FinancialTrackerSnapshot
-    let hasSharedSnapshot: Bool
+    let loadState: WidgetSnapshotLoadState
 }
 
 private struct FinancialTrackerProvider: TimelineProvider {
@@ -100,7 +156,7 @@ private struct FinancialTrackerProvider: TimelineProvider {
         FinancialTrackerEntry(
             date: Date(),
             snapshot: .placeholder,
-            hasSharedSnapshot: false
+            loadState: .loaded
         )
     }
 
@@ -108,13 +164,13 @@ private struct FinancialTrackerProvider: TimelineProvider {
         in context: Context,
         completion: @escaping (FinancialTrackerEntry) -> Void
     ) {
-        let sharedSnapshot = context.isPreview
-            ? nil
+        let result = context.isPreview
+            ? WidgetSnapshotLoadResult.placeholder
             : SharedWidgetStorage.loadSnapshot()
         completion(FinancialTrackerEntry(
             date: Date(),
-            snapshot: sharedSnapshot ?? .placeholder,
-            hasSharedSnapshot: sharedSnapshot != nil
+            snapshot: result.snapshot,
+            loadState: result.state
         ))
     }
 
@@ -123,11 +179,11 @@ private struct FinancialTrackerProvider: TimelineProvider {
         completion: @escaping (Timeline<FinancialTrackerEntry>) -> Void
     ) {
         let now = Date()
-        let sharedSnapshot = SharedWidgetStorage.loadSnapshot()
+        let result = SharedWidgetStorage.loadSnapshot()
         let entry = FinancialTrackerEntry(
             date: now,
-            snapshot: sharedSnapshot ?? .placeholder,
-            hasSharedSnapshot: sharedSnapshot != nil
+            snapshot: result.snapshot,
+            loadState: result.state
         )
         let nextFallbackRefresh = Calendar.current.date(
             byAdding: .minute,
@@ -261,9 +317,9 @@ private struct FinancialTrackerWidgetView: View {
 
                 Spacer(minLength: 10)
 
-                Text(entry.hasSharedSnapshot
+                Text(entry.loadState == .loaded
                     ? entry.snapshot.updatedText
-                    : "Sync unavailable")
+                    : entry.loadState.message)
                     .font(.caption2)
                     .foregroundStyle(WidgetAppearance.secondaryInk)
                     .lineLimit(1)
@@ -301,8 +357,8 @@ private struct FinancialTrackerWidgetView: View {
     }
 
     private var activityText: String {
-        guard entry.hasSharedSnapshot else {
-            return "Sync unavailable"
+        guard entry.loadState == .loaded else {
+            return entry.loadState.message
         }
 
         switch entry.snapshot.transactionCount {
