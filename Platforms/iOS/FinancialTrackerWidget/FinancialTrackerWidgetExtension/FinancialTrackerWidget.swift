@@ -1,3 +1,4 @@
+import AppIntents
 import SwiftUI
 import WidgetKit
 
@@ -46,13 +47,13 @@ private struct FinancialTrackerSnapshot: Codable {
 }
 
 private enum SharedWidgetStorage {
-    static func loadSnapshot() -> FinancialTrackerSnapshot {
+    static func loadSnapshot() -> FinancialTrackerSnapshot? {
         guard
             let containerUrl = FileManager.default.containerURL(
                 forSecurityApplicationGroupIdentifier: WidgetSettings.appGroupIdentifier
             )
         else {
-            return .placeholder
+            return nil
         }
 
         let snapshotUrl = containerUrl.appendingPathComponent(
@@ -67,23 +68,39 @@ private enum SharedWidgetStorage {
             ),
             snapshot.version == 1
         else {
-            return .placeholder
+            return nil
         }
 
         return snapshot
     }
 }
 
+@available(iOS 17.0, *)
+struct RefreshFinancialTrackerIntent: AppIntent {
+    static var title: LocalizedStringResource = "Refresh Financial Tracker"
+    static var description = IntentDescription(
+        "Reload the latest Financial Tracker widget snapshot."
+    )
+    static var openAppWhenRun = false
+
+    func perform() async throws -> some IntentResult {
+        WidgetCenter.shared.reloadTimelines(ofKind: WidgetSettings.widgetKind)
+        return .result()
+    }
+}
+
 private struct FinancialTrackerEntry: TimelineEntry {
     let date: Date
     let snapshot: FinancialTrackerSnapshot
+    let hasSharedSnapshot: Bool
 }
 
 private struct FinancialTrackerProvider: TimelineProvider {
     func placeholder(in context: Context) -> FinancialTrackerEntry {
         FinancialTrackerEntry(
             date: Date(),
-            snapshot: .placeholder
+            snapshot: .placeholder,
+            hasSharedSnapshot: false
         )
     }
 
@@ -91,11 +108,13 @@ private struct FinancialTrackerProvider: TimelineProvider {
         in context: Context,
         completion: @escaping (FinancialTrackerEntry) -> Void
     ) {
+        let sharedSnapshot = context.isPreview
+            ? nil
+            : SharedWidgetStorage.loadSnapshot()
         completion(FinancialTrackerEntry(
             date: Date(),
-            snapshot: context.isPreview
-                ? .placeholder
-                : SharedWidgetStorage.loadSnapshot()
+            snapshot: sharedSnapshot ?? .placeholder,
+            hasSharedSnapshot: sharedSnapshot != nil
         ))
     }
 
@@ -104,9 +123,11 @@ private struct FinancialTrackerProvider: TimelineProvider {
         completion: @escaping (Timeline<FinancialTrackerEntry>) -> Void
     ) {
         let now = Date()
+        let sharedSnapshot = SharedWidgetStorage.loadSnapshot()
         let entry = FinancialTrackerEntry(
             date: now,
-            snapshot: SharedWidgetStorage.loadSnapshot()
+            snapshot: sharedSnapshot ?? .placeholder,
+            hasSharedSnapshot: sharedSnapshot != nil
         )
         let nextFallbackRefresh = Calendar.current.date(
             byAdding: .minute,
@@ -174,6 +195,27 @@ private struct FinancialTrackerWidgetView: View {
                         .lineLimit(1)
                 }
             }
+
+            Spacer(minLength: 4)
+            refreshButton
+        }
+    }
+
+    @ViewBuilder
+    private var refreshButton: some View {
+        if #available(iOS 17.0, *) {
+            Button(intent: RefreshFinancialTrackerIntent()) {
+                Image(systemName: "arrow.clockwise")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(WidgetAppearance.accent)
+                    .frame(width: 28, height: 28)
+                    .background(
+                        Circle()
+                            .fill(WidgetAppearance.accent.opacity(0.16))
+                    )
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Refresh widget")
         }
     }
 
@@ -219,7 +261,9 @@ private struct FinancialTrackerWidgetView: View {
 
                 Spacer(minLength: 10)
 
-                Text(entry.snapshot.updatedText)
+                Text(entry.hasSharedSnapshot
+                    ? entry.snapshot.updatedText
+                    : "Sync unavailable")
                     .font(.caption2)
                     .foregroundStyle(WidgetAppearance.secondaryInk)
                     .lineLimit(1)
@@ -257,6 +301,10 @@ private struct FinancialTrackerWidgetView: View {
     }
 
     private var activityText: String {
+        guard entry.hasSharedSnapshot else {
+            return "Sync unavailable"
+        }
+
         switch entry.snapshot.transactionCount {
         case 0:
             return "No activity yet"
