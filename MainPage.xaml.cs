@@ -33,6 +33,7 @@ public partial class MainPage : ContentPage
     private readonly SettingsViewModel settingsViewModel;
     private readonly MonthlyBudgetService monthlyBudgetService;
     private readonly TransactionDataStore transactionDataStore;
+    private readonly WidgetSnapshotCoordinator widgetSnapshotCoordinator;
     private readonly LocalDatabase localDatabase;
     private readonly IBackupFileSaver backupFileSaver;
     private readonly IBackupFilePicker backupFilePicker;
@@ -75,6 +76,7 @@ public partial class MainPage : ContentPage
         MonthlyBudgetService monthlyBudgetService,
         AssetPortfolioService assetPortfolioService,
         TransactionDataStore transactionDataStore,
+        WidgetSnapshotCoordinator widgetSnapshotCoordinator,
         LocalDatabase localDatabase,
         IBackupFileSaver backupFileSaver,
         IBackupFilePicker backupFilePicker)
@@ -97,6 +99,7 @@ public partial class MainPage : ContentPage
         this.settingsViewModel = settingsViewModel;
         this.monthlyBudgetService = monthlyBudgetService;
         this.transactionDataStore = transactionDataStore;
+        this.widgetSnapshotCoordinator = widgetSnapshotCoordinator;
         this.localDatabase = localDatabase;
         this.backupFileSaver = backupFileSaver;
         this.backupFilePicker = backupFilePicker;

@@ -48,6 +48,16 @@ public static class MauiProgram
         builder.Services.AddSingleton<AssetPortfolioService>();
         builder.Services.AddSingleton<TransactionDataStore>();
         builder.Services.AddSingleton<TransactionStatisticsService>();
+        builder.Services.AddSingleton<WidgetSnapshotCoordinator>();
+#if IOS
+        builder.Services.AddSingleton<
+            IWidgetSnapshotPublisher,
+            IosWidgetSnapshotPublisher>();
+#else
+        builder.Services.AddSingleton<
+            IWidgetSnapshotPublisher,
+            NoOpWidgetSnapshotPublisher>();
+#endif
         builder.Services.AddSingleton<SettingsViewModel>();
         builder.Services.AddSingleton<BudgetSettingsViewModel>();
         builder.Services.AddSingleton<TransactionStatisticsViewModel>();

@@ -42,7 +42,7 @@ jobs:
           echo "Building Financial Tracker $app_display_version ($app_build_version)"
 
   build-ios:
-    name: Build unsigned iPhone IPA
+    name: Build iPhone IPA
     needs: resolve_version
     runs-on: macos-26
     timeout-minutes: 45
@@ -56,6 +56,9 @@ jobs:
       WIDGET_PROJECT_DIR: Platforms/iOS/FinancialTrackerWidget
       WIDGET_TARGET: FinancialTrackerWidgetExtension
       WIDGET_BUNDLE_ID: com.faikalizham.financial-tracker.widget
+      APP_GROUP_ID: group.com.faikalizham.financial-tracker
+      APP_ENTITLEMENTS_PATH: Platforms/iOS/Entitlements.plist
+      WIDGET_ENTITLEMENTS_PATH: Platforms/iOS/FinancialTrackerWidget/FinancialTrackerWidgetExtension/FinancialTrackerWidgetExtension.entitlements
 
     steps:
       - name: Check out repository
@@ -149,7 +152,7 @@ jobs:
           -p:ApplicationDisplayVersion="$APP_DISPLAY_VERSION"
           -p:ApplicationVersion="$APP_BUILD_VERSION"
 
-      - name: Package and verify unsigned iPhone IPA
+      - name: Package and verify iPhone IPA
         id: package
         shell: bash
         run: |
@@ -295,11 +298,57 @@ jobs:
             exit 1
           fi
 
-          if codesign -d "$app_path" >/dev/null 2>&1; then
-            signing_state="signed (unexpected; inspect the workflow log)"
-          else
-            signing_state="unsigned (expected; the install-time signer must sign the app and widget extension)"
+          app_entitlements="$GITHUB_WORKSPACE/$APP_ENTITLEMENTS_PATH"
+          widget_entitlements="$GITHUB_WORKSPACE/$WIDGET_ENTITLEMENTS_PATH"
+          if [[ ! -f "$app_entitlements" ]]; then
+            echo "App entitlements were not found: $app_entitlements" >&2
+            exit 1
           fi
+          if [[ ! -f "$widget_entitlements" ]]; then
+            echo "Widget entitlements were not found: $widget_entitlements" >&2
+            exit 1
+          fi
+
+          sign_nested_code() {
+            local root="$1"
+
+            while IFS= read -r -d '' library; do
+              codesign --force --sign - --timestamp=none "$library"
+            done < <(find "$root" -depth -type f \( -name '*.dylib' -o -name '*.so' \) -print0)
+
+            while IFS= read -r -d '' framework; do
+              codesign --force --sign - --timestamp=none "$framework"
+            done < <(find "$root" -depth -type d -name '*.framework' -print0)
+          }
+
+          sign_nested_code "$app_path"
+          codesign --force --sign - --timestamp=none \
+            --entitlements "$widget_entitlements" \
+            "$embedded_widget_path"
+          codesign --force --sign - --timestamp=none \
+            --entitlements "$app_entitlements" \
+            "$app_path"
+
+          codesign --verify --deep --strict "$embedded_widget_path"
+          codesign --verify --deep --strict "$app_path"
+
+          app_signed_entitlements=$(mktemp "$RUNNER_TEMP/financialtracker-app-entitlements.XXXXXX")
+          widget_signed_entitlements=$(mktemp "$RUNNER_TEMP/financialtracker-widget-entitlements.XXXXXX")
+          codesign -d --entitlements :- "$app_path" > "$app_signed_entitlements" 2>/dev/null
+          codesign -d --entitlements :- "$embedded_widget_path" > "$widget_signed_entitlements" 2>/dev/null
+
+          app_group=$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.application-groups:0' "$app_signed_entitlements")
+          widget_app_group=$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.application-groups:0' "$widget_signed_entitlements")
+          if [[ "$app_group" != "$APP_GROUP_ID" ]]; then
+            echo "Unexpected app App Group entitlement: $app_group" >&2
+            exit 1
+          fi
+          if [[ "$widget_app_group" != "$APP_GROUP_ID" ]]; then
+            echo "Unexpected widget App Group entitlement: $widget_app_group" >&2
+            exit 1
+          fi
+
+          signing_state="ad hoc signed with App Group entitlements (the install-time signer must re-sign all code)"
 
           package_root=$(mktemp -d "$RUNNER_TEMP/financialtracker-ipa.XXXXXX")
           mkdir -p "$package_root/Payload" "$GITHUB_WORKSPACE/artifacts"
@@ -348,6 +397,7 @@ jobs:
           echo "Architectures: $architectures"
           echo "Widget bundle ID: $widget_bundle_id"
           echo "Widget architectures: $widget_architectures"
+          echo "App Group: $app_group"
           echo "Signing: $signing_state"
           echo "IPA: $ipa_path"
           echo "IPA size: $ipa_size"
@@ -361,6 +411,7 @@ jobs:
             echo "- Architectures: \`$architectures\`"
             echo "- Widget bundle ID: \`$widget_bundle_id\`"
             echo "- Widget architectures: \`$widget_architectures\`"
+            echo "- App Group: \`$app_group\`"
             echo "- Signing: $signing_state"
             echo "- IPA: \`$ipa_path\`"
             echo "- IPA size: $ipa_size"

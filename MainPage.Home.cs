@@ -501,5 +501,10 @@ public partial class MainPage
         DashboardActivityCard.IsVisible = hasRecentActivity;
         DashboardEmptyActivityState.IsVisible = !hasRecentActivity;
         DashboardViewAllButton.IsVisible = hasRecentActivity;
+        widgetSnapshotCoordinator.PublishIfChanged(
+            records,
+            selectedCurrency,
+            includeInvestmentInTotals,
+            DateTime.Today);
     }
 }
