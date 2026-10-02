@@ -7,11 +7,13 @@ enum SharedWidgetAppearance {
         let version: Int
         let theme: String
         let accentColorHex: String
+        let currencySymbol: String?
 
         static let fallback = Snapshot(
             version: 1,
             theme: "Light",
-            accentColorHex: "#5044E4"
+            accentColorHex: "#5044E4",
+            currencySymbol: "RM"
         )
     }
 
@@ -63,6 +65,19 @@ enum SharedWidgetAppearance {
 
     static var divider: Color {
         adaptive(light: "#E9E3DB", dark: "#29292D")
+    }
+
+    static var controlSurface: Color {
+        adaptive(light: "#F1EDE7", dark: "#202023")
+    }
+
+    static var currencySymbol: String {
+        if let symbol = currentSnapshot().currencySymbol?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+           !symbol.isEmpty {
+            return symbol
+        }
+        return "RM"
     }
 
     static var positive: Color {

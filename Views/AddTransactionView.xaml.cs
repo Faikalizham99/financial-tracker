@@ -40,7 +40,8 @@ public partial class AddTransactionView : ContentView
         LocalDatabase localDatabase,
         CurrencyOption selectedCurrency,
         IReadOnlyList<TransactionRecord> transactionHistory,
-        TransactionRecord? transactionToEdit = null)
+        TransactionRecord? transactionToEdit = null,
+        decimal? initialAmount = null)
     {
         if (isOpen || isAnimating)
         {
@@ -49,6 +50,10 @@ public partial class AddTransactionView : ContentView
 
         database = localDatabase;
         viewModel.Initialize(selectedCurrency, transactionToEdit);
+        if (transactionToEdit is null && initialAmount is > 0)
+        {
+            viewModel.SetAmount(initialAmount.Value);
+        }
         var descriptionHistoryTask = viewModel.LoadDescriptionHistoryAsync(
             transactionHistory);
         ResetForm();

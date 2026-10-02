@@ -6,5 +6,6 @@ struct FinancialTrackerWidgetBundle: WidgetBundle {
     var body: some Widget {
         FinancialTrackerWidget()
         FinancialTrackerAssetsWidget()
+        FinancialCalculatorWidget()
     }
 }

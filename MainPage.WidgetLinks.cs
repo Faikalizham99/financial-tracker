@@ -5,12 +5,16 @@ public partial class MainPage
     private readonly SemaphoreSlim widgetAddTransactionLock = new(1, 1);
     private readonly SemaphoreSlim widgetAssetSnapshotLock = new(1, 1);
     private bool pendingWidgetAddTransaction;
+    private decimal? pendingWidgetTransactionAmount;
     private bool pendingWidgetOpenAssets;
     private DateTime? pendingWidgetAssetSnapshotMonth;
 
-    internal void RequestAddTransactionFromWidget()
+    internal void RequestAddTransactionFromWidget(decimal? amount = null)
     {
         pendingWidgetAddTransaction = true;
+        pendingWidgetTransactionAmount = amount is > 0
+            ? amount
+            : null;
         if (IsLoaded)
         {
             _ = OpenPendingWidgetAddTransactionAsync();
@@ -103,8 +107,10 @@ public partial class MainPage
             await AddTransactionOverlay.OpenAsync(
                 localDatabase,
                 settingsViewModel.SelectedCurrency,
-                transactionDataStore.DescriptionHistoryRecords);
+                transactionDataStore.DescriptionHistoryRecords,
+                initialAmount: pendingWidgetTransactionAmount);
             pendingWidgetAddTransaction = false;
+            pendingWidgetTransactionAmount = null;
         }
         catch (Exception exception)
         {

@@ -302,7 +302,8 @@ public partial class MainPage : ContentPage
     {
         if (string.IsNullOrEmpty(e.PropertyName) ||
             e.PropertyName == nameof(SettingsViewModel.SelectedTheme) ||
-            e.PropertyName == nameof(SettingsViewModel.SelectedAccentColorHex))
+            e.PropertyName == nameof(SettingsViewModel.SelectedAccentColorHex) ||
+            e.PropertyName == nameof(SettingsViewModel.SelectedCurrency))
         {
             PublishWidgetAppearance();
         }
@@ -337,5 +338,6 @@ public partial class MainPage : ContentPage
     private void PublishWidgetAppearance() =>
         widgetAppearanceCoordinator.Publish(
             settingsViewModel.SelectedTheme,
-            settingsViewModel.SelectedAccentColorHex);
+            settingsViewModel.SelectedAccentColorHex,
+            settingsViewModel.SelectedCurrency.Symbol);
 }

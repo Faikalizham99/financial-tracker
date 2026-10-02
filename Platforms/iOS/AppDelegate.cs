@@ -1,5 +1,7 @@
 ﻿using Foundation;
 
+using System.Globalization;
+
 namespace FinancialTracker;
 
 [Register("AppDelegate")]
@@ -22,8 +24,9 @@ public class AppDelegate : MauiUIApplicationDelegate
         {
             if (host == "add-transaction")
             {
+                var amount = TryReadAmount(url.Query);
                 Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(
-                    app.RequestAddTransactionFromWidget);
+                    () => app.RequestAddTransactionFromWidget(amount));
             }
             else if (host == "add-asset-snapshot")
             {
@@ -64,6 +67,32 @@ public class AppDelegate : MauiUIApplicationDelegate
             if (year is >= 1900 and <= 9999 && month is >= 1 and <= 12)
             {
                 return new DateTime(year, month, 1);
+            }
+        }
+
+        return null;
+    }
+
+    private static decimal? TryReadAmount(string? query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return null;
+        }
+
+        foreach (var part in query.TrimStart('?').Split('&'))
+        {
+            var pair = part.Split('=', 2);
+            if (pair.Length == 2 &&
+                pair[0].Equals("amount", StringComparison.OrdinalIgnoreCase) &&
+                decimal.TryParse(
+                    Uri.UnescapeDataString(pair[1]),
+                    NumberStyles.Number,
+                    CultureInfo.InvariantCulture,
+                    out var amount) &&
+                amount > 0)
+            {
+                return amount;
             }
         }
 

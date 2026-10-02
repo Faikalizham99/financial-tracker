@@ -8,7 +8,10 @@ public sealed class WidgetAppearanceCoordinator(IWidgetAppearancePublisher publi
     private readonly object synchronization = new();
     private WidgetAppearanceSnapshot? lastPublishedSnapshot;
 
-    public void Publish(string theme, string accentColorHex)
+    public void Publish(
+        string theme,
+        string accentColorHex,
+        string currencySymbol)
     {
         if (!publisher.IsSupported)
         {
@@ -19,7 +22,8 @@ public sealed class WidgetAppearanceCoordinator(IWidgetAppearancePublisher publi
             Version: 1,
             Theme: AppearanceValueNormalizer.NormalizeTheme(theme),
             AccentColorHex: AppearanceValueNormalizer.NormalizeAccentColor(
-                accentColorHex));
+                accentColorHex),
+            CurrencySymbol: currencySymbol);
         lock (synchronization)
         {
             if (snapshot == lastPublishedSnapshot)

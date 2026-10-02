@@ -14,8 +14,8 @@ public partial class App : Application
         mainPage = services.GetRequiredService<MainPage>();
     }
 
-    internal void RequestAddTransactionFromWidget() =>
-        mainPage.RequestAddTransactionFromWidget();
+    internal void RequestAddTransactionFromWidget(decimal? amount = null) =>
+        mainPage.RequestAddTransactionFromWidget(amount);
 
     internal void RequestAddAssetSnapshotFromWidget(DateTime? month) =>
         mainPage.RequestAddAssetSnapshotFromWidget(month);
