@@ -495,7 +495,7 @@ private struct FinancialCalculatorView: View {
     }
 
     private var content: some View {
-        VStack(spacing: 7) {
+        VStack(spacing: 8) {
             header
             display
             keypad
@@ -570,9 +570,9 @@ private struct FinancialCalculatorView: View {
     }
 
     private var keypad: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 5) {
             ForEach(Array(keyRows.enumerated()), id: \.offset) { _, row in
-                HStack(spacing: 5) {
+                HStack(spacing: 6) {
                     ForEach(row) { key in
                         keyButton(key)
                     }
@@ -601,10 +601,10 @@ private struct FinancialCalculatorView: View {
                 Text(key.label)
             }
         }
-        .font(.system(size: 15, weight: .semibold, design: .rounded))
+        .font(.system(size: 17, weight: .semibold, design: .rounded))
         .foregroundStyle(keyForeground(key.role))
         .frame(maxWidth: .infinity)
-        .frame(height: 31)
+        .frame(height: 38)
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
                 .fill(keyBackground(key.role))
@@ -636,10 +636,10 @@ private struct FinancialCalculatorView: View {
                 Image(systemName: "plus.circle.fill")
                 Text("Add result as transaction")
             }
-            .font(.system(size: 10, weight: .semibold))
+            .font(.system(size: 11, weight: .semibold))
             .foregroundStyle(SharedWidgetAppearance.accent)
             .frame(maxWidth: .infinity)
-            .frame(height: 24)
+            .frame(height: 28)
             .background(
                 Capsule().fill(SharedWidgetAppearance.accent.opacity(0.12))
             )
