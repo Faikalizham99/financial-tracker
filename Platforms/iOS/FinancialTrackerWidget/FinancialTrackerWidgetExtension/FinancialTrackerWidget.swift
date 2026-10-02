@@ -1146,7 +1146,6 @@ private struct FinancialTrackerWidgetView: View {
     }
 }
 
-@main
 struct FinancialTrackerWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(

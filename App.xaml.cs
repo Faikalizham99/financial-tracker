@@ -17,6 +17,12 @@ public partial class App : Application
     internal void RequestAddTransactionFromWidget() =>
         mainPage.RequestAddTransactionFromWidget();
 
+    internal void RequestAddAssetSnapshotFromWidget(DateTime? month) =>
+        mainPage.RequestAddAssetSnapshotFromWidget(month);
+
+    internal void RequestOpenAssetsFromWidget() =>
+        mainPage.RequestOpenAssetsFromWidget();
+
     protected override Window CreateWindow(IActivationState? activationState)
     {
         var window = new Window(mainPage);

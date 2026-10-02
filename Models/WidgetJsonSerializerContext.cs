@@ -6,6 +6,10 @@ namespace FinancialTracker.Models;
 [JsonSerializable(typeof(WidgetSnapshot))]
 [JsonSerializable(typeof(WidgetSummary))]
 [JsonSerializable(typeof(WidgetMonthSnapshot))]
+[JsonSerializable(typeof(AssetWidgetSnapshot))]
+[JsonSerializable(typeof(AssetWidgetMonthSnapshot))]
+[JsonSerializable(typeof(AssetWidgetSummary))]
+[JsonSerializable(typeof(AssetWidgetItem))]
 internal sealed partial class WidgetJsonSerializerContext : JsonSerializerContext
 {
 }

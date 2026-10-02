@@ -505,5 +505,8 @@ public partial class MainPage
             selectedCurrency,
             includeInvestmentInTotals,
             DateTime.Today);
+        assetWidgetSnapshotCoordinator.QueuePublish(
+            selectedCurrency,
+            DateTime.Today);
     }
 }

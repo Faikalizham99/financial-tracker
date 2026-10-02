@@ -12,19 +12,61 @@ public class AppDelegate : MauiUIApplicationDelegate
         NSUrl url,
         NSDictionary options)
     {
-        if (url.AbsoluteString is not
-            "com.faikalizham.financial-tracker://add-transaction")
+        var host = url.Host?.ToLowerInvariant();
+        if (host is not ("add-transaction" or "add-asset-snapshot" or "assets"))
         {
             return base.OpenUrl(application, url, options);
         }
 
         if (Microsoft.Maui.Controls.Application.Current is App app)
         {
-            Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(
-                app.RequestAddTransactionFromWidget);
+            if (host == "add-transaction")
+            {
+                Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(
+                    app.RequestAddTransactionFromWidget);
+            }
+            else if (host == "add-asset-snapshot")
+            {
+                var month = TryReadMonth(url.Query);
+                Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(
+                    () => app.RequestAddAssetSnapshotFromWidget(month));
+            }
+            else
+            {
+                Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(
+                    app.RequestOpenAssetsFromWidget);
+            }
             return true;
         }
 
         return false;
+    }
+
+    private static DateTime? TryReadMonth(string? query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return null;
+        }
+
+        foreach (var part in query.TrimStart('?').Split('&'))
+        {
+            var pair = part.Split('=', 2);
+            if (pair.Length != 2 ||
+                !pair[0].Equals("month", StringComparison.OrdinalIgnoreCase) ||
+                !int.TryParse(pair[1], out var monthKey))
+            {
+                continue;
+            }
+
+            var year = monthKey / 100;
+            var month = monthKey % 100;
+            if (year is >= 1900 and <= 9999 && month is >= 1 and <= 12)
+            {
+                return new DateTime(year, month, 1);
+            }
+        }
+
+        return null;
     }
 }

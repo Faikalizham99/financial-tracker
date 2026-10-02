@@ -34,6 +34,7 @@ public partial class MainPage : ContentPage
     private readonly MonthlyBudgetService monthlyBudgetService;
     private readonly TransactionDataStore transactionDataStore;
     private readonly WidgetSnapshotCoordinator widgetSnapshotCoordinator;
+    private readonly AssetWidgetSnapshotCoordinator assetWidgetSnapshotCoordinator;
     private readonly IWidgetSettingsStore widgetSettingsStore;
     private readonly LocalDatabase localDatabase;
     private readonly IBackupFileSaver backupFileSaver;
@@ -78,6 +79,7 @@ public partial class MainPage : ContentPage
         AssetPortfolioService assetPortfolioService,
         TransactionDataStore transactionDataStore,
         WidgetSnapshotCoordinator widgetSnapshotCoordinator,
+        AssetWidgetSnapshotCoordinator assetWidgetSnapshotCoordinator,
         IWidgetSettingsStore widgetSettingsStore,
         LocalDatabase localDatabase,
         IBackupFileSaver backupFileSaver,
@@ -102,6 +104,7 @@ public partial class MainPage : ContentPage
         this.monthlyBudgetService = monthlyBudgetService;
         this.transactionDataStore = transactionDataStore;
         this.widgetSnapshotCoordinator = widgetSnapshotCoordinator;
+        this.assetWidgetSnapshotCoordinator = assetWidgetSnapshotCoordinator;
         this.widgetSettingsStore = widgetSettingsStore;
         this.localDatabase = localDatabase;
         this.backupFileSaver = backupFileSaver;
@@ -139,6 +142,7 @@ public partial class MainPage : ContentPage
         TransactionSearchView.TransactionSelected += OnTransactionSearchResultSelected;
         SettingsView.DataDrawerVisibilityChanged += OnSettingsDataDrawerVisibilityChanged;
         AssetsView.EditorVisibilityChanged += OnAssetsEditorVisibilityChanged;
+        AssetsView.SnapshotChanged += OnAssetSnapshotChanged;
         SettingsView.BudgetSettingsRequested += OnBudgetSettingsRequested;
         BudgetSettingsOverlay.VisibilityChanged += OnBudgetSettingsVisibilityChanged;
         TransactionStatisticsOverlay.VisibilityChanged +=
@@ -178,6 +182,7 @@ public partial class MainPage : ContentPage
         {
             await EnsureInitialDataLoadedAsync();
             await OpenPendingWidgetAddTransactionAsync();
+            await OpenPendingWidgetAssetSnapshotAsync();
         }
         catch
         {
@@ -272,6 +277,9 @@ public partial class MainPage : ContentPage
             await settingsViewModel.RefreshCurrentBudgetStatusAsync();
             await RefreshTransactionViewsAfterResumeAsync();
             await ReloadMonthlyBudgetCardsAsync();
+            assetWidgetSnapshotCoordinator.QueuePublish(
+                settingsViewModel.SelectedCurrency,
+                DateTime.Today);
         });
     }
 
@@ -303,6 +311,9 @@ public partial class MainPage : ContentPage
                     transactionDataStore.DashboardRecords,
                     currency);
                 AssetsView.InvalidateCurrency();
+                assetWidgetSnapshotCoordinator.QueuePublish(
+                    currency,
+                    DateTime.Today);
                 return;
             }
 

@@ -3,7 +3,10 @@ namespace FinancialTracker;
 public partial class MainPage
 {
     private readonly SemaphoreSlim widgetAddTransactionLock = new(1, 1);
+    private readonly SemaphoreSlim widgetAssetSnapshotLock = new(1, 1);
     private bool pendingWidgetAddTransaction;
+    private bool pendingWidgetOpenAssets;
+    private DateTime? pendingWidgetAssetSnapshotMonth;
 
     internal void RequestAddTransactionFromWidget()
     {
@@ -13,6 +16,68 @@ public partial class MainPage
             _ = OpenPendingWidgetAddTransactionAsync();
         }
     }
+
+    internal void RequestAddAssetSnapshotFromWidget(DateTime? month)
+    {
+        var requestedMonth = month ?? DateTime.Today;
+        pendingWidgetAssetSnapshotMonth = new DateTime(
+            requestedMonth.Year,
+            requestedMonth.Month,
+            1);
+        if (IsLoaded)
+        {
+            _ = OpenPendingWidgetAssetSnapshotAsync();
+        }
+    }
+
+    internal void RequestOpenAssetsFromWidget()
+    {
+        pendingWidgetOpenAssets = true;
+        if (IsLoaded)
+        {
+            _ = OpenPendingWidgetAssetSnapshotAsync();
+        }
+    }
+
+    private async Task OpenPendingWidgetAssetSnapshotAsync()
+    {
+        await widgetAssetSnapshotLock.WaitAsync();
+        try
+        {
+            if ((!pendingWidgetOpenAssets && pendingWidgetAssetSnapshotMonth is null) ||
+                !IsLoaded)
+            {
+                return;
+            }
+
+            await EnsureInitialDataLoadedAsync();
+            if (selectedSectionIndex != 2)
+            {
+                await NavigateToSectionAsync(2);
+            }
+
+            pendingWidgetOpenAssets = false;
+            if (pendingWidgetAssetSnapshotMonth is DateTime month)
+            {
+                await AssetsView.OpenEditorForMonthAsync(month);
+                pendingWidgetAssetSnapshotMonth = null;
+            }
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"Widget asset snapshot link failed: {exception}");
+        }
+        finally
+        {
+            widgetAssetSnapshotLock.Release();
+        }
+    }
+
+    private void OnAssetSnapshotChanged(DateTime _) =>
+        assetWidgetSnapshotCoordinator.QueuePublish(
+            settingsViewModel.SelectedCurrency,
+            DateTime.Today);
 
     private async Task OpenPendingWidgetAddTransactionAsync()
     {

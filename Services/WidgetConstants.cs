@@ -17,6 +17,9 @@ public static class WidgetConstants
 
     public const string SnapshotFileName = "financial_tracker_widget.json";
 
+    public const string AssetSnapshotFileName =
+        "financial_tracker_asset_widget.json";
+
     public const string InvestmentPreferenceFileName =
         "financial_tracker_widget_include_investment.txt";
 }
