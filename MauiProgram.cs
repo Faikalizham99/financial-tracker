@@ -50,6 +50,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<TransactionStatisticsService>();
         builder.Services.AddSingleton<WidgetSnapshotCoordinator>();
         builder.Services.AddSingleton<AssetWidgetSnapshotCoordinator>();
+        builder.Services.AddSingleton<WidgetAppearanceCoordinator>();
 #if IOS
         builder.Services.AddSingleton<
             IWidgetSnapshotPublisher,
@@ -57,6 +58,9 @@ public static class MauiProgram
         builder.Services.AddSingleton<
             IAssetWidgetSnapshotPublisher,
             IosAssetWidgetSnapshotPublisher>();
+        builder.Services.AddSingleton<
+            IWidgetAppearancePublisher,
+            IosWidgetAppearancePublisher>();
         builder.Services.AddSingleton<
             IWidgetSettingsStore,
             IosWidgetSettingsStore>();
@@ -67,6 +71,9 @@ public static class MauiProgram
         builder.Services.AddSingleton<
             IAssetWidgetSnapshotPublisher,
             NoOpAssetWidgetSnapshotPublisher>();
+        builder.Services.AddSingleton<
+            IWidgetAppearancePublisher,
+            NoOpWidgetAppearancePublisher>();
         builder.Services.AddSingleton<
             IWidgetSettingsStore,
             NoOpWidgetSettingsStore>();

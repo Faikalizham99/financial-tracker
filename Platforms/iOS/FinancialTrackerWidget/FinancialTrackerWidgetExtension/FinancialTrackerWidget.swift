@@ -23,15 +23,7 @@ private enum WidgetSettings {
     )!
 }
 
-private enum WidgetAppearance {
-    static let background = Color(red: 0.985, green: 0.972, blue: 0.948)
-    static let accent = Color(red: 0.392, green: 0.847, blue: 0.894)
-    static let ink = Color(red: 0.095, green: 0.082, blue: 0.180)
-    static let secondaryInk = Color(red: 0.390, green: 0.370, blue: 0.440)
-    static let divider = Color(red: 0.885, green: 0.860, blue: 0.825)
-    static let positive = Color(red: 0.075, green: 0.550, blue: 0.400)
-    static let negative = Color(red: 0.820, green: 0.230, blue: 0.340)
-}
+private typealias WidgetAppearance = SharedWidgetAppearance
 
 private struct FinancialTrackerSummary: Codable {
     let availableText: String
@@ -525,6 +517,7 @@ private struct FinancialTrackerProvider: TimelineProvider {
         in context: Context,
         completion: @escaping (FinancialTrackerEntry) -> Void
     ) {
+        SharedWidgetAppearance.reload()
         let result = context.isPreview
             ? WidgetSnapshotLoadResult.placeholder
             : SharedWidgetStorage.loadSnapshot()
@@ -549,6 +542,7 @@ private struct FinancialTrackerProvider: TimelineProvider {
         in context: Context,
         completion: @escaping (Timeline<FinancialTrackerEntry>) -> Void
     ) {
+        SharedWidgetAppearance.reload()
         let now = Date()
         let result = SharedWidgetStorage.loadSnapshot()
         let requestedMonthKey = SharedWidgetStorage.loadSelectedMonthKey(
@@ -763,7 +757,7 @@ private struct FinancialTrackerWidgetView: View {
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(
                         entry.includeInvestment
-                            ? Color.white
+                            ? WidgetAppearance.accentForeground
                             : WidgetAppearance.secondaryInk
                     )
                     .frame(width: 36, height: 28)

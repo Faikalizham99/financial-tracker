@@ -24,42 +24,7 @@ private enum AssetWidgetSettings {
     )!
 }
 
-private enum AssetWidgetAppearance {
-    static let background = Color(red: 0.985, green: 0.972, blue: 0.948)
-    static let accent = Color(red: 0.392, green: 0.847, blue: 0.894)
-    static let ink = Color(red: 0.095, green: 0.082, blue: 0.180)
-    static let secondaryInk = Color(red: 0.390, green: 0.370, blue: 0.440)
-    static let divider = Color(red: 0.885, green: 0.860, blue: 0.825)
-    static let positive = Color(red: 0.075, green: 0.550, blue: 0.400)
-    static let negative = Color(red: 0.820, green: 0.230, blue: 0.340)
-
-    static func changeColor(_ direction: Int) -> Color {
-        if direction > 0 { return positive }
-        if direction < 0 { return negative }
-        return secondaryInk
-    }
-
-    static func assetColor(_ key: String) -> Color {
-        switch key {
-        case "ambank": return Color(red: 0.93, green: 0.11, blue: 0.14)
-        case "asb": return Color(red: 0.18, green: 0.31, blue: 0.62)
-        case "bank_islam": return Color(red: 0.83, green: 0.08, blue: 0.35)
-        case "cash": return Color(red: 0.55, green: 0.42, blue: 0.24)
-        case "cimb": return Color(red: 0.47, green: 0.00, blue: 0.11)
-        case "gxbank": return Color(red: 0.48, green: 0.17, blue: 0.75)
-        case "kwsp": return Color(red: 0.65, green: 0.48, blue: 0.00)
-        case "luno": return Color(red: 0.06, green: 0.16, blue: 0.34)
-        case "maybank": return Color(red: 0.96, green: 0.76, blue: 0.00)
-        case "moomoo": return Color(red: 1.00, green: 0.42, blue: 0.00)
-        case "ryt_bank": return Color(red: 0.32, green: 0.40, blue: 0.91)
-        case "standard_chartered": return Color(red: 0.18, green: 0.68, blue: 0.00)
-        case "touch_n_go_ewallet": return Color(red: 0.00, green: 0.45, blue: 0.81)
-        case "versa": return Color(red: 0.08, green: 0.60, blue: 0.61)
-        case "wahed": return Color(red: 0.89, green: 0.70, blue: 0.25)
-        default: return secondaryInk
-        }
-    }
-}
+private typealias AssetWidgetAppearance = SharedWidgetAppearance
 
 private struct AssetWidgetSummary: Codable {
     let totalText: String
@@ -401,6 +366,7 @@ private struct FinancialTrackerAssetsProvider: TimelineProvider {
     private func makeEntry(
         loadResult: AssetWidgetLoadResult
     ) -> FinancialTrackerAssetsEntry {
+        SharedWidgetAppearance.reload()
         let snapshot = loadResult.snapshot
         return FinancialTrackerAssetsEntry(
             date: Date(),
@@ -506,7 +472,7 @@ private struct FinancialTrackerAssetsView: View {
                 Image(systemName: "person.crop.circle.badge.checkmark")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(entry.includeKwsp
-                        ? Color.white
+                        ? AssetWidgetAppearance.accentForeground
                         : AssetWidgetAppearance.secondaryInk)
                     .frame(width: 34, height: 27)
                     .background(Capsule().fill(entry.includeKwsp

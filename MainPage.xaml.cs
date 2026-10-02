@@ -35,6 +35,7 @@ public partial class MainPage : ContentPage
     private readonly TransactionDataStore transactionDataStore;
     private readonly WidgetSnapshotCoordinator widgetSnapshotCoordinator;
     private readonly AssetWidgetSnapshotCoordinator assetWidgetSnapshotCoordinator;
+    private readonly WidgetAppearanceCoordinator widgetAppearanceCoordinator;
     private readonly IWidgetSettingsStore widgetSettingsStore;
     private readonly LocalDatabase localDatabase;
     private readonly IBackupFileSaver backupFileSaver;
@@ -80,6 +81,7 @@ public partial class MainPage : ContentPage
         TransactionDataStore transactionDataStore,
         WidgetSnapshotCoordinator widgetSnapshotCoordinator,
         AssetWidgetSnapshotCoordinator assetWidgetSnapshotCoordinator,
+        WidgetAppearanceCoordinator widgetAppearanceCoordinator,
         IWidgetSettingsStore widgetSettingsStore,
         LocalDatabase localDatabase,
         IBackupFileSaver backupFileSaver,
@@ -105,6 +107,7 @@ public partial class MainPage : ContentPage
         this.transactionDataStore = transactionDataStore;
         this.widgetSnapshotCoordinator = widgetSnapshotCoordinator;
         this.assetWidgetSnapshotCoordinator = assetWidgetSnapshotCoordinator;
+        this.widgetAppearanceCoordinator = widgetAppearanceCoordinator;
         this.widgetSettingsStore = widgetSettingsStore;
         this.localDatabase = localDatabase;
         this.backupFileSaver = backupFileSaver;
@@ -241,6 +244,7 @@ public partial class MainPage : ContentPage
 
             var snapshot = await transactionDataStore.LoadStartupAsync(DateTime.Today);
             await settingsViewModel.InitializeAsync();
+            PublishWidgetAppearance();
             ApplyTransactionData(snapshot, settingsViewModel.SelectedCurrency);
             hasCompletedInitialDataLoad = true;
             completedSuccessfully = true;
@@ -280,6 +284,7 @@ public partial class MainPage : ContentPage
             assetWidgetSnapshotCoordinator.QueuePublish(
                 settingsViewModel.SelectedCurrency,
                 DateTime.Today);
+            PublishWidgetAppearance();
         });
     }
 
@@ -295,6 +300,13 @@ public partial class MainPage : ContentPage
         object? sender,
         PropertyChangedEventArgs e)
     {
+        if (string.IsNullOrEmpty(e.PropertyName) ||
+            e.PropertyName == nameof(SettingsViewModel.SelectedTheme) ||
+            e.PropertyName == nameof(SettingsViewModel.SelectedAccentColorHex))
+        {
+            PublishWidgetAppearance();
+        }
+
         if (e.PropertyName == nameof(SettingsViewModel.SelectedCurrency))
         {
             if (isInitialDataLoading)
@@ -321,4 +333,9 @@ public partial class MainPage : ContentPage
             AssetsView.InvalidateCurrency();
         }
     }
+
+    private void PublishWidgetAppearance() =>
+        widgetAppearanceCoordinator.Publish(
+            settingsViewModel.SelectedTheme,
+            settingsViewModel.SelectedAccentColorHex);
 }
