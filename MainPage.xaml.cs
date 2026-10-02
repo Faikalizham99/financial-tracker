@@ -177,6 +177,7 @@ public partial class MainPage : ContentPage
         try
         {
             await EnsureInitialDataLoadedAsync();
+            await OpenPendingWidgetAddTransactionAsync();
         }
         catch
         {

@@ -18,6 +18,9 @@ private enum WidgetSettings {
         "financial_tracker_widget_selected_month.txt"
     static let amountsHiddenKey = "financial_tracker_widget_amounts_hidden"
     static let widgetKind = "FinancialTrackerWidget"
+    static let addTransactionUrl = URL(
+        string: "com.faikalizham.financial-tracker://add-transaction"
+    )!
 }
 
 private enum WidgetAppearance {
@@ -678,6 +681,7 @@ private struct FinancialTrackerWidgetView: View {
                     .font(.system(.headline, design: .rounded).weight(.semibold))
                     .foregroundStyle(WidgetAppearance.ink)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.75)
 
                 if family != .systemSmall {
                     Text(family == .systemLarge
@@ -695,6 +699,7 @@ private struct FinancialTrackerWidgetView: View {
 
             if family == .systemLarge {
                 investmentButton
+                addTransactionLink
             }
 
             if family == .systemMedium {
@@ -781,6 +786,20 @@ private struct FinancialTrackerWidgetView: View {
         }
     }
 
+    private var addTransactionLink: some View {
+        Link(destination: WidgetSettings.addTransactionUrl) {
+            Image(systemName: "plus")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(WidgetAppearance.ink)
+                .frame(width: 28, height: 28)
+                .background(
+                    Circle()
+                        .fill(WidgetAppearance.accent.opacity(0.16))
+                )
+        }
+        .accessibilityLabel("Add transaction")
+    }
+
     private var smallSummary: some View {
         VStack(alignment: .leading, spacing: 4) {
             Spacer(minLength: 0)
@@ -848,10 +867,14 @@ private struct FinancialTrackerWidgetView: View {
     }
 
     private var monthLabel: some View {
-        Label(activeMonthText, systemImage: "calendar")
-            .font(.system(.subheadline, design: .rounded).weight(.semibold))
-            .foregroundStyle(WidgetAppearance.secondaryInk)
-            .lineLimit(1)
+        HStack(spacing: 5) {
+            Image(systemName: "calendar")
+            Text(activeMonthText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+        }
+        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+        .foregroundStyle(WidgetAppearance.secondaryInk)
     }
 
     @ViewBuilder
@@ -918,29 +941,16 @@ private struct FinancialTrackerWidgetView: View {
     }
 
     private var largeSummary: some View {
-        VStack(alignment: .leading, spacing: 11) {
+        VStack(alignment: .leading, spacing: 8) {
+            monthSelector
+
             HStack(alignment: .top, spacing: 12) {
-                VStack(alignment: .leading, spacing: 6) {
-                    monthSelector
-
-                    Text(displayedAmount(activeSummary.availableText))
-                        .font(.system(.largeTitle, design: .rounded).weight(.semibold))
-                        .monospacedDigit()
-                        .foregroundStyle(WidgetAppearance.ink)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.62)
-
-                    HStack(spacing: 5) {
-                        Text(activeTransactionCount == 0
-                            ? "No activity for \(activeMonthText)"
-                            : "Available for \(activeMonthText)")
-                            .font(.caption)
-                            .foregroundStyle(WidgetAppearance.secondaryInk)
-                            .lineLimit(1)
-
-                        privacyButton
-                    }
-                }
+                Text(displayedAmount(activeSummary.availableText))
+                    .font(.system(.largeTitle, design: .rounded).weight(.semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(WidgetAppearance.ink)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.62)
 
                 Spacer(minLength: 8)
 
@@ -956,6 +966,18 @@ private struct FinancialTrackerWidgetView: View {
                         .monospacedDigit()
                         .foregroundStyle(WidgetAppearance.ink)
                 }
+            }
+
+            HStack(spacing: 5) {
+                Text(activeTransactionCount == 0
+                    ? "No activity for \(activeMonthText)"
+                    : "Available for \(activeMonthText)")
+                    .font(.caption)
+                    .foregroundStyle(WidgetAppearance.secondaryInk)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+
+                privacyButton
             }
 
             Divider()

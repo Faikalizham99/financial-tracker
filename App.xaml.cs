@@ -14,6 +14,9 @@ public partial class App : Application
         mainPage = services.GetRequiredService<MainPage>();
     }
 
+    internal void RequestAddTransactionFromWidget() =>
+        mainPage.RequestAddTransactionFromWidget();
+
     protected override Window CreateWindow(IActivationState? activationState)
     {
         var window = new Window(mainPage);
