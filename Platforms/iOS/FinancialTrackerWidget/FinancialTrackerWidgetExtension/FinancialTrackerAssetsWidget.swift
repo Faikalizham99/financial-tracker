@@ -690,12 +690,22 @@ private struct FinancialTrackerAssetsView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                    valueText(item.previousText).frame(width: 68, alignment: .trailing)
-                    valueText(item.currentText).frame(width: 68, alignment: .trailing)
-                    valueText(item.changeText)
-                        .foregroundStyle(AssetWidgetAppearance.changeColor(
-                            item.changeDirection
-                        ))
+                    valueText(
+                        item.previousText,
+                        color: AssetWidgetAppearance.secondaryInk
+                    )
+                        .frame(width: 68, alignment: .trailing)
+                    valueText(
+                        item.currentText,
+                        color: AssetWidgetAppearance.ink,
+                        weight: .semibold
+                    )
+                        .frame(width: 68, alignment: .trailing)
+                    valueText(
+                        item.changeText,
+                        color: rowChangeColor(item),
+                        weight: .semibold
+                    )
                         .frame(width: 70, alignment: .trailing)
                 }
                 .frame(height: 12)
@@ -703,13 +713,27 @@ private struct FinancialTrackerAssetsView: View {
         }
     }
 
-    private func valueText(_ text: String) -> some View {
+    private func valueText(
+        _ text: String,
+        color: Color,
+        weight: Font.Weight = .medium
+    ) -> some View {
         Text(displayed(text))
-            .font(.system(size: 8, weight: .medium))
+            .font(.system(size: 8, weight: weight))
             .monospacedDigit()
-            .foregroundStyle(AssetWidgetAppearance.secondaryInk)
+            .foregroundStyle(color)
             .lineLimit(1)
             .minimumScaleFactor(0.58)
+    }
+
+    private func rowChangeColor(_ item: AssetWidgetItem) -> Color {
+        if item.changeText == "—" {
+            return AssetWidgetAppearance.secondaryInk
+        }
+        if item.changeDirection == 0 {
+            return AssetWidgetAppearance.ink
+        }
+        return AssetWidgetAppearance.changeColor(item.changeDirection)
     }
 
     private var noSnapshot: some View {
