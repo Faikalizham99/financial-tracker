@@ -656,14 +656,22 @@ private struct FinancialTrackerAssetsView: View {
 
     private var tableHeader: some View {
         HStack(spacing: 3) {
-            Text("ASSET").frame(maxWidth: .infinity, alignment: .leading)
-            Text("PREVIOUS").frame(width: 68, alignment: .trailing)
-            Text("CURRENT").frame(width: 68, alignment: .trailing)
-            Text("CHANGE").frame(width: 70, alignment: .trailing)
+            tableHeaderText("ASSET")
+                .frame(maxWidth: .infinity, alignment: .leading)
+            tableHeaderText("PREVIOUS")
+                .frame(width: 68, alignment: .trailing)
+            tableHeaderText("CURRENT")
+                .frame(width: 68, alignment: .trailing)
+            tableHeaderText("CHANGE")
+                .frame(width: 70, alignment: .trailing)
         }
-        .font(.system(size: 7.5, weight: .semibold))
-        .tracking(0.35)
         .foregroundStyle(AssetWidgetAppearance.secondaryInk)
+    }
+
+    private func tableHeaderText(_ title: String) -> Text {
+        Text(title)
+            .font(.system(size: 7.5, weight: .semibold))
+            .tracking(0.35)
     }
 
     private var assetRows: some View {
