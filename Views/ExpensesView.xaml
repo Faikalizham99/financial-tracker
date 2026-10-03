@@ -5,7 +5,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:helpers="clr-namespace:FinancialTracker.Helpers"
     xmlns:models="clr-namespace:FinancialTracker.Models"
-    xmlns:views="clr-namespace:FinancialTracker.Views">
+    xmlns:views="clr-namespace:FinancialTracker.Views"
+    SafeAreaEdges="Container">
 
     <Grid>
     <CollectionView
@@ -186,12 +187,12 @@
         </CollectionView.ItemsLayout>
         <CollectionView.ItemTemplate>
             <DataTemplate x:DataType="models:TransactionActivityGroup">
-                <Grid
-                    Padding="22,0"
-                    SizeChanged="OnActivityGroupItemSizeChanged">
+                <Grid Padding="22,0">
                         <VerticalStackLayout
                             ClassId="TransactionActivityGroup"
-                            Spacing="10">
+                            Spacing="10"
+                            BindingContextChanged="OnActivityGroupBindingContextChanged"
+                            SizeChanged="OnActivityGroupItemSizeChanged">
                             <Grid Margin="14,0" ColumnDefinitions="16,Auto,*,Auto" ColumnSpacing="9">
                                 <Grid.GestureRecognizers>
                                     <TapGestureRecognizer Tapped="OnActivityGroupHeaderTapped" CommandParameter="{Binding .}" />
@@ -305,7 +306,7 @@
 
     <Border
         x:Name="StickyActivityHeader"
-        Margin="22,8,22,0"
+        Margin="{OnPlatform Default='22,8,22,0', WinUI='22,22,22,0'}"
         Padding="12,8"
         IsVisible="False"
         ZIndex="10"
