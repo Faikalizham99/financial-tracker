@@ -35,6 +35,20 @@ private struct FinancialTrackerSummary: Codable {
     let budgetUsageText: String
     let budgetRemainingText: String
     let budgetProgress: Double
+    let budgetLimitMinor: Int64?
+}
+
+private struct FinancialTrackerDaySnapshot: Codable {
+    let day: Int
+    let transactionCount: Int
+    let withInvestmentExpenseMinor: Int64
+    let withoutInvestmentExpenseMinor: Int64
+
+    func expenseMinor(includeInvestment: Bool) -> Int64 {
+        includeInvestment
+            ? withInvestmentExpenseMinor
+            : withoutInvestmentExpenseMinor
+    }
 }
 
 private struct FinancialTrackerMonthSnapshot: Codable {
@@ -43,6 +57,7 @@ private struct FinancialTrackerMonthSnapshot: Codable {
     let transactionCount: Int
     let withInvestment: FinancialTrackerSummary
     let withoutInvestment: FinancialTrackerSummary
+    let days: [FinancialTrackerDaySnapshot]?
 
     func summary(includeInvestment: Bool) -> FinancialTrackerSummary {
         includeInvestment ? withInvestment : withoutInvestment
@@ -102,7 +117,8 @@ private struct FinancialTrackerSnapshot: Codable {
             budgetLimitText: "RM 2,500.00",
             budgetUsageText: "10.2% USED",
             budgetRemainingText: "RM 2,245.00 left",
-            budgetProgress: 0.102
+            budgetProgress: 0.102,
+            budgetLimitMinor: 250_000
         )
     }
 
@@ -118,7 +134,8 @@ private struct FinancialTrackerSnapshot: Codable {
             monthText: Date().formatted(.dateTime.month(.wide).year()),
             transactionCount: 9,
             withInvestment: previewSummary,
-            withoutInvestment: previewSummary
+            withoutInvestment: previewSummary,
+            days: nil
         )
     }
 
@@ -132,7 +149,8 @@ private struct FinancialTrackerSnapshot: Codable {
             budgetLimitText: budgetLimitText ?? "RM 0.00",
             budgetUsageText: budgetUsageText ?? "0% USED",
             budgetRemainingText: budgetRemainingText ?? "RM 0.00 left",
-            budgetProgress: budgetProgress ?? 0
+            budgetProgress: budgetProgress ?? 0,
+            budgetLimitMinor: nil
         )
 
         return includeInvestment
@@ -218,7 +236,7 @@ private enum SharedWidgetStorage {
             return failure(.invalidSnapshot)
         }
 
-        guard (1...4).contains(snapshot.version) else {
+        guard (1...5).contains(snapshot.version) else {
             return failure(.unsupportedVersion)
         }
 

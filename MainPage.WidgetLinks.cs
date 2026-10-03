@@ -4,10 +4,12 @@ public partial class MainPage
 {
     private readonly SemaphoreSlim widgetAddTransactionLock = new(1, 1);
     private readonly SemaphoreSlim widgetAssetSnapshotLock = new(1, 1);
+    private readonly SemaphoreSlim widgetTransactionsLock = new(1, 1);
     private bool pendingWidgetAddTransaction;
     private decimal? pendingWidgetTransactionAmount;
     private bool pendingWidgetOpenAssets;
     private DateTime? pendingWidgetAssetSnapshotMonth;
+    private DateTime? pendingWidgetTransactionDate;
 
     internal void RequestAddTransactionFromWidget(decimal? amount = null)
     {
@@ -40,6 +42,45 @@ public partial class MainPage
         if (IsLoaded)
         {
             _ = OpenPendingWidgetAssetSnapshotAsync();
+        }
+    }
+
+    internal void RequestOpenTransactionsFromWidget(DateTime date)
+    {
+        pendingWidgetTransactionDate = date.Date;
+        if (IsLoaded)
+        {
+            _ = OpenPendingWidgetTransactionsAsync();
+        }
+    }
+
+    private async Task OpenPendingWidgetTransactionsAsync()
+    {
+        await widgetTransactionsLock.WaitAsync();
+        try
+        {
+            if (pendingWidgetTransactionDate is not DateTime date || !IsLoaded)
+            {
+                return;
+            }
+
+            await EnsureInitialDataLoadedAsync();
+            if (selectedSectionIndex != 1)
+            {
+                await NavigateToSectionAsync(1);
+            }
+
+            await ExpensesView.OpenDateAsync(date);
+            pendingWidgetTransactionDate = null;
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"Widget transaction date link failed: {exception}");
+        }
+        finally
+        {
+            widgetTransactionsLock.Release();
         }
     }
 

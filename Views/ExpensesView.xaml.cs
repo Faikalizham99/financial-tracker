@@ -135,6 +135,38 @@ public partial class ExpensesView : ContentView
 
     public Task ReloadTransactionsAsync() => LoadDisplayedPeriodAsync();
 
+    public async Task OpenDateAsync(DateTime date)
+    {
+        CancelTransactionFocusAnimation();
+        var selectedDate = date.Date;
+        displayedMonth = new DateTime(
+            selectedDate.Year,
+            selectedDate.Month,
+            1);
+        selectedPaymentFilter = null;
+        selectedCategoryFilter = null;
+        selectedStartDate = selectedDate;
+        selectedEndDate = selectedDate;
+        collapsedActivityGroupDates.Remove(selectedDate);
+
+        await LoadDisplayedPeriodAsync();
+        VisualElement? groupView = null;
+        for (var attempt = 0; attempt < 10 && groupView is null; attempt++)
+        {
+            await Task.Delay(30);
+            groupView = ActivityGroupsLayout.Children
+                .OfType<VisualElement>()
+                .FirstOrDefault();
+        }
+        if (groupView is not null)
+        {
+            await TransactionsScrollView.ScrollToAsync(
+                groupView,
+                ScrollToPosition.Start,
+                animated: false);
+        }
+    }
+
     public Task RefreshTransactionsAsync(
         IReadOnlyList<TransactionRecord> currentMonthRecords,
         DateTime currentMonth,

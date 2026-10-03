@@ -7,4 +7,5 @@ public sealed record WidgetMonthSnapshot(
     [property: JsonPropertyName("monthText")] string MonthText,
     [property: JsonPropertyName("transactionCount")] int TransactionCount,
     [property: JsonPropertyName("withInvestment")] WidgetSummary WithInvestment,
-    [property: JsonPropertyName("withoutInvestment")] WidgetSummary WithoutInvestment);
+    [property: JsonPropertyName("withoutInvestment")] WidgetSummary WithoutInvestment,
+    [property: JsonPropertyName("days")] IReadOnlyList<WidgetDaySnapshot> Days);

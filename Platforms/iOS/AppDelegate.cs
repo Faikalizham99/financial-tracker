@@ -15,7 +15,11 @@ public class AppDelegate : MauiUIApplicationDelegate
         NSDictionary options)
     {
         var host = url.Host?.ToLowerInvariant();
-        if (host is not ("add-transaction" or "add-asset-snapshot" or "assets"))
+        if (host is not (
+                "add-transaction" or
+                "add-asset-snapshot" or
+                "assets" or
+                "transactions"))
         {
             return base.OpenUrl(application, url, options);
         }
@@ -34,15 +38,46 @@ public class AppDelegate : MauiUIApplicationDelegate
                 Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(
                     () => app.RequestAddAssetSnapshotFromWidget(month));
             }
-            else
+            else if (host == "assets")
             {
                 Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(
                     app.RequestOpenAssetsFromWidget);
+            }
+            else if (TryReadDate(url.Query) is DateTime date)
+            {
+                Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(
+                    () => app.RequestOpenTransactionsFromWidget(date));
             }
             return true;
         }
 
         return false;
+    }
+
+    private static DateTime? TryReadDate(string? query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+        {
+            return null;
+        }
+
+        foreach (var part in query.TrimStart('?').Split('&'))
+        {
+            var pair = part.Split('=', 2);
+            if (pair.Length == 2 &&
+                pair[0].Equals("date", StringComparison.OrdinalIgnoreCase) &&
+                DateTime.TryParseExact(
+                    Uri.UnescapeDataString(pair[1]),
+                    "yyyy-MM-dd",
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.None,
+                    out var date))
+            {
+                return date;
+            }
+        }
+
+        return null;
     }
 
     private static DateTime? TryReadMonth(string? query)

@@ -6,7 +6,7 @@ namespace FinancialTracker.Services;
 
 public static class WidgetSnapshotBuilder
 {
-    private const int SchemaVersion = 4;
+    private const int SchemaVersion = 5;
     public const int HistoryMonthCount = 12;
 
     public static WidgetSnapshot Build(
@@ -71,8 +71,42 @@ public static class WidgetSnapshotBuilder
         DateTime month,
         IReadOnlyList<TransactionRecord> records,
         MonthlyBudgetRecord? budget,
-        string currencySymbol) =>
-        new(
+        string currencySymbol)
+    {
+        var recordsByDay = records
+            .GroupBy(record => record.TransactionDate.Day)
+            .ToDictionary(group => group.Key, group => group.ToList());
+        var daysInMonth = DateTime.DaysInMonth(month.Year, month.Month);
+        var days = new List<WidgetDaySnapshot>(daysInMonth);
+        for (var day = 1; day <= daysInMonth; day++)
+        {
+            recordsByDay.TryGetValue(day, out var dayRecords);
+            long withInvestmentExpenseMinor = 0;
+            long withoutInvestmentExpenseMinor = 0;
+            foreach (var record in dayRecords ?? [])
+            {
+                if (!TransactionCatalog.IsExpenseType(record.Type))
+                {
+                    continue;
+                }
+
+                withInvestmentExpenseMinor += record.AmountMinor;
+                if (!record.Category.Equals(
+                        TransactionCatalog.InvestmentCategoryKey,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    withoutInvestmentExpenseMinor += record.AmountMinor;
+                }
+            }
+
+            days.Add(new WidgetDaySnapshot(
+                day,
+                dayRecords?.Count ?? 0,
+                withInvestmentExpenseMinor,
+                withoutInvestmentExpenseMinor));
+        }
+
+        return new WidgetMonthSnapshot(
             MonthKeyConverter.FromDate(month),
             month.ToString("MMMM yyyy", CultureInfo.CurrentCulture),
             records.Count,
@@ -85,7 +119,9 @@ public static class WidgetSnapshotBuilder
                 records,
                 currencySymbol,
                 includeInvestment: false,
-                budget));
+                budget),
+            days);
+    }
 
     private static WidgetSummary BuildSummary(
         IReadOnlyList<TransactionRecord> records,
@@ -147,6 +183,7 @@ public static class WidgetSnapshotBuilder
             budgetRemainingMinor >= 0
                 ? $"{MoneyFormatter.FormatMinor(budgetRemainingMinor, currencySymbol)} left"
                 : $"{MoneyFormatter.FormatMinor(-budgetRemainingMinor, currencySymbol)} over budget",
-            Math.Clamp(budgetUsageRatio, 0, 1));
+            Math.Clamp(budgetUsageRatio, 0, 1),
+            budgetMinor);
     }
 }

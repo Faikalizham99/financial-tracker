@@ -7,5 +7,6 @@ struct FinancialTrackerWidgetBundle: WidgetBundle {
         FinancialTrackerWidget()
         FinancialTrackerAssetsWidget()
         FinancialCalculatorWidget()
+        FinancialTrackerSpendingCalendarWidget()
     }
 }
