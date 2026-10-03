@@ -94,6 +94,13 @@ public partial class MainPage
     {
         await settingsViewModel.RefreshCurrentBudgetStatusAsync();
         await ReloadMonthlyBudgetCardsAsync();
+        if (transactionDataStore.IsLoaded)
+        {
+            widgetSnapshotCoordinator.QueuePublish(
+                settingsViewModel.SelectedCurrency,
+                includeInvestmentInTotals,
+                DateTime.Today);
+        }
     }
 
     private Task ReloadMonthlyBudgetCardsAsync() => Task.WhenAll(

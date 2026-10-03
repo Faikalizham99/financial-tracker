@@ -1,0 +1,27 @@
+name: FinancialTrackerWidget
+
+options:
+  bundleIdPrefix: com.faikalizham.financial-tracker
+  deploymentTarget:
+    iOS: "15.0"
+  xcodeVersion: "26.0"
+
+settings:
+  base:
+    DEVELOPMENT_TEAM: ""
+
+targets:
+  FinancialTrackerWidgetExtension:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: FinancialTrackerWidgetExtension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.faikalizham.financial-tracker.widget
+        PRODUCT_NAME: FinancialTrackerWidgetExtension
+        INFOPLIST_FILE: FinancialTrackerWidgetExtension/Info.plist
+        CODE_SIGN_ENTITLEMENTS: FinancialTrackerWidgetExtension/FinancialTrackerWidgetExtension.entitlements
+        GENERATE_INFOPLIST_FILE: false
+        SWIFT_VERSION: "5.0"
+        SKIP_INSTALL: true

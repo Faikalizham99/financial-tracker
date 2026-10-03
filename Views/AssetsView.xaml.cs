@@ -48,6 +48,14 @@ public partial class AssetsView : ContentView
     public Func<DateTime, DateTime, DateTime, Task<DateTime?>>? DatePickerRequested { get; set; }
 
     public event Action<bool>? EditorVisibilityChanged;
+    public event Action<DateTime>? SnapshotChanged;
+
+    public async Task OpenEditorForMonthAsync(DateTime month)
+    {
+        selectedMonth = new DateTime(month.Year, month.Month, 1);
+        hasLoaded = false;
+        await OpenEditorAsync();
+    }
 
     public void Configure(
         AssetPortfolioService service,
@@ -665,6 +673,7 @@ public partial class AssetsView : ContentView
                 selectedEntryDate,
                 editorCurrencyCode,
                 amounts);
+            SnapshotChanged?.Invoke(selectedMonth);
             SetEditorVisibility(false);
             hasLoaded = false;
             await LoadAsync();

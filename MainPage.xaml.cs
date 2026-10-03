@@ -33,6 +33,10 @@ public partial class MainPage : ContentPage
     private readonly SettingsViewModel settingsViewModel;
     private readonly MonthlyBudgetService monthlyBudgetService;
     private readonly TransactionDataStore transactionDataStore;
+    private readonly WidgetSnapshotCoordinator widgetSnapshotCoordinator;
+    private readonly AssetWidgetSnapshotCoordinator assetWidgetSnapshotCoordinator;
+    private readonly WidgetAppearanceCoordinator widgetAppearanceCoordinator;
+    private readonly IWidgetSettingsStore widgetSettingsStore;
     private readonly LocalDatabase localDatabase;
     private readonly IBackupFileSaver backupFileSaver;
     private readonly IBackupFilePicker backupFilePicker;
@@ -75,6 +79,10 @@ public partial class MainPage : ContentPage
         MonthlyBudgetService monthlyBudgetService,
         AssetPortfolioService assetPortfolioService,
         TransactionDataStore transactionDataStore,
+        WidgetSnapshotCoordinator widgetSnapshotCoordinator,
+        AssetWidgetSnapshotCoordinator assetWidgetSnapshotCoordinator,
+        WidgetAppearanceCoordinator widgetAppearanceCoordinator,
+        IWidgetSettingsStore widgetSettingsStore,
         LocalDatabase localDatabase,
         IBackupFileSaver backupFileSaver,
         IBackupFilePicker backupFilePicker)
@@ -97,6 +105,10 @@ public partial class MainPage : ContentPage
         this.settingsViewModel = settingsViewModel;
         this.monthlyBudgetService = monthlyBudgetService;
         this.transactionDataStore = transactionDataStore;
+        this.widgetSnapshotCoordinator = widgetSnapshotCoordinator;
+        this.assetWidgetSnapshotCoordinator = assetWidgetSnapshotCoordinator;
+        this.widgetAppearanceCoordinator = widgetAppearanceCoordinator;
+        this.widgetSettingsStore = widgetSettingsStore;
         this.localDatabase = localDatabase;
         this.backupFileSaver = backupFileSaver;
         this.backupFilePicker = backupFilePicker;
@@ -133,6 +145,7 @@ public partial class MainPage : ContentPage
         TransactionSearchView.TransactionSelected += OnTransactionSearchResultSelected;
         SettingsView.DataDrawerVisibilityChanged += OnSettingsDataDrawerVisibilityChanged;
         AssetsView.EditorVisibilityChanged += OnAssetsEditorVisibilityChanged;
+        AssetsView.SnapshotChanged += OnAssetSnapshotChanged;
         SettingsView.BudgetSettingsRequested += OnBudgetSettingsRequested;
         BudgetSettingsOverlay.VisibilityChanged += OnBudgetSettingsVisibilityChanged;
         TransactionStatisticsOverlay.VisibilityChanged +=
@@ -144,9 +157,24 @@ public partial class MainPage : ContentPage
         SettingsView.DatabaseRestoreRequested += OnDatabaseRestoreRequested;
         SettingsView.DatabaseResetRequested += OnDatabaseResetRequested;
         settingsViewModel.PropertyChanged += OnSettingsPropertyChanged;
-        includeInvestmentInTotals = Preferences.Default.Get(
+        var savedIncludeInvestment = Preferences.Default.Get(
             IncludeInvestmentInTotalsPreferenceKey,
             true);
+        if (widgetSettingsStore.TryReadIncludeInvestment(
+                out var sharedIncludeInvestment))
+        {
+            includeInvestmentInTotals = sharedIncludeInvestment;
+            Preferences.Default.Set(
+                IncludeInvestmentInTotalsPreferenceKey,
+                sharedIncludeInvestment);
+        }
+        else
+        {
+            includeInvestmentInTotals = savedIncludeInvestment;
+            widgetSettingsStore.TryWriteIncludeInvestment(
+                savedIncludeInvestment);
+        }
+
         UpdateInvestmentInclusionState();
         Loaded += OnLoaded;
     }
@@ -156,6 +184,8 @@ public partial class MainPage : ContentPage
         try
         {
             await EnsureInitialDataLoadedAsync();
+            await OpenPendingWidgetAddTransactionAsync();
+            await OpenPendingWidgetAssetSnapshotAsync();
         }
         catch
         {
@@ -214,6 +244,7 @@ public partial class MainPage : ContentPage
 
             var snapshot = await transactionDataStore.LoadStartupAsync(DateTime.Today);
             await settingsViewModel.InitializeAsync();
+            PublishWidgetAppearance();
             ApplyTransactionData(snapshot, settingsViewModel.SelectedCurrency);
             hasCompletedInitialDataLoad = true;
             completedSuccessfully = true;
@@ -237,6 +268,7 @@ public partial class MainPage : ContentPage
 
     internal async Task RefreshAfterResumeAsync()
     {
+        SynchronizeInvestmentInclusionFromWidget();
         if (!hasCompletedInitialDataLoad)
         {
             await EnsureInitialDataLoadedAsync();
@@ -249,6 +281,10 @@ public partial class MainPage : ContentPage
             await settingsViewModel.RefreshCurrentBudgetStatusAsync();
             await RefreshTransactionViewsAfterResumeAsync();
             await ReloadMonthlyBudgetCardsAsync();
+            assetWidgetSnapshotCoordinator.QueuePublish(
+                settingsViewModel.SelectedCurrency,
+                DateTime.Today);
+            PublishWidgetAppearance();
         });
     }
 
@@ -264,6 +300,14 @@ public partial class MainPage : ContentPage
         object? sender,
         PropertyChangedEventArgs e)
     {
+        if (string.IsNullOrEmpty(e.PropertyName) ||
+            e.PropertyName == nameof(SettingsViewModel.SelectedTheme) ||
+            e.PropertyName == nameof(SettingsViewModel.SelectedAccentColorHex) ||
+            e.PropertyName == nameof(SettingsViewModel.SelectedCurrency))
+        {
+            PublishWidgetAppearance();
+        }
+
         if (e.PropertyName == nameof(SettingsViewModel.SelectedCurrency))
         {
             if (isInitialDataLoading)
@@ -280,6 +324,9 @@ public partial class MainPage : ContentPage
                     transactionDataStore.DashboardRecords,
                     currency);
                 AssetsView.InvalidateCurrency();
+                assetWidgetSnapshotCoordinator.QueuePublish(
+                    currency,
+                    DateTime.Today);
                 return;
             }
 
@@ -287,4 +334,10 @@ public partial class MainPage : ContentPage
             AssetsView.InvalidateCurrency();
         }
     }
+
+    private void PublishWidgetAppearance() =>
+        widgetAppearanceCoordinator.Publish(
+            settingsViewModel.SelectedTheme,
+            settingsViewModel.SelectedAccentColorHex,
+            settingsViewModel.SelectedCurrency.Symbol);
 }

@@ -38,6 +38,8 @@ public partial class MainPage
                 Preferences.Default.Clear();
                 monthlyBudgetService.InvalidateCache();
                 includeInvestmentInTotals = true;
+                widgetSettingsStore.TryWriteIncludeInvestment(
+                    includeInvestmentInTotals);
                 expandedDashboardTransactionDescriptionId = null;
                 TransactionSearchView.ResetState();
                 LoadHomeSectionOrder();

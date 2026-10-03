@@ -14,6 +14,15 @@ public partial class App : Application
         mainPage = services.GetRequiredService<MainPage>();
     }
 
+    internal void RequestAddTransactionFromWidget(decimal? amount = null) =>
+        mainPage.RequestAddTransactionFromWidget(amount);
+
+    internal void RequestAddAssetSnapshotFromWidget(DateTime? month) =>
+        mainPage.RequestAddAssetSnapshotFromWidget(month);
+
+    internal void RequestOpenAssetsFromWidget() =>
+        mainPage.RequestOpenAssetsFromWidget();
+
     protected override Window CreateWindow(IActivationState? activationState)
     {
         var window = new Window(mainPage);

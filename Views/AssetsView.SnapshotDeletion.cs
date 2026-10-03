@@ -48,6 +48,7 @@ public partial class AssetsView
         try
         {
             await portfolioService.DeleteAsync(selectedMonth);
+            SnapshotChanged?.Invoke(selectedMonth);
             SetEditorVisibility(false);
             hasLoaded = false;
             await LoadAsync();

@@ -42,7 +42,7 @@ jobs:
           echo "Building Financial Tracker $app_display_version ($app_build_version)"
 
   build-ios:
-    name: Build unsigned iPhone IPA
+    name: Build iPhone IPA
     needs: resolve_version
     runs-on: macos-26
     timeout-minutes: 45
@@ -53,6 +53,12 @@ jobs:
       DOTNET_WORKLOAD_SET_VERSION: 10.0.401
       APP_DISPLAY_VERSION: ${{ needs.resolve_version.outputs.display_version }}
       APP_BUILD_VERSION: ${{ needs.resolve_version.outputs.build_version }}
+      WIDGET_PROJECT_DIR: Platforms/iOS/FinancialTrackerWidget
+      WIDGET_TARGET: FinancialTrackerWidgetExtension
+      WIDGET_BUNDLE_ID: com.faikalizham.financial-tracker.widget
+      APP_GROUP_ID: group.com.faikalizham.financial-tracker
+      APP_ENTITLEMENTS_PATH: Platforms/iOS/Entitlements.plist
+      WIDGET_ENTITLEMENTS_PATH: Platforms/iOS/FinancialTrackerWidget/FinancialTrackerWidgetExtension/FinancialTrackerWidgetExtension.entitlements
 
     steps:
       - name: Check out repository
@@ -71,6 +77,53 @@ jobs:
           dotnet --info
           xcodebuild -version
           xcode-select -p
+
+      - name: Install XcodeGen
+        run: |
+          if ! command -v xcodegen >/dev/null 2>&1; then
+            brew install xcodegen
+          fi
+          xcodegen --version
+
+      - name: Build unsigned WidgetKit extension
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          widget_root="$GITHUB_WORKSPACE/$WIDGET_PROJECT_DIR"
+          widget_build_root="$RUNNER_TEMP/financialtracker-widget-build"
+
+          if [[ ! -f "$widget_root/project.yml" ]]; then
+            echo "Widget project specification was not found: $widget_root/project.yml" >&2
+            exit 1
+          fi
+
+          (
+            cd "$widget_root"
+            xcodegen generate
+            xcodebuild -quiet \
+              -project FinancialTrackerWidget.xcodeproj \
+              -target "$WIDGET_TARGET" \
+              -configuration Release \
+              -sdk iphoneos \
+              -arch arm64 \
+              CODE_SIGN_IDENTITY="-" \
+              CODE_SIGNING_REQUIRED=NO \
+              CODE_SIGNING_ALLOWED=NO \
+              MARKETING_VERSION="$APP_DISPLAY_VERSION" \
+              CURRENT_PROJECT_VERSION="$APP_BUILD_VERSION" \
+              BUILD_DIR="$widget_build_root" \
+              clean build
+          )
+
+          widget_path="$widget_build_root/Release-iphoneos/$WIDGET_TARGET.appex"
+          if [[ ! -d "$widget_path" ]]; then
+            echo "WidgetKit extension was not produced: $widget_path" >&2
+            exit 1
+          fi
+
+          echo "WIDGET_APPEX_PATH=$widget_path" >> "$GITHUB_ENV"
+          echo "WidgetKit extension: $widget_path"
 
       - name: Install the .NET MAUI iOS workload
         run: >-
@@ -99,7 +152,7 @@ jobs:
           -p:ApplicationDisplayVersion="$APP_DISPLAY_VERSION"
           -p:ApplicationVersion="$APP_BUILD_VERSION"
 
-      - name: Package and verify LiveContainer IPA
+      - name: Package and verify iPhone IPA
         id: package
         shell: bash
         run: |
@@ -180,11 +233,122 @@ jobs:
             exit 1
           fi
 
-          if codesign -d "$app_path" >/dev/null 2>&1; then
-            signing_state="signed (unexpected; inspect the workflow log)"
-          else
-            signing_state="unsigned (expected; LiveContainer/SideStore will re-sign it)"
+          if [[ -z "${WIDGET_APPEX_PATH:-}" || ! -d "$WIDGET_APPEX_PATH" ]]; then
+            echo "The WidgetKit extension build output is missing: ${WIDGET_APPEX_PATH:-<unset>}" >&2
+            exit 1
           fi
+
+          widget_info_plist="$WIDGET_APPEX_PATH/Info.plist"
+          if [[ ! -f "$widget_info_plist" ]]; then
+            echo "The WidgetKit extension has no Info.plist: $WIDGET_APPEX_PATH" >&2
+            exit 1
+          fi
+
+          widget_bundle_id=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$widget_info_plist")
+          widget_executable_name=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$widget_info_plist")
+          widget_display_version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$widget_info_plist")
+          widget_build_version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$widget_info_plist")
+          widget_extension_point=$(/usr/libexec/PlistBuddy -c 'Print :NSExtension:NSExtensionPointIdentifier' "$widget_info_plist")
+          widget_executable_path="$WIDGET_APPEX_PATH/$widget_executable_name"
+
+          if [[ "$widget_bundle_id" != "$WIDGET_BUNDLE_ID" ]]; then
+            echo "Unexpected widget bundle identifier: $widget_bundle_id" >&2
+            exit 1
+          fi
+
+          if [[ "$widget_display_version" != "$APP_DISPLAY_VERSION" ]]; then
+            echo "Unexpected widget version: $widget_display_version (expected $APP_DISPLAY_VERSION)" >&2
+            exit 1
+          fi
+
+          if [[ "$widget_build_version" != "$APP_BUILD_VERSION" ]]; then
+            echo "Unexpected widget build number: $widget_build_version (expected $APP_BUILD_VERSION)" >&2
+            exit 1
+          fi
+
+          if [[ "$widget_extension_point" != "com.apple.widgetkit-extension" ]]; then
+            echo "Unexpected widget extension point: $widget_extension_point" >&2
+            exit 1
+          fi
+
+          if [[ ! -f "$widget_executable_path" ]]; then
+            echo "Widget executable was not found: $widget_executable_path" >&2
+            exit 1
+          fi
+
+          widget_architectures=$(lipo -archs "$widget_executable_path")
+          if [[ " $widget_architectures " != *" arm64 "* ]]; then
+            echo "The widget executable is not ARM64: $widget_architectures" >&2
+            exit 1
+          fi
+          if [[ " $widget_architectures " == *" x86_64 "* ]]; then
+            echo "The widget unexpectedly contains a simulator x86_64 slice: $widget_architectures" >&2
+            exit 1
+          fi
+
+          plugins_path="$app_path/PlugIns"
+          embedded_widget_path="$plugins_path/$WIDGET_TARGET.appex"
+          mkdir -p "$plugins_path"
+          ditto "$WIDGET_APPEX_PATH" "$embedded_widget_path"
+
+          embedded_widget_count=$(find "$plugins_path" -mindepth 1 -maxdepth 1 -type d -name '*.appex' | wc -l | tr -d ' ')
+          if [[ "$embedded_widget_count" -ne 1 ]]; then
+            echo "The app must contain exactly one embedded extension; found $embedded_widget_count." >&2
+            find "$plugins_path" -mindepth 1 -maxdepth 1 -type d -name '*.appex' -print
+            exit 1
+          fi
+
+          app_entitlements="$GITHUB_WORKSPACE/$APP_ENTITLEMENTS_PATH"
+          widget_entitlements="$GITHUB_WORKSPACE/$WIDGET_ENTITLEMENTS_PATH"
+          if [[ ! -f "$app_entitlements" ]]; then
+            echo "App entitlements were not found: $app_entitlements" >&2
+            exit 1
+          fi
+          if [[ ! -f "$widget_entitlements" ]]; then
+            echo "Widget entitlements were not found: $widget_entitlements" >&2
+            exit 1
+          fi
+
+          sign_nested_code() {
+            local root="$1"
+
+            while IFS= read -r -d '' library; do
+              codesign --force --sign - --timestamp=none "$library"
+            done < <(find "$root" -depth -type f \( -name '*.dylib' -o -name '*.so' \) -print0)
+
+            while IFS= read -r -d '' framework; do
+              codesign --force --sign - --timestamp=none "$framework"
+            done < <(find "$root" -depth -type d -name '*.framework' -print0)
+          }
+
+          sign_nested_code "$app_path"
+          codesign --force --sign - --timestamp=none \
+            --entitlements "$widget_entitlements" \
+            "$embedded_widget_path"
+          codesign --force --sign - --timestamp=none \
+            --entitlements "$app_entitlements" \
+            "$app_path"
+
+          codesign --verify --deep --strict "$embedded_widget_path"
+          codesign --verify --deep --strict "$app_path"
+
+          app_signed_entitlements=$(mktemp "$RUNNER_TEMP/financialtracker-app-entitlements.XXXXXX")
+          widget_signed_entitlements=$(mktemp "$RUNNER_TEMP/financialtracker-widget-entitlements.XXXXXX")
+          codesign -d --entitlements :- "$app_path" > "$app_signed_entitlements" 2>/dev/null
+          codesign -d --entitlements :- "$embedded_widget_path" > "$widget_signed_entitlements" 2>/dev/null
+
+          app_group=$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.application-groups:0' "$app_signed_entitlements")
+          widget_app_group=$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.application-groups:0' "$widget_signed_entitlements")
+          if [[ "$app_group" != "$APP_GROUP_ID" ]]; then
+            echo "Unexpected app App Group entitlement: $app_group" >&2
+            exit 1
+          fi
+          if [[ "$widget_app_group" != "$APP_GROUP_ID" ]]; then
+            echo "Unexpected widget App Group entitlement: $widget_app_group" >&2
+            exit 1
+          fi
+
+          signing_state="ad hoc signed with App Group entitlements (the install-time signer must re-sign all code)"
 
           package_root=$(mktemp -d "$RUNNER_TEMP/financialtracker-ipa.XXXXXX")
           mkdir -p "$package_root/Payload" "$GITHUB_WORKSPACE/artifacts"
@@ -211,6 +375,16 @@ jobs:
             exit 1
           fi
 
+          payload_widget_count=$(
+            unzip -Z1 "$ipa_path" |
+              awk -F/ '$1 == "Payload" && $2 ~ /[.]app$/ && $3 == "PlugIns" && $4 ~ /[.]appex$/ && $5 == "" && NF == 5 { count++ } END { print count + 0 }'
+          )
+          if [[ "$payload_widget_count" -ne 1 ]]; then
+            echo "IPA must contain exactly one Payload/*.app/PlugIns/*.appex bundle." >&2
+            unzip -Z1 "$ipa_path" | grep -E 'Payload/[^/]+[.]app/PlugIns/' | head -100 || true
+            exit 1
+          fi
+
           ipa_size=$(du -h "$ipa_path" | cut -f1)
           ipa_sha256=$(shasum -a 256 "$ipa_path" | awk '{print $1}')
 
@@ -221,6 +395,9 @@ jobs:
           echo "Bundle ID: $bundle_id"
           echo "Version: $bundle_display_version ($bundle_build_version)"
           echo "Architectures: $architectures"
+          echo "Widget bundle ID: $widget_bundle_id"
+          echo "Widget architectures: $widget_architectures"
+          echo "App Group: $app_group"
           echo "Signing: $signing_state"
           echo "IPA: $ipa_path"
           echo "IPA size: $ipa_size"
@@ -232,6 +409,9 @@ jobs:
             echo "- Bundle ID: \`$bundle_id\`"
             echo "- Version: \`$bundle_display_version ($bundle_build_version)\`"
             echo "- Architectures: \`$architectures\`"
+            echo "- Widget bundle ID: \`$widget_bundle_id\`"
+            echo "- Widget architectures: \`$widget_architectures\`"
+            echo "- App Group: \`$app_group\`"
             echo "- Signing: $signing_state"
             echo "- IPA: \`$ipa_path\`"
             echo "- IPA size: $ipa_size"

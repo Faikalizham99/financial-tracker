@@ -105,6 +105,14 @@ public sealed class TransactionEntryViewModel
     public void SetTransactionDate(DateTime date) =>
         TransactionDate = date.Date;
 
+    public void SetAmount(decimal amount)
+    {
+        currentInput = FormatAmount(Math.Abs(amount));
+        accumulator = 0;
+        pendingOperator = null;
+        startNewInput = true;
+    }
+
     public void ApplySuggestion(TransactionHistorySuggestion suggestion)
     {
         SelectedType = suggestion.TransactionType;
