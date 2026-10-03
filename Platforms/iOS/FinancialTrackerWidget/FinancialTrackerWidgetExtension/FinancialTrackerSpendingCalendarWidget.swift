@@ -227,6 +227,27 @@ private enum CalendarWidgetStorage {
         }
     }
 
+    @discardableResult
+    static func writeIncludeInvestment(_ includeInvestment: Bool) -> Bool {
+        guard let containerUrl = availableContainer()?.url else {
+            return false
+        }
+        let preferenceUrl = containerUrl.appendingPathComponent(
+            SpendingCalendarSettings.investmentPreferenceFileName,
+            isDirectory: false
+        )
+        do {
+            try (includeInvestment ? "true" : "false").write(
+                to: preferenceUrl,
+                atomically: true,
+                encoding: .utf8
+            )
+            return true
+        } catch {
+            return false
+        }
+    }
+
     static func loadSelectedMonthKey(fallback: Int) -> Int {
         guard let containerUrl = availableContainer()?.url else {
             return fallback
@@ -313,6 +334,37 @@ struct ToggleSpendingCalendarPrivacyIntent: AppIntent {
 
     func perform() async throws -> some IntentResult {
         CalendarWidgetStorage.toggleAmountsHidden()
+        WidgetCenter.shared.reloadTimelines(
+            ofKind: SpendingCalendarSettings.widgetKind
+        )
+        WidgetCenter.shared.reloadTimelines(
+            ofKind: SpendingCalendarSettings.mainWidgetKind
+        )
+        return .result()
+    }
+}
+
+@available(iOS 17.0, *)
+struct ToggleSpendingCalendarInvestmentIntent: AppIntent {
+    static var title: LocalizedStringResource = "Include or Exclude Investment"
+    static var description = IntentDescription(
+        "Toggle whether investment transactions are included in the spending calendar."
+    )
+    static var openAppWhenRun = false
+
+    @Parameter(title: "Currently Includes Investment")
+    var currentValue: Bool
+
+    init() {
+        currentValue = true
+    }
+
+    init(currentValue: Bool) {
+        self.currentValue = currentValue
+    }
+
+    func perform() async throws -> some IntentResult {
+        CalendarWidgetStorage.writeIncludeInvestment(!currentValue)
         WidgetCenter.shared.reloadTimelines(
             ofKind: SpendingCalendarSettings.widgetKind
         )
@@ -479,6 +531,38 @@ private struct SpendingCalendarWidgetView: View {
         return (weekday + 5) % 7
     }
 
+    private var weekCount: Int {
+        max(4, Int(ceil(Double(leadingBlankCount + dayCount) / 7.0)))
+    }
+
+    private var gridCellCount: Int {
+        weekCount * 7
+    }
+
+    private var dayCellHeight: CGFloat {
+        switch weekCount {
+        case 4: return 49
+        case 5: return 39
+        default: return 32
+        }
+    }
+
+    private var monthSpentMinor: Int64 {
+        month?.days?.reduce(0) { partialResult, day in
+            partialResult + day.expenseMinor(
+                includeInvestment: entry.includeInvestment
+            )
+        } ?? 0
+    }
+
+    private var budgetUsage: Double {
+        guard let budgetMinor = summary?.budgetLimitMinor,
+              budgetMinor > 0 else {
+            return 0
+        }
+        return Double(monthSpentMinor) / Double(budgetMinor)
+    }
+
     private var dailyAllowanceMinor: Double {
         guard summary?.hasBudget == true,
               let budgetMinor = summary?.budgetLimitMinor,
@@ -535,8 +619,38 @@ private struct SpendingCalendarWidgetView: View {
             }
 
             Spacer(minLength: 4)
+            investmentButton
             privacyButton
             refreshButton
+        }
+    }
+
+    @ViewBuilder
+    private var investmentButton: some View {
+        if #available(iOS 17.0, *) {
+            Button(intent: ToggleSpendingCalendarInvestmentIntent(
+                currentValue: entry.includeInvestment
+            )) {
+                Image(systemName: "chart.line.uptrend.xyaxis")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(
+                        entry.includeInvestment
+                            ? CalendarAppearance.accentForeground
+                            : CalendarAppearance.secondaryInk
+                    )
+                    .frame(width: 34, height: 28)
+                    .background(
+                        Capsule().fill(
+                            entry.includeInvestment
+                                ? CalendarAppearance.accent
+                                : CalendarAppearance.secondaryInk.opacity(0.10)
+                        )
+                    )
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(entry.includeInvestment
+                ? "Exclude investment from calendar"
+                : "Include investment in calendar")
         }
     }
 
@@ -687,12 +801,12 @@ private struct SpendingCalendarWidgetView: View {
 
     private var calendarGrid: some View {
         LazyVGrid(columns: columns, spacing: 4) {
-            ForEach(0..<42, id: \.self) { index in
+            ForEach(0..<gridCellCount, id: \.self) { index in
                 let day = index - leadingBlankCount + 1
                 if day >= 1 && day <= dayCount {
                     dayLink(day: day)
                 } else {
-                    Color.clear.frame(height: 35)
+                    Color.clear.frame(height: dayCellHeight)
                 }
             }
         }
@@ -726,7 +840,7 @@ private struct SpendingCalendarWidgetView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.55)
         }
-        .frame(maxWidth: .infinity, minHeight: 35)
+        .frame(maxWidth: .infinity, minHeight: dayCellHeight)
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(levelColor(level).opacity(level == .none ? 0.06 : 0.14))
@@ -741,7 +855,30 @@ private struct SpendingCalendarWidgetView: View {
     }
 
     private var footer: some View {
-        HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 4) {
+            if entry.loadState == .loaded,
+               month?.days != nil,
+               summary?.hasBudget == true {
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(CalendarAppearance.secondaryInk.opacity(0.10))
+                        Capsule()
+                            .fill(progressColor)
+                            .frame(
+                                width: geometry.size.width * min(max(budgetUsage, 0), 1)
+                            )
+                    }
+                }
+                .frame(height: 4)
+            }
+
+            footerDetails
+        }
+    }
+
+    private var footerDetails: some View {
+        HStack(spacing: 10) {
             if entry.loadState != .loaded {
                 Text(entry.loadState.message)
                     .font(.system(size: 8, weight: .semibold))
@@ -754,12 +891,18 @@ private struct SpendingCalendarWidgetView: View {
                 legendDot(color: CalendarAppearance.positive, text: "Below")
                 legendDot(color: warningColor, text: "Near")
                 legendDot(color: CalendarAppearance.negative, text: "Over")
+                Spacer(minLength: 2)
+                Text(budgetUsageText)
+                    .font(.system(size: 8, weight: .semibold))
+                    .foregroundStyle(progressColor)
             } else {
                 Text("Set a monthly budget to enable spending colours")
                     .font(.system(size: 8, weight: .semibold))
                     .foregroundStyle(CalendarAppearance.secondaryInk)
             }
-            Spacer(minLength: 2)
+            if summary?.hasBudget != true {
+                Spacer(minLength: 2)
+            }
         }
     }
 
@@ -774,6 +917,18 @@ private struct SpendingCalendarWidgetView: View {
 
     private var warningColor: Color {
         Color(red: 0.91, green: 0.61, blue: 0.10)
+    }
+
+    private var progressColor: Color {
+        if budgetUsage > 1 { return CalendarAppearance.negative }
+        if budgetUsage >= 0.75 { return warningColor }
+        return CalendarAppearance.positive
+    }
+
+    private var budgetUsageText: String {
+        entry.amountsHidden
+            ? "••% used"
+            : String(format: "%.1f%% used", budgetUsage * 100)
     }
 
     private var dailyAllowanceText: String {

@@ -18,6 +18,8 @@ private enum WidgetSettings {
         "financial_tracker_widget_selected_month.txt"
     static let amountsHiddenKey = "financial_tracker_widget_amounts_hidden"
     static let widgetKind = "FinancialTrackerWidget"
+    static let spendingCalendarWidgetKind =
+        "FinancialTrackerSpendingCalendarWidget"
     static let addTransactionUrl = URL(
         string: "com.faikalizham.financial-tracker://add-transaction"
     )!
@@ -413,6 +415,9 @@ struct ToggleFinancialPrivacyIntent: AppIntent {
     func perform() async throws -> some IntentResult {
         SharedWidgetStorage.toggleAmountsHidden()
         WidgetCenter.shared.reloadTimelines(ofKind: WidgetSettings.widgetKind)
+        WidgetCenter.shared.reloadTimelines(
+            ofKind: WidgetSettings.spendingCalendarWidgetKind
+        )
         return .result()
     }
 }
@@ -439,6 +444,9 @@ struct ToggleInvestmentInclusionIntent: AppIntent {
     func perform() async throws -> some IntentResult {
         SharedWidgetStorage.writeIncludeInvestment(!currentValue)
         WidgetCenter.shared.reloadTimelines(ofKind: WidgetSettings.widgetKind)
+        WidgetCenter.shared.reloadTimelines(
+            ofKind: WidgetSettings.spendingCalendarWidgetKind
+        )
         return .result()
     }
 }
