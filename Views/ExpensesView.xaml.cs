@@ -70,10 +70,14 @@ public partial class ExpensesView : ContentView
     private CancellationTokenSource? transactionFocusCancellation;
     private TransactionActivityGroup? stickyActivityGroup;
     private bool isTransactionEditingLocked = true;
+    private readonly bool useVirtualizedTransactionList;
 
     public ExpensesView()
     {
         InitializeComponent();
+        useVirtualizedTransactionList =
+            DeviceInfo.Current.Platform == DevicePlatform.WinUI;
+        ConfigureTransactionList();
         TransactionsMonthlySummary.TransactionEditingLockToggleRequested +=
             OnTransactionEditingLockToggleRequested;
         TransactionsMonthlySummary.InvestmentInclusionToggleRequested +=
@@ -81,6 +85,21 @@ public partial class ExpensesView : ContentView
         TransactionsMonthlySummary.StatisticsRequested += OnStatisticsRequested;
         UpdateMonthSwitcherLabel();
         UpdateFilterChips();
+    }
+
+    private void ConfigureTransactionList()
+    {
+        if (!useVirtualizedTransactionList)
+        {
+            TransactionsScrollView.IsVisible = true;
+            TransactionsCollectionView.IsVisible = false;
+            return;
+        }
+
+        TransactionScrollContent.Children.Remove(TransactionHeaderContent);
+        TransactionsCollectionView.Header = TransactionHeaderContent;
+        TransactionsScrollView.IsVisible = false;
+        TransactionsCollectionView.IsVisible = true;
     }
 
     public void Refresh(
@@ -158,10 +177,15 @@ public partial class ExpensesView : ContentView
         int transactionId,
         DateTime transactionDate,
         Func<Task>? revealTargetAsync = null) =>
-        FocusVirtualizedTransactionAsync(
-            transactionId,
-            transactionDate,
-            revealTargetAsync);
+        useVirtualizedTransactionList
+            ? FocusVirtualizedTransactionAsync(
+                transactionId,
+                transactionDate,
+                revealTargetAsync)
+            : FocusStackedTransactionAsync(
+                transactionId,
+                transactionDate,
+                revealTargetAsync);
 
     private async void OnPreviousMonthTapped(object? sender, TappedEventArgs e) =>
         await ChangeDisplayedMonthAsync(-1, sender);
@@ -457,7 +481,10 @@ public partial class ExpensesView : ContentView
 
     private void UpdateTransactionContextMenus()
     {
-        foreach (var row in TransactionsCollectionView
+        var transactionList = useVirtualizedTransactionList
+            ? (VisualElement)TransactionsCollectionView
+            : ActivityGroupsLayout;
+        foreach (var row in transactionList
             .GetVisualTreeDescendants()
             .OfType<Grid>()
             .Where(view => view.ClassId == "TransactionContextMenuTarget"))

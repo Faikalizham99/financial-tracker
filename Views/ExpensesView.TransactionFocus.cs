@@ -232,6 +232,21 @@ public partial class ExpensesView
 
     private void ResetRealizedSearchHighlights()
     {
+        if (!useVirtualizedTransactionList)
+        {
+            foreach (var highlight in ActivityGroupsLayout
+                         .GetVisualTreeDescendants()
+                         .OfType<BoxView>()
+                         .Where(view =>
+                             view.ClassId == "TransactionSearchHighlight"))
+            {
+                highlight.CancelAnimations();
+                highlight.Opacity = 0;
+            }
+
+            return;
+        }
+
         foreach (var reference in realizedActivityGroupViews.Values)
         {
             if (!reference.TryGetTarget(out var groupView))

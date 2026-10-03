@@ -16,6 +16,12 @@ public partial class ExpensesView
 
     private void UpdateStickyActivityHeader()
     {
+        if (!useVirtualizedTransactionList)
+        {
+            UpdateStackedStickyActivityHeader(TransactionsScrollView.ScrollY);
+            return;
+        }
+
         if (!IsActivityGroupIndexValid(firstVisibleActivityGroupIndex))
         {
             firstVisibleActivityGroupIndex =

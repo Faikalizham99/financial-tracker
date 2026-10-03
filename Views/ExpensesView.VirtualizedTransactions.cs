@@ -25,10 +25,20 @@ public partial class ExpensesView
         firstVisibleActivityGroupIndex = -1;
         lastVisibleActivityGroupIndex = -1;
         transactionsVerticalOffset = 0;
-        TransactionsCollectionView.ItemsSource = groups;
+        if (useVirtualizedTransactionList)
+        {
+            BindableLayout.SetItemsSource(ActivityGroupsLayout, null);
+            ActivityGroupsLayout.IsVisible = false;
+            TransactionsCollectionView.ItemsSource = groups;
+            return;
+        }
+
+        TransactionsCollectionView.ItemsSource = null;
+        BindableLayout.SetItemsSource(ActivityGroupsLayout, groups);
+        ActivityGroupsLayout.IsVisible = groups.Count > 0;
     }
 
-    private void OnTransactionsScrolled(
+    private void OnTransactionsCollectionScrolled(
         object? sender,
         ItemsViewScrolledEventArgs e)
     {
