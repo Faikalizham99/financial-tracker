@@ -154,156 +154,14 @@ public partial class ExpensesView : ContentView
         return LoadDisplayedPeriodAsync();
     }
 
-    public async Task FocusTransactionAsync(
+    public Task FocusTransactionAsync(
         int transactionId,
         DateTime transactionDate,
-        Func<Task>? revealTargetAsync = null)
-    {
-        CancelTransactionFocusAnimation();
-        var focusCancellation = new CancellationTokenSource();
-        transactionFocusCancellation = focusCancellation;
-        var cancellationToken = focusCancellation.Token;
-        displayedMonth = new DateTime(
-            transactionDate.Year,
-            transactionDate.Month,
-            1);
-        selectedPaymentFilter = null;
-        selectedCategoryFilter = null;
-        selectedStartDate = null;
-        selectedEndDate = null;
-        collapsedActivityGroupDates.Remove(transactionDate.Date);
-        try
-        {
-            await LoadDisplayedPeriodAsync(cancelPendingFocus: false);
-        }
-        catch
-        {
-            ReleaseTransactionFocusCancellation(focusCancellation);
-            throw;
-        }
-
-        if (cancellationToken.IsCancellationRequested)
-        {
-            ReleaseTransactionFocusCancellation(focusCancellation);
-            return;
-        }
-
-        BoxView? highlight = null;
-        for (var attempt = 0; attempt < 20 && highlight is null; attempt++)
-        {
-            await Task.Delay(50);
-            if (cancellationToken.IsCancellationRequested)
-            {
-                ReleaseTransactionFocusCancellation(focusCancellation);
-                return;
-            }
-
-            highlight = ActivityGroupsLayout
-                .GetVisualTreeDescendants()
-                .OfType<BoxView>()
-                .FirstOrDefault(view =>
-                    view.ClassId == "TransactionSearchHighlight" &&
-                    view.BindingContext is TransactionActivityItem item &&
-                    item.Id == transactionId);
-        }
-
-        if (highlight is null)
-        {
-            try
-            {
-                if (revealTargetAsync is not null)
-                {
-                    await revealTargetAsync();
-                }
-            }
-            finally
-            {
-                ReleaseTransactionFocusCancellation(focusCancellation);
-            }
-
-            return;
-        }
-
-        try
-        {
-            await Task.Delay(80, cancellationToken);
-
-            // Reveal only after the target exists and has completed its first
-            // layout pass. The user then sees the actual animated scroll rather
-            // than the search surface covering it.
-            if (revealTargetAsync is not null)
-            {
-                await revealTargetAsync();
-                cancellationToken.ThrowIfCancellationRequested();
-                await Task.Yield();
-            }
-
-            var targetOffset = GetVerticalOffsetWithinScrollContent(highlight);
-            if (targetOffset >= 0)
-            {
-                var visibleTop = TransactionsScrollView.ScrollY;
-                var visibleBottom = visibleTop + TransactionsScrollView.Height - 90;
-                var targetBottom = targetOffset + highlight.Height;
-                var isAlreadyVisible = targetOffset >= visibleTop && targetBottom <= visibleBottom;
-                if (!isAlreadyVisible)
-                {
-                    var centeredOffset = Math.Max(
-                        0,
-                        targetOffset - ((TransactionsScrollView.Height - highlight.Height) / 2));
-                    var scrollTask = TransactionsScrollView.ScrollToAsync(
-                        0,
-                        centeredOffset,
-                        animated: true);
-                    await Task.WhenAny(
-                        scrollTask,
-                        Task.Delay(650, cancellationToken));
-                }
-            }
-            else
-            {
-                var scrollTask = TransactionsScrollView.ScrollToAsync(
-                    highlight,
-                    ScrollToPosition.Center,
-                    animated: true);
-                await Task.WhenAny(
-                    scrollTask,
-                    Task.Delay(650, cancellationToken));
-            }
-
-            cancellationToken.ThrowIfCancellationRequested();
-            highlight.CancelAnimations();
-            highlight.Opacity = 0;
-            for (var pulse = 0; pulse < 3; pulse++)
-            {
-                await highlight.FadeToAsync(0.9, 250, Easing.CubicOut);
-                cancellationToken.ThrowIfCancellationRequested();
-                await Task.Delay(250, cancellationToken);
-                await highlight.FadeToAsync(0, 250, Easing.CubicIn);
-                cancellationToken.ThrowIfCancellationRequested();
-                await Task.Delay(250, cancellationToken);
-            }
-        }
-        catch (OperationCanceledException)
-        {
-        }
-        finally
-        {
-            highlight.CancelAnimations();
-            highlight.Opacity = 0;
-            ReleaseTransactionFocusCancellation(focusCancellation);
-        }
-    }
-
-    private void ReleaseTransactionFocusCancellation(
-        CancellationTokenSource cancellation)
-    {
-        if (ReferenceEquals(transactionFocusCancellation, cancellation))
-        {
-            transactionFocusCancellation = null;
-        }
-
-        cancellation.Dispose();
-    }
+        Func<Task>? revealTargetAsync = null) =>
+        FocusVirtualizedTransactionAsync(
+            transactionId,
+            transactionDate,
+            revealTargetAsync);
 
     private async void OnPreviousMonthTapped(object? sender, TappedEventArgs e) =>
         await ChangeDisplayedMonthAsync(-1, sender);
@@ -361,16 +219,11 @@ public partial class ExpensesView : ContentView
 
     private VisualElement? FindActivityGroupBody(TransactionActivityGroup group)
     {
-        var groupView = ActivityGroupsLayout.Children
-            .OfType<VerticalStackLayout>()
-            .FirstOrDefault(view => ReferenceEquals(view.BindingContext, group));
+        var groupView = FindRealizedActivityGroupView(group);
         return groupView?.Children
             .OfType<VisualElement>()
             .FirstOrDefault(view => view.ClassId == "TransactionActivityGroupBody");
     }
-
-    private void OnTransactionsScrolled(object? sender, ScrolledEventArgs e) =>
-        UpdateStickyActivityHeader(e.ScrollY);
 
     private void OnTransactionDescriptionToggled(
         object? sender,
@@ -388,92 +241,6 @@ public partial class ExpensesView : ContentView
         Dispatcher.Dispatch(UpdateStickyActivityHeader);
     }
 
-    private void OnActivityGroupsLayoutSizeChanged(object? sender, EventArgs e) =>
-        UpdateStickyActivityHeader();
-
-    private void UpdateStickyActivityHeader() =>
-        UpdateStickyActivityHeader(TransactionsScrollView.ScrollY);
-
-    private void UpdateStickyActivityHeader(double scrollY)
-    {
-        if (!ActivityGroupsLayout.IsVisible)
-        {
-            HideStickyActivityHeader();
-            return;
-        }
-
-        var stickyTopInset = StickyActivityHeader.Margin.Top;
-        var activationOffset = scrollY + stickyTopInset;
-        var firstGroupOffset = double.NaN;
-        var nextGroupOffset = double.NaN;
-        TransactionActivityGroup? activeGroup = null;
-
-        foreach (var child in ActivityGroupsLayout.Children)
-        {
-            if (child is not VerticalStackLayout groupView ||
-                groupView.BindingContext is not TransactionActivityGroup group)
-            {
-                continue;
-            }
-
-            var offset = GetVerticalOffsetWithinScrollContent(groupView);
-            if (double.IsNaN(firstGroupOffset))
-            {
-                firstGroupOffset = offset;
-            }
-
-            if (offset >= 0 && offset <= activationOffset)
-            {
-                activeGroup = group;
-                continue;
-            }
-
-            if (activeGroup is not null && offset >= 0)
-            {
-                nextGroupOffset = offset;
-                break;
-            }
-        }
-
-        if (double.IsNaN(firstGroupOffset) || firstGroupOffset <= 1 || activeGroup is null)
-        {
-            HideStickyActivityHeader();
-            return;
-        }
-
-        if (!ReferenceEquals(stickyActivityGroup, activeGroup))
-        {
-            stickyActivityGroup = activeGroup;
-            StickyActivityHeader.BindingContext = activeGroup;
-        }
-
-        StickyActivityHeader.IsVisible = true;
-        var stickyHeight = Math.Max(StickyActivityHeader.Height, 42);
-        var translationY = 0d;
-        if (!double.IsNaN(nextGroupOffset))
-        {
-            var nextHeaderTop = nextGroupOffset - activationOffset;
-            if (nextHeaderTop < stickyHeight)
-            {
-                translationY = Math.Min(0, nextHeaderTop - stickyHeight);
-            }
-        }
-
-        StickyActivityHeader.TranslationY = translationY;
-    }
-
-    private void HideStickyActivityHeader()
-    {
-        if (!StickyActivityHeader.IsVisible && stickyActivityGroup is null)
-        {
-            return;
-        }
-
-        StickyActivityHeader.IsVisible = false;
-        StickyActivityHeader.TranslationY = 0;
-        StickyActivityHeader.BindingContext = null;
-        stickyActivityGroup = null;
-    }
 
     private async Task ChangeDisplayedMonthAsync(int monthOffset, object? sender)
     {
@@ -655,40 +422,6 @@ public partial class ExpensesView : ContentView
         }
     }
 
-    private double GetVerticalOffsetWithinScrollContent(VisualElement target)
-    {
-        var scrollContent = TransactionsScrollView.Content;
-        if (scrollContent is null)
-        {
-            return -1;
-        }
-
-        double offset = 0;
-        Element? current = target;
-        while (current is VisualElement visual && !ReferenceEquals(current, scrollContent))
-        {
-            offset += visual.Y;
-            current = visual.Parent;
-        }
-
-        return ReferenceEquals(current, scrollContent) ? offset : -1;
-    }
-
-    private void CancelTransactionFocusAnimation()
-    {
-        var cancellation = transactionFocusCancellation;
-        transactionFocusCancellation = null;
-        cancellation?.Cancel();
-        foreach (var highlight in ActivityGroupsLayout
-                     .GetVisualTreeDescendants()
-                     .OfType<BoxView>()
-                     .Where(view => view.ClassId == "TransactionSearchHighlight"))
-        {
-            highlight.CancelAnimations();
-            highlight.Opacity = 0;
-        }
-    }
-
     private void OnEditTransactionInvoked(object? sender, EventArgs e)
     {
         _ = InteractionAnimations.PulseAsync(sender);
@@ -724,7 +457,7 @@ public partial class ExpensesView : ContentView
 
     private void UpdateTransactionContextMenus()
     {
-        foreach (var row in ActivityGroupsLayout
+        foreach (var row in TransactionsCollectionView
             .GetVisualTreeDescendants()
             .OfType<Grid>()
             .Where(view => view.ClassId == "TransactionContextMenuTarget"))
@@ -1012,8 +745,7 @@ public partial class ExpensesView : ContentView
             canModifyTransactions: !isTransactionEditingLocked);
 
         HideStickyActivityHeader();
-        BindableLayout.SetItemsSource(ActivityGroupsLayout, presentation.Groups);
-        ActivityGroupsLayout.IsVisible = presentation.Groups.Count > 0;
+        SetActivityGroups(presentation.Groups);
         EmptyActivityState.IsVisible = presentation.Groups.Count == 0;
         EmptyActivityTitle.Text = presentation.EmptyTitle;
         if (presentation.HasDateRange)

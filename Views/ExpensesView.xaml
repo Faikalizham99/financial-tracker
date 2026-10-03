@@ -8,8 +8,18 @@
     xmlns:views="clr-namespace:FinancialTracker.Views">
 
     <Grid>
-    <ScrollView x:Name="TransactionsScrollView" Scrolled="OnTransactionsScrolled" VerticalScrollBarVisibility="Never">
-        <VerticalStackLayout Padding="22,28,22,126" Spacing="21">
+    <CollectionView
+        x:Name="TransactionsCollectionView"
+        Scrolled="OnTransactionsScrolled"
+        ItemSizingStrategy="MeasureAllItems"
+        SelectionMode="None"
+        VerticalScrollBarVisibility="Never">
+        <CollectionView.Header>
+        <VerticalStackLayout
+            x:Name="TransactionHeaderContent"
+            Padding="22,28,22,21"
+            Spacing="21"
+            SizeChanged="OnTransactionHeaderContentSizeChanged">
             <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto,Auto,Auto" RowSpacing="6" ColumnSpacing="9">
                 <Label
                     Grid.ColumnSpan="{OnIdiom Phone=2, Tablet=1, Desktop=1}"
@@ -169,10 +179,19 @@
                 </VerticalStackLayout>
             </Border>
 
-            <VerticalStackLayout x:Name="ActivityGroupsLayout" Spacing="19" IsVisible="False" SizeChanged="OnActivityGroupsLayoutSizeChanged">
-                <BindableLayout.ItemTemplate>
-                    <DataTemplate x:DataType="models:TransactionActivityGroup">
-                        <VerticalStackLayout ClassId="TransactionActivityGroup" Spacing="10">
+        </VerticalStackLayout>
+        </CollectionView.Header>
+        <CollectionView.ItemsLayout>
+            <LinearItemsLayout Orientation="Vertical" ItemSpacing="19" />
+        </CollectionView.ItemsLayout>
+        <CollectionView.ItemTemplate>
+            <DataTemplate x:DataType="models:TransactionActivityGroup">
+                <Grid
+                    Padding="22,0"
+                    SizeChanged="OnActivityGroupItemSizeChanged">
+                        <VerticalStackLayout
+                            ClassId="TransactionActivityGroup"
+                            Spacing="10">
                             <Grid Margin="14,0" ColumnDefinitions="16,Auto,*,Auto" ColumnSpacing="9">
                                 <Grid.GestureRecognizers>
                                     <TapGestureRecognizer Tapped="OnActivityGroupHeaderTapped" CommandParameter="{Binding .}" />
@@ -276,11 +295,13 @@
                                 </Border>
                             </Grid>
                         </VerticalStackLayout>
-                    </DataTemplate>
-                </BindableLayout.ItemTemplate>
-            </VerticalStackLayout>
-        </VerticalStackLayout>
-    </ScrollView>
+                </Grid>
+            </DataTemplate>
+        </CollectionView.ItemTemplate>
+        <CollectionView.Footer>
+            <BoxView HeightRequest="126" />
+        </CollectionView.Footer>
+    </CollectionView>
 
     <Border
         x:Name="StickyActivityHeader"
