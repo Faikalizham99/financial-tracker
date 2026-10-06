@@ -14,6 +14,7 @@ private enum CalculatorWidgetSettings {
     ]
     static let stateFileName = "financial_tracker_calculator_widget.json"
     static let widgetKind = "FinancialTrackerCalculatorWidget"
+    static let inactivityTimeout: TimeInterval = 10
 }
 
 private struct CalculatorWidgetState: Codable {
@@ -23,18 +24,36 @@ private struct CalculatorWidgetState: Codable {
     var isWaitingForOperand = false
     var expressionText = ""
     var hasError = false
+    var lastInteractionAtUnixSeconds: TimeInterval?
+
+    var expirationDate: Date? {
+        guard let lastInteractionAtUnixSeconds else { return nil }
+        return Date(
+            timeIntervalSince1970: lastInteractionAtUnixSeconds
+                + CalculatorWidgetSettings.inactivityTimeout
+        )
+    }
+
+    func isExpired(at date: Date) -> Bool {
+        guard let expirationDate else { return false }
+        return date >= expirationDate
+    }
 
     static let initial = CalculatorWidgetState()
 }
 
 private enum CalculatorWidgetStorage {
-    static func load() -> CalculatorWidgetState {
+    static func load(at date: Date = Date()) -> CalculatorWidgetState {
         guard let url = stateUrl(),
               let data = try? Data(contentsOf: url),
               let state = try? JSONDecoder().decode(
                 CalculatorWidgetState.self,
                 from: data
               ) else {
+            return .initial
+        }
+        guard !state.isExpired(at: date) else {
+            save(.initial)
             return .initial
         }
         return state
@@ -366,8 +385,12 @@ struct CalculatorKeyIntent: AppIntent {
     init(key: String) { self.key = key }
 
     func perform() async throws -> some IntentResult {
-        var state = CalculatorWidgetStorage.load()
+        let interactionDate = Date()
+        var state = CalculatorWidgetStorage.load(at: interactionDate)
         CalculatorEngine.apply(key, to: &state)
+        state.lastInteractionAtUnixSeconds = key == "clear"
+            ? nil
+            : interactionDate.timeIntervalSince1970
         CalculatorWidgetStorage.save(state)
         WidgetCenter.shared.reloadTimelines(
             ofKind: CalculatorWidgetSettings.widgetKind
@@ -391,9 +414,12 @@ private struct FinancialCalculatorProvider: TimelineProvider {
         completion: @escaping (FinancialCalculatorEntry) -> Void
     ) {
         SharedWidgetAppearance.reload()
+        let snapshotDate = Date()
         completion(FinancialCalculatorEntry(
-            date: Date(),
-            state: context.isPreview ? .initial : CalculatorWidgetStorage.load()
+            date: snapshotDate,
+            state: context.isPreview
+                ? .initial
+                : CalculatorWidgetStorage.load(at: snapshotDate)
         ))
     }
 
@@ -402,13 +428,29 @@ private struct FinancialCalculatorProvider: TimelineProvider {
         completion: @escaping (Timeline<FinancialCalculatorEntry>) -> Void
     ) {
         SharedWidgetAppearance.reload()
-        let entry = FinancialCalculatorEntry(
-            date: Date(),
-            state: CalculatorWidgetStorage.load()
+        let timelineDate = Date()
+        let state = CalculatorWidgetStorage.load(at: timelineDate)
+        let activeEntry = FinancialCalculatorEntry(
+            date: timelineDate,
+            state: state
         )
+
+        if let expirationDate = state.expirationDate,
+           expirationDate > timelineDate {
+            let clearedEntry = FinancialCalculatorEntry(
+                date: expirationDate,
+                state: .initial
+            )
+            completion(Timeline(
+                entries: [activeEntry, clearedEntry],
+                policy: .after(expirationDate.addingTimeInterval(30 * 60))
+            ))
+            return
+        }
+
         completion(Timeline(
-            entries: [entry],
-            policy: .after(Date().addingTimeInterval(30 * 60))
+            entries: [activeEntry],
+            policy: .after(timelineDate.addingTimeInterval(30 * 60))
         ))
     }
 }
