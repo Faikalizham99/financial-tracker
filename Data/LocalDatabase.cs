@@ -5,7 +5,7 @@ namespace FinancialTracker.Data;
 
 public sealed class LocalDatabase
 {
-    private const int CurrentSchemaVersion = 7;
+    private const int CurrentSchemaVersion = 8;
     private const string KnownTransactionDataPreferenceKey =
         "database_has_known_transaction_data";
     private static readonly TimeSpan[] StartupEmptyReadRetryDelays =
@@ -234,10 +234,62 @@ public sealed class LocalDatabase
                     existing.Id);
             }));
 
+    public Task<IReadOnlyList<AssetPerformanceRecord>> GetAssetPerformanceRecordsAsync(
+        string assetKey) =>
+        ExecuteWithConnectionAsync<IReadOnlyList<AssetPerformanceRecord>>(
+            async activeConnection => await activeConnection
+                .Table<AssetPerformanceRecord>()
+                .Where(item => item.AssetKey == assetKey)
+                .OrderBy(item => item.EntryDate)
+                .ToListAsync()
+                .ConfigureAwait(false));
+
+    public Task<AssetPerformanceRecord?> GetAssetPerformanceRecordAsync(
+        string assetKey,
+        DateTime entryDate) =>
+        ExecuteWithConnectionAsync(async activeConnection =>
+            (AssetPerformanceRecord?)await activeConnection
+                .Table<AssetPerformanceRecord>()
+                .Where(item =>
+                    item.AssetKey == assetKey &&
+                    item.EntryDate == entryDate.Date)
+                .FirstOrDefaultAsync()
+                .ConfigureAwait(false));
+
+    public Task SaveAssetPerformanceRecordAsync(AssetPerformanceRecord record) =>
+        ExecuteWithConnectionAsync(activeConnection =>
+            activeConnection.RunInTransactionAsync(transaction =>
+            {
+                var existing = transaction.Table<AssetPerformanceRecord>()
+                    .FirstOrDefault(item =>
+                        item.AssetKey == record.AssetKey &&
+                        item.EntryDate == record.EntryDate.Date);
+                var now = DateTime.UtcNow;
+                record.EntryDate = record.EntryDate.Date;
+                record.UpdatedAtUtc = now;
+                if (existing is null)
+                {
+                    record.Id = 0;
+                    record.CreatedAtUtc = now;
+                    transaction.Insert(record);
+                    return;
+                }
+
+                record.Id = existing.Id;
+                record.CreatedAtUtc = existing.CreatedAtUtc;
+                transaction.Update(record);
+            }));
+
+    public Task DeleteAssetPerformanceRecordAsync(int recordId) =>
+        ExecuteWithConnectionAsync(activeConnection => activeConnection.ExecuteAsync(
+            "DELETE FROM AssetPerformanceRecords WHERE Id = ?",
+            recordId));
+
     public Task ResetAllDataAsync() =>
         ExecuteWithConnectionAsync(activeConnection =>
             activeConnection.RunInTransactionAsync(transaction =>
             {
+                transaction.Execute("DELETE FROM AssetPerformanceRecords");
                 transaction.Execute("DELETE FROM AssetSnapshotValues");
                 transaction.Execute("DELETE FROM AssetSnapshots");
                 transaction.Execute("DELETE FROM MonthlyBudgets");
@@ -245,7 +297,9 @@ public sealed class LocalDatabase
                 transaction.Execute("DELETE FROM AppSettings");
                 transaction.Execute(
                     "DELETE FROM sqlite_sequence " +
-                    "WHERE name IN ('Transactions', 'AssetSnapshots', 'AssetSnapshotValues')");
+                    "WHERE name IN (" +
+                    "'Transactions', 'AssetSnapshots', 'AssetSnapshotValues', " +
+                    "'AssetPerformanceRecords')");
                 transaction.Insert(new AppSettingsRecord());
             }));
 
@@ -387,6 +441,17 @@ public sealed class LocalDatabase
             await Connection.ExecuteAsync(
                 "CREATE UNIQUE INDEX IF NOT EXISTS IX_AssetSnapshotValues_Snapshot_Asset " +
                 "ON AssetSnapshotValues (SnapshotId, AssetKey)")
+                .ConfigureAwait(false);
+        }
+
+        if (version < 8)
+        {
+            await Connection.CreateTableAsync<AssetPerformanceRecord>()
+                .ConfigureAwait(false);
+            await Connection.ExecuteAsync(
+                "CREATE UNIQUE INDEX IF NOT EXISTS " +
+                "IX_AssetPerformanceRecords_Asset_Date " +
+                "ON AssetPerformanceRecords (AssetKey, EntryDate)")
                 .ConfigureAwait(false);
         }
 
@@ -690,6 +755,8 @@ public sealed class LocalDatabase
             var hasMonthlyBudgetsTable = TableExists(candidate, "MonthlyBudgets");
             var hasAssetSnapshotsTable = TableExists(candidate, "AssetSnapshots");
             var hasAssetSnapshotValuesTable = TableExists(candidate, "AssetSnapshotValues");
+            var hasAssetPerformanceRecordsTable =
+                TableExists(candidate, "AssetPerformanceRecords");
             if (!hasSettingsTable && !hasTransactionsTable)
             {
                 throw new InvalidDataException(
@@ -700,7 +767,8 @@ public sealed class LocalDatabase
                 (version >= 3 && !hasTransactionsTable) ||
                 (version >= 5 && !hasMonthlyBudgetsTable) ||
                 (version >= 7 &&
-                    (!hasAssetSnapshotsTable || !hasAssetSnapshotValuesTable)))
+                    (!hasAssetSnapshotsTable || !hasAssetSnapshotValuesTable)) ||
+                (version >= 8 && !hasAssetPerformanceRecordsTable))
             {
                 throw new InvalidDataException(
                     "The selected backup is missing required Financial Tracker tables.");

@@ -1,0 +1,405 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+    x:Class="FinancialTracker.Views.AssetPerformanceView"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:helpers="clr-namespace:FinancialTracker.Helpers"
+    IsVisible="False">
+
+    <Grid
+        x:Name="PerformanceRoot"
+        BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}"
+        SizeChanged="OnRootSizeChanged">
+
+        <ScrollView VerticalScrollBarVisibility="Never">
+            <VerticalStackLayout
+                x:Name="PerformanceContent"
+                Padding="{OnIdiom Phone='18,18,18,34', Tablet='26,26,26,42', Desktop='28,28,28,44'}"
+                Spacing="18"
+                HorizontalOptions="Center">
+
+                <Grid ColumnDefinitions="44,Auto,*,Auto" ColumnSpacing="12">
+                    <Border
+                        WidthRequest="44"
+                        HeightRequest="44"
+                        Style="{StaticResource Pill}"
+                        helpers:InteractionAnimations.IsPressFeedbackEnabled="True"
+                        SemanticProperties.Description="Close asset performance">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnCloseTapped" />
+                        </Border.GestureRecognizers>
+                        <Path
+                            Data="M 15,4 L 7,12 L 15,20"
+                            Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}"
+                            StrokeThickness="2.3"
+                            StrokeLineCap="Round"
+                            StrokeLineJoin="Round"
+                            Fill="Transparent"
+                            Aspect="Uniform"
+                            WidthRequest="19"
+                            HeightRequest="19" />
+                    </Border>
+
+                    <Border
+                        Grid.Column="1"
+                        x:Name="AssetIconBorder"
+                        WidthRequest="46"
+                        HeightRequest="46"
+                        Padding="0"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 14">
+                        <Image x:Name="AssetIcon" Aspect="AspectFill" />
+                    </Border>
+
+                    <VerticalStackLayout Grid.Column="2" Spacing="1" VerticalOptions="Center">
+                        <Label
+                            x:Name="AssetNameLabel"
+                            Style="{StaticResource PageTitle}"
+                            FontSize="{OnIdiom Phone=24, Tablet=30, Desktop=30}"
+                            FontAutoScalingEnabled="False"
+                            LineBreakMode="TailTruncation"
+                            MaxLines="1" />
+                        <Label
+                            Text="Performance journal"
+                            Style="{StaticResource BodyMuted}"
+                            FontSize="12" />
+                    </VerticalStackLayout>
+
+                    <Border
+                        Grid.Column="3"
+                        HeightRequest="44"
+                        Padding="14,0"
+                        BackgroundColor="{DynamicResource Accent}"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 16"
+                        helpers:InteractionAnimations.IsPressFeedbackEnabled="True"
+                        SemanticProperties.Description="Add asset performance record">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnAddRecordTapped" />
+                        </Border.GestureRecognizers>
+                        <HorizontalStackLayout Spacing="6" VerticalOptions="Center" InputTransparent="True">
+                            <Label
+                                Text="+"
+                                FontFamily="OpenSansSemibold"
+                                FontSize="22"
+                                TextColor="{DynamicResource AccentForeground}"
+                                VerticalTextAlignment="Center" />
+                            <Label
+                                Text="Record"
+                                FontFamily="OpenSansSemibold"
+                                FontSize="13"
+                                TextColor="{DynamicResource AccentForeground}"
+                                VerticalTextAlignment="Center" />
+                        </HorizontalStackLayout>
+                    </Border>
+                </Grid>
+
+                <Border x:Name="SummaryCard" Style="{StaticResource Card}" IsVisible="False">
+                    <VerticalStackLayout Spacing="16">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="CURRENT TOTAL" Style="{StaticResource SectionLabel}" />
+                                <Label
+                                    x:Name="CurrentTotalLabel"
+                                    FontFamily="OpenSansSemibold"
+                                    FontSize="32"
+                                    FontAutoScalingEnabled="False"
+                                    LineBreakMode="NoWrap"
+                                    MaxLines="1" />
+                                <Label x:Name="LastRecordedLabel" Style="{StaticResource BodyMuted}" FontSize="12" />
+                            </VerticalStackLayout>
+                            <Border
+                                Grid.Column="1"
+                                x:Name="ReturnPill"
+                                Padding="11,7"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 14"
+                                VerticalOptions="Start">
+                                <Label
+                                    x:Name="ReturnLabel"
+                                    FontFamily="OpenSansSemibold"
+                                    FontSize="13"
+                                    LineBreakMode="NoWrap" />
+                            </Border>
+                        </Grid>
+
+                        <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+
+                        <Grid ColumnDefinitions="*,1,*" ColumnSpacing="16">
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="AMOUNT INVESTED" Style="{StaticResource SectionLabel}" />
+                                <Label x:Name="InvestedLabel" Style="{StaticResource CardTitle}" FontSize="20" />
+                            </VerticalStackLayout>
+                            <BoxView Grid.Column="1" WidthRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+                            <VerticalStackLayout Grid.Column="2" Spacing="4">
+                                <Label Text="PROFIT / LOSS" Style="{StaticResource SectionLabel}" />
+                                <Label x:Name="ProfitLabel" Style="{StaticResource CardTitle}" FontSize="20" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border x:Name="ComparisonCard" Style="{StaticResource SoftCard}" IsVisible="False">
+                    <VerticalStackLayout Spacing="12">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <Label Text="SINCE PREVIOUS RECORD" Style="{StaticResource SectionLabel}" VerticalTextAlignment="Center" />
+                            <Label x:Name="PreviousDateLabel" Grid.Column="1" Style="{StaticResource BodyMuted}" FontSize="11" />
+                        </Grid>
+                        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="INVESTED" Style="{StaticResource SectionLabel}" FontSize="9" />
+                                <Label x:Name="InvestedChangeLabel" FontFamily="OpenSansSemibold" FontSize="14" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1" Spacing="3">
+                                <Label Text="PROFIT" Style="{StaticResource SectionLabel}" FontSize="9" />
+                                <Label x:Name="ProfitChangeLabel" FontFamily="OpenSansSemibold" FontSize="14" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="2" Spacing="3">
+                                <Label Text="TOTAL" Style="{StaticResource SectionLabel}" FontSize="9" />
+                                <Label x:Name="TotalChangeLabel" FontFamily="OpenSansSemibold" FontSize="14" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border x:Name="ChartCard" Style="{StaticResource Card}" IsVisible="False">
+                    <VerticalStackLayout Spacing="14">
+                        <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*" RowSpacing="10">
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="PERFORMANCE TREND" Style="{StaticResource SectionLabel}" />
+                                <Label x:Name="ChartCaptionLabel" Style="{StaticResource BodyMuted}" FontSize="12" />
+                            </VerticalStackLayout>
+                            <HorizontalStackLayout Grid.Row="1" Spacing="5" HorizontalOptions="End">
+                                <Border x:Name="TotalChartButton" Padding="10,6" StrokeThickness="0" StrokeShape="RoundRectangle 12" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                                    <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnTotalChartTapped" /></Border.GestureRecognizers>
+                                    <Label x:Name="TotalChartButtonLabel" Text="Total" FontFamily="OpenSansSemibold" FontSize="11" InputTransparent="True" />
+                                </Border>
+                                <Border x:Name="InvestedChartButton" Padding="10,6" StrokeThickness="0" StrokeShape="RoundRectangle 12" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                                    <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnInvestedChartTapped" /></Border.GestureRecognizers>
+                                    <Label x:Name="InvestedChartButtonLabel" Text="Compare" FontFamily="OpenSansSemibold" FontSize="11" InputTransparent="True" />
+                                </Border>
+                                <Border x:Name="ProfitChartButton" Padding="10,6" StrokeThickness="0" StrokeShape="RoundRectangle 12" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                                    <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnProfitChartTapped" /></Border.GestureRecognizers>
+                                    <Label x:Name="ProfitChartButtonLabel" Text="Profit" FontFamily="OpenSansSemibold" FontSize="11" InputTransparent="True" />
+                                </Border>
+                            </HorizontalStackLayout>
+                        </Grid>
+                        <GraphicsView x:Name="PerformanceChart" HeightRequest="190" InputTransparent="True" />
+                        <HorizontalStackLayout x:Name="CompareLegend" IsVisible="False" Spacing="14">
+                            <HorizontalStackLayout Spacing="5">
+                                <BoxView WidthRequest="9" HeightRequest="9" CornerRadius="4.5" BackgroundColor="{DynamicResource Accent}" />
+                                <Label Text="Total value" Style="{StaticResource BodyMuted}" FontSize="11" />
+                            </HorizontalStackLayout>
+                            <HorizontalStackLayout Spacing="5">
+                                <BoxView WidthRequest="9" HeightRequest="9" CornerRadius="4.5" BackgroundColor="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" />
+                                <Label Text="Invested" Style="{StaticResource BodyMuted}" FontSize="11" />
+                            </HorizontalStackLayout>
+                        </HorizontalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border x:Name="CalendarCard" Style="{StaticResource Card}" IsVisible="False">
+                    <VerticalStackLayout Spacing="13">
+                        <Grid ColumnDefinitions="38,*,38" ColumnSpacing="8">
+                            <Border WidthRequest="38" HeightRequest="38" Style="{StaticResource Pill}" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                                <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnPreviousCalendarMonthTapped" /></Border.GestureRecognizers>
+                                <Path Data="M 15,4 L 7,12 L 15,20" Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" StrokeThickness="2" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" WidthRequest="16" HeightRequest="16" />
+                            </Border>
+                            <VerticalStackLayout Grid.Column="1" Spacing="1" HorizontalOptions="Center">
+                                <Label x:Name="CalendarMonthLabel" Style="{StaticResource CardTitle}" FontSize="17" HorizontalTextAlignment="Center" />
+                                <Label Text="Tap a day to add or edit" Style="{StaticResource BodyMuted}" FontSize="10" HorizontalTextAlignment="Center" />
+                            </VerticalStackLayout>
+                            <Border Grid.Column="2" WidthRequest="38" HeightRequest="38" Style="{StaticResource Pill}" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                                <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnNextCalendarMonthTapped" /></Border.GestureRecognizers>
+                                <Path Data="M 7,4 L 15,12 L 7,20" Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" StrokeThickness="2" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" WidthRequest="16" HeightRequest="16" />
+                            </Border>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="*,*,*,*,*,*,*" ColumnSpacing="4">
+                            <Label Text="M" Style="{StaticResource SectionLabel}" HorizontalTextAlignment="Center" />
+                            <Label Grid.Column="1" Text="T" Style="{StaticResource SectionLabel}" HorizontalTextAlignment="Center" />
+                            <Label Grid.Column="2" Text="W" Style="{StaticResource SectionLabel}" HorizontalTextAlignment="Center" />
+                            <Label Grid.Column="3" Text="T" Style="{StaticResource SectionLabel}" HorizontalTextAlignment="Center" />
+                            <Label Grid.Column="4" Text="F" Style="{StaticResource SectionLabel}" HorizontalTextAlignment="Center" />
+                            <Label Grid.Column="5" Text="S" Style="{StaticResource SectionLabel}" HorizontalTextAlignment="Center" />
+                            <Label Grid.Column="6" Text="S" Style="{StaticResource SectionLabel}" HorizontalTextAlignment="Center" />
+                        </Grid>
+                        <Grid x:Name="CalendarDaysGrid" ColumnSpacing="4" RowSpacing="4" />
+                        <Grid ColumnDefinitions="Auto,Auto,Auto,*" ColumnSpacing="12">
+                            <HorizontalStackLayout Spacing="4">
+                                <BoxView WidthRequest="7" HeightRequest="7" CornerRadius="3.5" BackgroundColor="{AppThemeBinding Light={StaticResource PositiveLight}, Dark={StaticResource PositiveDark}}" />
+                                <Label Text="Profit up" Style="{StaticResource BodyMuted}" FontSize="10" />
+                            </HorizontalStackLayout>
+                            <HorizontalStackLayout Grid.Column="1" Spacing="4">
+                                <BoxView WidthRequest="7" HeightRequest="7" CornerRadius="3.5" BackgroundColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" />
+                                <Label Text="Profit down" Style="{StaticResource BodyMuted}" FontSize="10" />
+                            </HorizontalStackLayout>
+                            <HorizontalStackLayout Grid.Column="2" Spacing="4">
+                                <BoxView WidthRequest="7" HeightRequest="7" CornerRadius="3.5" BackgroundColor="{DynamicResource Accent}" />
+                                <Label Text="Baseline" Style="{StaticResource BodyMuted}" FontSize="10" />
+                            </HorizontalStackLayout>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <VerticalStackLayout x:Name="RecordsSection" IsVisible="False" Spacing="11">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <Label Text="RECORD HISTORY" Style="{StaticResource SectionLabel}" VerticalTextAlignment="Center" />
+                        <Label x:Name="RecordCountLabel" Grid.Column="1" Style="{StaticResource BodyMuted}" FontSize="11" />
+                    </Grid>
+                    <VerticalStackLayout x:Name="RecordsList" Spacing="10" BindableLayout.ItemsSource="{Binding Records}">
+                        <BindableLayout.ItemTemplate>
+                            <DataTemplate>
+                                <Border Style="{StaticResource SoftCard}" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                                    <Border.GestureRecognizers>
+                                        <TapGestureRecognizer Tapped="OnRecordTapped" CommandParameter="{Binding Id}" />
+                                    </Border.GestureRecognizers>
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="13" InputTransparent="True">
+                                        <Border WidthRequest="46" HeightRequest="46" Padding="0" BackgroundColor="{Binding TintColor}" StrokeThickness="0" StrokeShape="RoundRectangle 14">
+                                            <VerticalStackLayout Spacing="0" VerticalOptions="Center">
+                                                <Label Text="{Binding DayText}" FontFamily="OpenSansSemibold" FontSize="16" HorizontalTextAlignment="Center" />
+                                                <Label Text="{Binding MonthText}" Style="{StaticResource SectionLabel}" FontSize="8" HorizontalTextAlignment="Center" />
+                                            </VerticalStackLayout>
+                                        </Border>
+                                        <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
+                                            <Label Text="{Binding TotalText}" Style="{StaticResource CardTitle}" FontSize="16" />
+                                            <Label Text="{Binding DetailText}" Style="{StaticResource BodyMuted}" FontSize="11" LineBreakMode="TailTruncation" MaxLines="1" />
+                                        </VerticalStackLayout>
+                                        <VerticalStackLayout Grid.Column="2" Spacing="3" VerticalOptions="Center">
+                                            <Label Text="{Binding ProfitText}" TextColor="{Binding ProfitColor}" FontFamily="OpenSansSemibold" FontSize="13" HorizontalTextAlignment="End" />
+                                            <Label Text="{Binding ChangeText}" TextColor="{Binding ChangeColor}" FontFamily="OpenSansSemibold" FontSize="10" HorizontalTextAlignment="End" />
+                                        </VerticalStackLayout>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </BindableLayout.ItemTemplate>
+                    </VerticalStackLayout>
+                </VerticalStackLayout>
+
+                <Border x:Name="EmptyCard" Style="{StaticResource Card}" IsVisible="False" MinimumHeightRequest="230">
+                    <VerticalStackLayout Spacing="12" HorizontalOptions="Center" VerticalOptions="Center" Padding="16,24">
+                        <Border WidthRequest="62" HeightRequest="62" BackgroundColor="{DynamicResource AccentTint}" StrokeThickness="0" StrokeShape="RoundRectangle 20">
+                            <Path Data="M 4,19 L 20,19 M 6,16 L 10,12 L 13,14 L 19,7 M 16,7 L 19,7 L 19,10" Stroke="{DynamicResource Accent}" StrokeThickness="2.1" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" WidthRequest="28" HeightRequest="28" />
+                        </Border>
+                        <Label Text="Start this asset's journal" Style="{StaticResource CardTitle}" FontSize="19" HorizontalTextAlignment="Center" />
+                        <Label Text="Record the current amount invested and profit or loss whenever you check this asset." Style="{StaticResource BodyMuted}" HorizontalTextAlignment="Center" MaximumWidthRequest="410" />
+                        <Button Text="Add first record" Clicked="OnAddRecordClicked" HeightRequest="48" Padding="20,0" BackgroundColor="{DynamicResource Accent}" TextColor="{DynamicResource AccentForeground}" FontFamily="OpenSansSemibold" BorderWidth="0" CornerRadius="16" HorizontalOptions="Center" />
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <Grid
+            x:Name="LoadingOverlay"
+            IsVisible="False"
+            BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}"
+            Opacity="0.92"
+            ZIndex="5">
+            <VerticalStackLayout Spacing="12" HorizontalOptions="Center" VerticalOptions="Center">
+                <ActivityIndicator IsRunning="True" Color="{DynamicResource Accent}" WidthRequest="34" HeightRequest="34" />
+                <Label Text="Loading performance…" Style="{StaticResource BodyMuted}" />
+            </VerticalStackLayout>
+        </Grid>
+
+        <Grid
+            x:Name="EditorOverlay"
+            IsVisible="False"
+            ZIndex="10"
+            BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}">
+            <ScrollView VerticalScrollBarVisibility="Never">
+                <VerticalStackLayout
+                    x:Name="EditorContent"
+                    Padding="{OnIdiom Phone='18,18,18,34', Tablet='26,26,26,42', Desktop='28,28,28,44'}"
+                    Spacing="16"
+                    HorizontalOptions="Center">
+                    <Grid ColumnDefinitions="*,44" ColumnSpacing="12">
+                        <VerticalStackLayout Spacing="3">
+                            <Label x:Name="EditorTitleLabel" Text="Add performance record" Style="{StaticResource PageTitle}" FontSize="27" />
+                            <Label x:Name="EditorAssetLabel" Style="{StaticResource BodyMuted}" />
+                        </VerticalStackLayout>
+                        <Border Grid.Column="1" WidthRequest="44" HeightRequest="44" Style="{StaticResource Pill}" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                            <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnCloseEditorTapped" /></Border.GestureRecognizers>
+                            <Label Text="×" FontSize="28" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                        </Border>
+                    </Grid>
+
+                    <Border Style="{StaticResource SoftCard}" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                        <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnRecordDateTapped" /></Border.GestureRecognizers>
+                        <Grid ColumnDefinitions="*,Auto,22" ColumnSpacing="12" InputTransparent="True">
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="RECORD DATE" Style="{StaticResource SectionLabel}" />
+                                <Label x:Name="RecordDateLabel" Style="{StaticResource CardTitle}" />
+                            </VerticalStackLayout>
+                            <Label x:Name="RecordDateActionLabel" Grid.Column="1" Text="Change" TextColor="{DynamicResource Accent}" FontFamily="OpenSansSemibold" FontSize="12" VerticalTextAlignment="Center" />
+                            <Path Grid.Column="2" Data="M 5,5 L 19,5 Q 21,5 21,7 L 21,19 Q 21,21 19,21 L 5,21 Q 3,21 3,19 L 3,7 Q 3,5 5,5 Z M 3,10 L 21,10 M 8,3 L 8,7 M 16,3 L 16,7" Stroke="{DynamicResource Accent}" StrokeThickness="1.8" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" WidthRequest="20" HeightRequest="20" VerticalOptions="Center" />
+                        </Grid>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}">
+                        <VerticalStackLayout Spacing="15">
+                            <VerticalStackLayout Spacing="7">
+                                <Label Text="CURRENT AMOUNT INVESTED" Style="{StaticResource SectionLabel}" />
+                                <Border BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="1" StrokeShape="RoundRectangle 15" Padding="13,0">
+                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                        <Label x:Name="InvestedCurrencyLabel" FontFamily="OpenSansSemibold" FontSize="14" VerticalTextAlignment="Center" />
+                                        <Entry x:Name="InvestedEntry" Grid.Column="1" Placeholder="0.00" Keyboard="Numeric" ClearButtonVisibility="WhileEditing" FontFamily="OpenSansSemibold" FontSize="17" HorizontalTextAlignment="End" MaxLength="18" TextColor="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" PlaceholderColor="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" TextChanged="OnMoneyEntryTextChanged" />
+                                    </Grid>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Spacing="8">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                    <Label Text="CURRENT PROFIT / LOSS" Style="{StaticResource SectionLabel}" VerticalTextAlignment="Center" />
+                                    <Border Grid.Column="1" MinimumWidthRequest="126" HeightRequest="36" Padding="3" BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="1" StrokeShape="RoundRectangle 13">
+                                        <Grid ColumnDefinitions="*,*" ColumnSpacing="3">
+                                            <Border x:Name="ProfitModeButton" Padding="11,0" StrokeThickness="0" StrokeShape="RoundRectangle 10" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                                                <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnProfitModeTapped" /></Border.GestureRecognizers>
+                                                <Label x:Name="ProfitModeLabel" Text="Profit" FontFamily="OpenSansSemibold" FontSize="11" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" InputTransparent="True" />
+                                            </Border>
+                                            <Border Grid.Column="1" x:Name="LossModeButton" Padding="11,0" StrokeThickness="0" StrokeShape="RoundRectangle 10" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                                                <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnLossModeTapped" /></Border.GestureRecognizers>
+                                                <Label x:Name="LossModeLabel" Text="Loss" FontFamily="OpenSansSemibold" FontSize="11" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" InputTransparent="True" />
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                </Grid>
+                                <Border BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="1" StrokeShape="RoundRectangle 15" Padding="13,0">
+                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                                        <Label x:Name="ProfitCurrencyLabel" FontFamily="OpenSansSemibold" FontSize="14" VerticalTextAlignment="Center" />
+                                        <Entry x:Name="ProfitEntry" Grid.Column="1" Placeholder="0.00" Keyboard="Numeric" ClearButtonVisibility="WhileEditing" FontFamily="OpenSansSemibold" FontSize="17" HorizontalTextAlignment="End" MaxLength="18" TextColor="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" PlaceholderColor="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" TextChanged="OnMoneyEntryTextChanged" />
+                                    </Grid>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <BoxView HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" />
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                <VerticalStackLayout Spacing="3">
+                                    <Label Text="CALCULATED TOTAL" Style="{StaticResource SectionLabel}" />
+                                    <Label Text="Invested amount plus profit or loss" Style="{StaticResource BodyMuted}" FontSize="11" />
+                                </VerticalStackLayout>
+                                <Label x:Name="CalculatedTotalLabel" Grid.Column="1" Style="{StaticResource CardTitle}" FontSize="21" TextColor="{DynamicResource Accent}" VerticalTextAlignment="Center" />
+                            </Grid>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <VerticalStackLayout Spacing="7">
+                        <Label Text="NOTE (OPTIONAL)" Style="{StaticResource SectionLabel}" />
+                        <Border BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="1" StrokeShape="RoundRectangle 16" Padding="12,8">
+                            <Editor x:Name="NoteEditor" Placeholder="What changed since your last check-in?" AutoSize="TextChanges" MaxLength="180" MinimumHeightRequest="88" FontSize="14" BackgroundColor="Transparent" TextColor="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" PlaceholderColor="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" />
+                        </Border>
+                    </VerticalStackLayout>
+
+                    <Label x:Name="EditorErrorLabel" IsVisible="False" TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" />
+
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                        <Border x:Name="DeleteRecordButton" IsVisible="False" Padding="16,0" HeightRequest="50" Style="{StaticResource Pill}" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                            <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnDeleteRecordTapped" /></Border.GestureRecognizers>
+                            <Label Text="Delete" FontFamily="OpenSansSemibold" TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" VerticalTextAlignment="Center" />
+                        </Border>
+                        <Button x:Name="SaveRecordButton" Grid.Column="1" Text="Save record" Clicked="OnSaveRecordClicked" HeightRequest="50" BackgroundColor="{DynamicResource Accent}" TextColor="{DynamicResource AccentForeground}" FontFamily="OpenSansSemibold" FontSize="15" BorderWidth="0" CornerRadius="17" />
+                    </Grid>
+                </VerticalStackLayout>
+            </ScrollView>
+        </Grid>
+    </Grid>
+</ContentView>

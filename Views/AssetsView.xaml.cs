@@ -36,6 +36,7 @@ public partial class AssetsView : ContentView
     private AssetSortMode assetSortMode = AssetSortMode.Alphabetical;
     private int loadVersion;
     private bool isLoadingEditor;
+    private Func<DateTime, DateTime, DateTime, Task<DateTime?>>? datePickerRequested;
 
     public AssetsView()
     {
@@ -43,9 +44,19 @@ public partial class AssetsView : ContentView
         TrendChart.Drawable = trendChartDrawable;
         AccessibleShareChart.Drawable = accessibleShareDrawable;
         HistoryView.VisibilityChanged += OnHistoryVisibilityChanged;
+        PerformanceView.VisibilityChanged += OnPerformanceVisibilityChanged;
+        PerformanceView.RecordChanged += OnPerformanceRecordChanged;
     }
 
-    public Func<DateTime, DateTime, DateTime, Task<DateTime?>>? DatePickerRequested { get; set; }
+    public Func<DateTime, DateTime, DateTime, Task<DateTime?>>? DatePickerRequested
+    {
+        get => datePickerRequested;
+        set
+        {
+            datePickerRequested = value;
+            PerformanceView.DatePickerRequested = value;
+        }
+    }
 
     public event Action<bool>? EditorVisibilityChanged;
     public event Action<DateTime>? SnapshotChanged;
@@ -64,6 +75,7 @@ public partial class AssetsView : ContentView
         portfolioService = service;
         currencyProvider = selectedCurrencyProvider;
         HistoryView.Configure(service, selectedCurrencyProvider);
+        PerformanceView.Configure(service, selectedCurrencyProvider);
     }
 
     public async Task RefreshAsync()
@@ -77,10 +89,19 @@ public partial class AssetsView : ContentView
     public void InvalidateCurrency() => hasLoaded = false;
 
     public bool HasOpenOverlay =>
-        HistoryView.IsOpen || EditorOverlay.IsVisible || MonthPicker.IsOpen;
+        PerformanceView.IsOpen ||
+        HistoryView.IsOpen ||
+        EditorOverlay.IsVisible ||
+        MonthPicker.IsOpen;
 
     public async Task HandleBackAsync()
     {
+        if (PerformanceView.IsOpen)
+        {
+            await PerformanceView.HandleBackAsync();
+            return;
+        }
+
         if (HistoryView.IsOpen)
         {
             HistoryView.Close();
@@ -222,6 +243,7 @@ public partial class AssetsView : ContentView
         {
             Comparisons = comparisons.Select(item => new
             {
+                Key = item.Asset.Key,
                 Name = item.Asset.DisplayName,
                 IconAsset = item.Asset.IconAsset,
                 CurrentText = MoneyFormatter.FormatMinor(item.CurrentAmountMinor, value.CurrencySymbol),
@@ -431,6 +453,34 @@ public partial class AssetsView : ContentView
 
     private void OnHistoryVisibilityChanged(bool isVisible) =>
         EditorVisibilityChanged?.Invoke(isVisible);
+
+    private void OnPerformanceVisibilityChanged(bool isVisible)
+    {
+        EditorVisibilityChanged?.Invoke(isVisible);
+        if (!isVisible)
+        {
+            hasLoaded = false;
+            _ = LoadAsync();
+        }
+    }
+
+    private void OnPerformanceRecordChanged(DateTime entryDate)
+    {
+        hasLoaded = false;
+        SnapshotChanged?.Invoke(new DateTime(entryDate.Year, entryDate.Month, 1));
+    }
+
+    private async void OnAssetTapped(object? sender, TappedEventArgs e)
+    {
+        if (e.Parameter is not string assetKey || string.IsNullOrWhiteSpace(assetKey))
+        {
+            return;
+        }
+
+        var feedback = InteractionAnimations.PulseAsync(sender);
+        await PerformanceView.OpenAsync(assetKey);
+        await feedback;
+    }
 
     private async Task OpenEditorAsync()
     {

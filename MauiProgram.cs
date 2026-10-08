@@ -35,6 +35,9 @@ public static class MauiProgram
                 EntryHandler.Mapper.AppendToMapping(
                     nameof(EntryChrome),
                     static (handler, _) => EntryChrome.RemoveNativeBorder(handler));
+                EditorHandler.Mapper.AppendToMapping(
+                    nameof(EntryChrome),
+                    static (handler, _) => EntryChrome.RemoveNativeBorder(handler));
             })
             .ConfigureFonts(fonts =>
             {

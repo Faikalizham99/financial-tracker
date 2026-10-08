@@ -208,8 +208,16 @@
                         <VerticalStackLayout x:Name="ComparisonList" Spacing="12" BindableLayout.ItemsSource="{Binding Comparisons}">
                             <BindableLayout.ItemTemplate>
                                 <DataTemplate>
-                                    <Border Style="{StaticResource SoftCard}">
-                                        <Grid ColumnDefinitions="54,*,Auto" ColumnSpacing="14">
+                                    <Border
+                                        Style="{StaticResource SoftCard}"
+                                        helpers:InteractionAnimations.IsPressFeedbackEnabled="True"
+                                        SemanticProperties.Description="Open asset performance statistics">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer
+                                                Tapped="OnAssetTapped"
+                                                CommandParameter="{Binding Key}" />
+                                        </Border.GestureRecognizers>
+                                        <Grid ColumnDefinitions="54,*,Auto" ColumnSpacing="14" InputTransparent="True">
                                             <Border WidthRequest="52" HeightRequest="52" Padding="0" StrokeThickness="0" StrokeShape="RoundRectangle 14">
                                                 <Image Source="{Binding IconAsset}" Aspect="AspectFill" />
                                             </Border>
@@ -409,6 +417,7 @@
         </Grid>
 
         <views:AssetHistoryView x:Name="HistoryView" ZIndex="25" />
+        <views:AssetPerformanceView x:Name="PerformanceView" ZIndex="27" />
         <views:MonthYearPickerSheet x:Name="MonthPicker" ZIndex="30" />
     </Grid>
 </ContentView>
