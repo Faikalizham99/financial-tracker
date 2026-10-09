@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+    x:Class="FinancialTracker.Views.PendingTransactionsView"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:helpers="clr-namespace:FinancialTracker.Helpers"
+    xmlns:models="clr-namespace:FinancialTracker.Models"
+    IsVisible="False"
+    BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}">
+
+    <Grid x:Name="Root" Opacity="0">
+        <ScrollView VerticalScrollBarVisibility="Never">
+            <VerticalStackLayout
+                MaximumWidthRequest="760"
+                HorizontalOptions="Center"
+                Padding="{OnIdiom Phone='20,22,20,54', Tablet='34,34,34,62', Desktop='40,38,40,66'}"
+                Spacing="22">
+
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Pending transactions" Style="{StaticResource PageTitle}" FontSize="{OnIdiom Phone=28, Tablet=36, Desktop=36}" />
+                        <Label Text="Review notification captures before they affect your finances." Style="{StaticResource BodyMuted}" FontSize="13" />
+                    </VerticalStackLayout>
+                    <Border
+                        Grid.Column="1"
+                        WidthRequest="46"
+                        HeightRequest="46"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}"
+                        StrokeThickness="0"
+                        StrokeShape="RoundRectangle 23"
+                        helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnCloseTapped" />
+                        </Border.GestureRecognizers>
+                        <Path Data="M 6,6 L 18,18 M 18,6 L 6,18" Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" StrokeThickness="2" StrokeLineCap="Round" Aspect="Uniform" WidthRequest="20" HeightRequest="20" HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Border>
+                </Grid>
+
+                <Border
+                    BackgroundColor="{DynamicResource AccentTint}"
+                    Stroke="{DynamicResource Accent}"
+                    StrokeThickness="1"
+                    StrokeShape="RoundRectangle 18"
+                    Padding="16,13">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                        <Border WidthRequest="38" HeightRequest="38" BackgroundColor="{DynamicResource Accent}" StrokeThickness="0" StrokeShape="RoundRectangle 12">
+                            <Path Data="M 5,4 L 19,4 Q 21,4 21,6 L 21,19 Q 21,21 19,21 L 5,21 Q 3,21 3,19 L 3,6 Q 3,4 5,4 Z M 7,9 L 17,9 M 7,13 L 14,13 M 7,17 L 12,17" Stroke="{DynamicResource AccentForeground}" StrokeThickness="1.8" StrokeLineCap="Round" Fill="Transparent" Aspect="Uniform" WidthRequest="22" HeightRequest="22" HorizontalOptions="Center" VerticalOptions="Center" />
+                        </Border>
+                        <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                            <Label x:Name="InboxSummaryLabel" Text="Nothing waiting" FontFamily="OpenSansSemibold" FontSize="14" TextColor="{DynamicResource Accent}" />
+                            <Label Text="Captured locally through your iOS Shortcut" Style="{StaticResource BodyMuted}" FontSize="11" />
+                        </VerticalStackLayout>
+                        <Label Grid.Column="2" x:Name="InboxCountLabel" Text="0" FontFamily="OpenSansSemibold" FontSize="22" TextColor="{DynamicResource Accent}" VerticalTextAlignment="Center" />
+                    </Grid>
+                </Border>
+
+                <Border x:Name="ErrorCard" IsVisible="False" BackgroundColor="{AppThemeBinding Light={StaticResource BlushLight}, Dark={StaticResource BlushDark}}" Stroke="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" StrokeThickness="1" StrokeShape="RoundRectangle 16" Padding="15,12">
+                    <Label x:Name="ErrorLabel" TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" FontSize="12" />
+                </Border>
+
+                <Border x:Name="EmptyState" Style="{StaticResource SoftCard}" Padding="28,38" IsVisible="False">
+                    <VerticalStackLayout Spacing="12" HorizontalOptions="Center">
+                        <Border WidthRequest="64" HeightRequest="64" BackgroundColor="{DynamicResource AccentTint}" StrokeThickness="0" StrokeShape="RoundRectangle 22">
+                            <Path Data="M 5,4 L 19,4 Q 21,4 21,6 L 21,19 Q 21,21 19,21 L 5,21 Q 3,21 3,19 L 3,6 Q 3,4 5,4 Z M 7,9 L 17,9 M 7,13 L 14,13 M 7,17 L 12,17" Stroke="{DynamicResource Accent}" StrokeThickness="1.8" StrokeLineCap="Round" Fill="Transparent" Aspect="Uniform" WidthRequest="30" HeightRequest="30" HorizontalOptions="Center" VerticalOptions="Center" />
+                        </Border>
+                        <Label Text="You’re all caught up" Style="{StaticResource CardTitle}" HorizontalTextAlignment="Center" />
+                        <Label Text="New wallet or bank notification captures will wait here for your approval." Style="{StaticResource BodyMuted}" FontSize="13" HorizontalTextAlignment="Center" MaximumWidthRequest="360" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <VerticalStackLayout
+                    x:Name="PendingList"
+                    Spacing="15"
+                    BindableLayout.ItemsSource="{Binding}">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="models:PendingTransactionRecord">
+                            <Grid>
+                                <Border Style="{StaticResource CardShadowLayer}" />
+                                <Border Style="{StaticResource CardSurface}" Padding="18,16">
+                                    <VerticalStackLayout Spacing="14">
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                            <VerticalStackLayout Spacing="3">
+                                                <Label Text="{Binding SourceDisplay}" Style="{StaticResource SectionLabel}" TextColor="{DynamicResource Accent}" />
+                                                <Label Text="{Binding ReceivedAtDisplay}" Style="{StaticResource BodyMuted}" FontSize="11" />
+                                            </VerticalStackLayout>
+                                            <Border Grid.Column="1" Padding="10,5" BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="1" StrokeShape="RoundRectangle 999">
+                                                <Label Text="{Binding AmountStatus}" FontFamily="OpenSansSemibold" FontSize="10" TextColor="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" />
+                                            </Border>
+                                        </Grid>
+
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="14">
+                                            <Label Text="{Binding DescriptionDisplay}" FontFamily="OpenSansSemibold" FontSize="16" LineBreakMode="TailTruncation" MaxLines="2" VerticalTextAlignment="Center" />
+                                            <Label Grid.Column="1" Text="{Binding AmountDisplay}" FontFamily="OpenSansSemibold" FontSize="19" TextColor="{DynamicResource Accent}" HorizontalTextAlignment="End" VerticalTextAlignment="Center" />
+                                        </Grid>
+
+                                        <Border BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}" StrokeThickness="0" StrokeShape="RoundRectangle 13" Padding="12,9">
+                                            <Label Text="{Binding SuggestionDisplay}" Style="{StaticResource BodyMuted}" FontSize="11" LineBreakMode="TailTruncation" MaxLines="1" />
+                                        </Border>
+
+                                        <VerticalStackLayout Spacing="5">
+                                            <Label Text="ORIGINAL NOTIFICATION" Style="{StaticResource SectionLabel}" FontSize="9" />
+                                            <Label Text="{Binding RawNotificationDisplay, TargetNullValue='No notification text was supplied.'}" Style="{StaticResource BodyMuted}" FontSize="12" MaxLines="4" LineBreakMode="TailTruncation" />
+                                        </VerticalStackLayout>
+
+                                        <Grid ColumnDefinitions="Auto,*,*" ColumnSpacing="9">
+                                            <Button Text="Reject" CommandParameter="{Binding .}" Clicked="OnRejectClicked" HeightRequest="44" Padding="14,0" BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}" TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" BorderWidth="0" CornerRadius="14" FontFamily="OpenSansSemibold" FontSize="12" />
+                                            <Button Grid.Column="1" Text="Edit" CommandParameter="{Binding .}" Clicked="OnEditClicked" HeightRequest="44" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" TextColor="{DynamicResource Accent}" BorderColor="{DynamicResource Accent}" BorderWidth="1" CornerRadius="14" FontFamily="OpenSansSemibold" FontSize="12" />
+                                            <Button Grid.Column="2" Text="Approve" CommandParameter="{Binding .}" Clicked="OnApproveClicked" HeightRequest="44" BackgroundColor="{DynamicResource Accent}" TextColor="{DynamicResource AccentForeground}" BorderWidth="0" CornerRadius="14" FontFamily="OpenSansSemibold" FontSize="12" />
+                                        </Grid>
+                                    </VerticalStackLayout>
+                                </Border>
+                            </Grid>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <Grid x:Name="LoadingOverlay" IsVisible="False" BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}" Opacity="0.82">
+            <ActivityIndicator IsRunning="True" Color="{DynamicResource Accent}" WidthRequest="36" HeightRequest="36" HorizontalOptions="Center" VerticalOptions="Center" />
+        </Grid>
+    </Grid>
+</ContentView>

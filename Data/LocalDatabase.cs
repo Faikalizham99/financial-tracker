@@ -5,7 +5,7 @@ namespace FinancialTracker.Data;
 
 public sealed class LocalDatabase
 {
-    private const int CurrentSchemaVersion = 8;
+    private const int CurrentSchemaVersion = 9;
     private const string KnownTransactionDataPreferenceKey =
         "database_has_known_transaction_data";
     private static readonly TimeSpan[] StartupEmptyReadRetryDelays =
@@ -81,6 +81,14 @@ public sealed class LocalDatabase
     public Task<TransactionRecord?> GetTransactionAsync(int transactionId) =>
         ExecuteWithConnectionAsync(async activeConnection =>
             (TransactionRecord?)await activeConnection.FindAsync<TransactionRecord>(transactionId)
+                .ConfigureAwait(false));
+
+    public Task<TransactionRecord?> GetTransactionByImportKeyAsync(string importKey) =>
+        ExecuteWithConnectionAsync(async activeConnection =>
+            (TransactionRecord?)await activeConnection
+                .Table<TransactionRecord>()
+                .Where(record => record.ExternalImportKey == importKey)
+                .FirstOrDefaultAsync()
                 .ConfigureAwait(false));
 
     public Task<IReadOnlyList<TransactionRecord>> GetTransactionsAsync(
@@ -455,6 +463,29 @@ public sealed class LocalDatabase
                 .ConfigureAwait(false);
         }
 
+        if (version < 9)
+        {
+            var transactionColumns = await Connection
+                .GetTableInfoAsync("Transactions")
+                .ConfigureAwait(false);
+            if (!transactionColumns.Any(column => column.Name.Equals(
+                    nameof(TransactionRecord.ExternalImportKey),
+                    StringComparison.OrdinalIgnoreCase)))
+            {
+                await Connection.ExecuteAsync(
+                        "ALTER TABLE Transactions ADD COLUMN ExternalImportKey TEXT")
+                    .ConfigureAwait(false);
+            }
+
+            await Connection.ExecuteAsync(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS " +
+                    "IX_Transactions_ExternalImportKey " +
+                    "ON Transactions (ExternalImportKey) " +
+                    "WHERE ExternalImportKey IS NOT NULL " +
+                    "AND ExternalImportKey <> ''")
+                .ConfigureAwait(false);
+        }
+
         if (version < CurrentSchemaVersion)
         {
             await Connection.ExecuteAsync($"PRAGMA user_version = {CurrentSchemaVersion}")
@@ -772,6 +803,16 @@ public sealed class LocalDatabase
             {
                 throw new InvalidDataException(
                     "The selected backup is missing required Financial Tracker tables.");
+            }
+
+            if (version >= 9 &&
+                !candidate.GetTableInfo("Transactions").Any(column =>
+                    column.Name.Equals(
+                        nameof(TransactionRecord.ExternalImportKey),
+                        StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new InvalidDataException(
+                    "The selected backup is missing notification import metadata.");
             }
         }
         catch (SQLiteException exception)

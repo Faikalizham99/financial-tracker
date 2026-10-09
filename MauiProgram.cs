@@ -50,6 +50,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<MonthlyBudgetService>();
         builder.Services.AddSingleton<AssetPortfolioService>();
         builder.Services.AddSingleton<TransactionDataStore>();
+        builder.Services.AddSingleton<PendingTransactionInboxService>();
         builder.Services.AddSingleton<TransactionStatisticsService>();
         builder.Services.AddSingleton<WidgetSnapshotCoordinator>();
         builder.Services.AddSingleton<AssetWidgetSnapshotCoordinator>();

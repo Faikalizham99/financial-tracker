@@ -94,6 +94,35 @@
                 </Border>
             </Grid>
 
+            <Border
+                x:Name="PendingInboxBanner"
+                IsVisible="False"
+                BackgroundColor="{DynamicResource AccentTint}"
+                Stroke="{DynamicResource Accent}"
+                StrokeThickness="1"
+                StrokeShape="RoundRectangle 17"
+                Padding="14,11"
+                helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnPendingInboxTapped" />
+                </Border.GestureRecognizers>
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="11">
+                    <Border WidthRequest="38" HeightRequest="38" BackgroundColor="{DynamicResource Accent}" StrokeThickness="0" StrokeShape="RoundRectangle 12">
+                        <Path Data="M 5,4 L 19,4 Q 21,4 21,6 L 21,19 Q 21,21 19,21 L 5,21 Q 3,21 3,19 L 3,6 Q 3,4 5,4 Z M 7,9 L 17,9 M 7,13 L 14,13 M 7,17 L 12,17" Stroke="{DynamicResource AccentForeground}" StrokeThickness="1.8" StrokeLineCap="Round" Fill="Transparent" Aspect="Uniform" WidthRequest="22" HeightRequest="22" HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Border>
+                    <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                        <Label x:Name="PendingInboxTitle" Text="Check pending transaction" FontFamily="OpenSansSemibold" FontSize="13" TextColor="{DynamicResource Accent}" />
+                        <Label Text="Review the details before adding it" Style="{StaticResource BodyMuted}" FontSize="10" />
+                    </VerticalStackLayout>
+                    <Grid Grid.Column="2" ColumnDefinitions="Auto,16" ColumnSpacing="8" VerticalOptions="Center">
+                        <Border Padding="9,4" BackgroundColor="{DynamicResource Accent}" StrokeThickness="0" StrokeShape="RoundRectangle 999">
+                            <Label x:Name="PendingInboxCount" Text="1" FontFamily="OpenSansSemibold" FontSize="10" TextColor="{DynamicResource AccentForeground}" />
+                        </Border>
+                        <Path Grid.Column="1" Data="M 7,4 L 15,12 L 7,20" Stroke="{DynamicResource Accent}" StrokeThickness="2" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" WidthRequest="14" HeightRequest="14" VerticalOptions="Center" />
+                    </Grid>
+                </Grid>
+            </Border>
+
             <views:MonthlySummaryCard
                 x:Name="TransactionsMonthlySummary"
                 ShowTransactionCount="True"

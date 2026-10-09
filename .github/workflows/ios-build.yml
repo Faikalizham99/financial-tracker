@@ -56,9 +56,12 @@ jobs:
       WIDGET_PROJECT_DIR: Platforms/iOS/FinancialTrackerWidget
       WIDGET_TARGET: FinancialTrackerWidgetExtension
       WIDGET_BUNDLE_ID: com.faikalizham.financial-tracker.widget
+      INTENTS_TARGET: FinancialTrackerIntentsExtension
+      INTENTS_BUNDLE_ID: com.faikalizham.financial-tracker.intents
       APP_GROUP_ID: group.com.faikalizham.financial-tracker
       APP_ENTITLEMENTS_PATH: Platforms/iOS/Entitlements.plist
       WIDGET_ENTITLEMENTS_PATH: Platforms/iOS/FinancialTrackerWidget/FinancialTrackerWidgetExtension/FinancialTrackerWidgetExtension.entitlements
+      INTENTS_ENTITLEMENTS_PATH: Platforms/iOS/FinancialTrackerWidget/FinancialTrackerIntentsExtension/FinancialTrackerIntentsExtension.entitlements
 
     steps:
       - name: Check out repository
@@ -85,7 +88,7 @@ jobs:
           fi
           xcodegen --version
 
-      - name: Build unsigned WidgetKit extension
+      - name: Build unsigned iOS extensions
         shell: bash
         run: |
           set -euo pipefail
@@ -113,7 +116,21 @@ jobs:
               MARKETING_VERSION="$APP_DISPLAY_VERSION" \
               CURRENT_PROJECT_VERSION="$APP_BUILD_VERSION" \
               BUILD_DIR="$widget_build_root" \
-              clean build
+              build
+
+            xcodebuild -quiet \
+              -project FinancialTrackerWidget.xcodeproj \
+              -target "$INTENTS_TARGET" \
+              -configuration Release \
+              -sdk iphoneos \
+              -arch arm64 \
+              CODE_SIGN_IDENTITY="-" \
+              CODE_SIGNING_REQUIRED=NO \
+              CODE_SIGNING_ALLOWED=NO \
+              MARKETING_VERSION="$APP_DISPLAY_VERSION" \
+              CURRENT_PROJECT_VERSION="$APP_BUILD_VERSION" \
+              BUILD_DIR="$widget_build_root" \
+              build
           )
 
           widget_path="$widget_build_root/Release-iphoneos/$WIDGET_TARGET.appex"
@@ -124,6 +141,15 @@ jobs:
 
           echo "WIDGET_APPEX_PATH=$widget_path" >> "$GITHUB_ENV"
           echo "WidgetKit extension: $widget_path"
+
+          intents_path="$widget_build_root/Release-iphoneos/$INTENTS_TARGET.appex"
+          if [[ ! -d "$intents_path" ]]; then
+            echo "App Intents extension was not produced: $intents_path" >&2
+            exit 1
+          fi
+
+          echo "INTENTS_APPEX_PATH=$intents_path" >> "$GITHUB_ENV"
+          echo "App Intents extension: $intents_path"
 
       - name: Install the .NET MAUI iOS workload
         run: >-
@@ -286,10 +312,60 @@ jobs:
             exit 1
           fi
 
+          if [[ -z "${INTENTS_APPEX_PATH:-}" || ! -d "$INTENTS_APPEX_PATH" ]]; then
+            echo "The App Intents extension build output is missing: ${INTENTS_APPEX_PATH:-<unset>}" >&2
+            exit 1
+          fi
+
+          intents_info_plist="$INTENTS_APPEX_PATH/Info.plist"
+          if [[ ! -f "$intents_info_plist" ]]; then
+            echo "The App Intents extension has no Info.plist: $INTENTS_APPEX_PATH" >&2
+            exit 1
+          fi
+
+          intents_bundle_id=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$intents_info_plist")
+          intents_executable_name=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$intents_info_plist")
+          intents_display_version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$intents_info_plist")
+          intents_build_version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$intents_info_plist")
+          intents_extension_point=$(/usr/libexec/PlistBuddy -c 'Print :EXAppExtensionAttributes:EXExtensionPointIdentifier' "$intents_info_plist")
+          intents_executable_path="$INTENTS_APPEX_PATH/$intents_executable_name"
+
+          if [[ "$intents_bundle_id" != "$INTENTS_BUNDLE_ID" ]]; then
+            echo "Unexpected App Intents bundle identifier: $intents_bundle_id" >&2
+            exit 1
+          fi
+          if [[ "$intents_display_version" != "$APP_DISPLAY_VERSION" ]]; then
+            echo "Unexpected App Intents version: $intents_display_version (expected $APP_DISPLAY_VERSION)" >&2
+            exit 1
+          fi
+          if [[ "$intents_build_version" != "$APP_BUILD_VERSION" ]]; then
+            echo "Unexpected App Intents build: $intents_build_version (expected $APP_BUILD_VERSION)" >&2
+            exit 1
+          fi
+          if [[ "$intents_extension_point" != "com.apple.appintents-extension" ]]; then
+            echo "Unexpected App Intents extension point: $intents_extension_point" >&2
+            exit 1
+          fi
+          if [[ ! -f "$intents_executable_path" ]]; then
+            echo "App Intents executable was not found: $intents_executable_path" >&2
+            exit 1
+          fi
+
+          intents_architectures=$(lipo -archs "$intents_executable_path")
+          if [[ " $intents_architectures " != *" arm64 "* || " $intents_architectures " == *" x86_64 "* ]]; then
+            echo "The App Intents extension must contain only a device ARM64 slice: $intents_architectures" >&2
+            exit 1
+          fi
+
           plugins_path="$app_path/PlugIns"
           embedded_widget_path="$plugins_path/$WIDGET_TARGET.appex"
           mkdir -p "$plugins_path"
           ditto "$WIDGET_APPEX_PATH" "$embedded_widget_path"
+
+          extensions_path="$app_path/Extensions"
+          embedded_intents_path="$extensions_path/$INTENTS_TARGET.appex"
+          mkdir -p "$extensions_path"
+          ditto "$INTENTS_APPEX_PATH" "$embedded_intents_path"
 
           embedded_widget_count=$(find "$plugins_path" -mindepth 1 -maxdepth 1 -type d -name '*.appex' | wc -l | tr -d ' ')
           if [[ "$embedded_widget_count" -ne 1 ]]; then
@@ -298,14 +374,26 @@ jobs:
             exit 1
           fi
 
+          embedded_intents_count=$(find "$extensions_path" -mindepth 1 -maxdepth 1 -type d -name '*.appex' | wc -l | tr -d ' ')
+          if [[ "$embedded_intents_count" -ne 1 ]]; then
+            echo "The app must contain exactly one embedded ExtensionKit extension; found $embedded_intents_count." >&2
+            find "$extensions_path" -mindepth 1 -maxdepth 1 -type d -name '*.appex' -print
+            exit 1
+          fi
+
           app_entitlements="$GITHUB_WORKSPACE/$APP_ENTITLEMENTS_PATH"
           widget_entitlements="$GITHUB_WORKSPACE/$WIDGET_ENTITLEMENTS_PATH"
+          intents_entitlements="$GITHUB_WORKSPACE/$INTENTS_ENTITLEMENTS_PATH"
           if [[ ! -f "$app_entitlements" ]]; then
             echo "App entitlements were not found: $app_entitlements" >&2
             exit 1
           fi
           if [[ ! -f "$widget_entitlements" ]]; then
             echo "Widget entitlements were not found: $widget_entitlements" >&2
+            exit 1
+          fi
+          if [[ ! -f "$intents_entitlements" ]]; then
+            echo "App Intents entitlements were not found: $intents_entitlements" >&2
             exit 1
           fi
 
@@ -326,25 +414,36 @@ jobs:
             --entitlements "$widget_entitlements" \
             "$embedded_widget_path"
           codesign --force --sign - --timestamp=none \
+            --entitlements "$intents_entitlements" \
+            "$embedded_intents_path"
+          codesign --force --sign - --timestamp=none \
             --entitlements "$app_entitlements" \
             "$app_path"
 
           codesign --verify --deep --strict "$embedded_widget_path"
+          codesign --verify --deep --strict "$embedded_intents_path"
           codesign --verify --deep --strict "$app_path"
 
           app_signed_entitlements=$(mktemp "$RUNNER_TEMP/financialtracker-app-entitlements.XXXXXX")
           widget_signed_entitlements=$(mktemp "$RUNNER_TEMP/financialtracker-widget-entitlements.XXXXXX")
+          intents_signed_entitlements=$(mktemp "$RUNNER_TEMP/financialtracker-intents-entitlements.XXXXXX")
           codesign -d --entitlements :- "$app_path" > "$app_signed_entitlements" 2>/dev/null
           codesign -d --entitlements :- "$embedded_widget_path" > "$widget_signed_entitlements" 2>/dev/null
+          codesign -d --entitlements :- "$embedded_intents_path" > "$intents_signed_entitlements" 2>/dev/null
 
           app_group=$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.application-groups:0' "$app_signed_entitlements")
           widget_app_group=$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.application-groups:0' "$widget_signed_entitlements")
+          intents_app_group=$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.application-groups:0' "$intents_signed_entitlements")
           if [[ "$app_group" != "$APP_GROUP_ID" ]]; then
             echo "Unexpected app App Group entitlement: $app_group" >&2
             exit 1
           fi
           if [[ "$widget_app_group" != "$APP_GROUP_ID" ]]; then
             echo "Unexpected widget App Group entitlement: $widget_app_group" >&2
+            exit 1
+          fi
+          if [[ "$intents_app_group" != "$APP_GROUP_ID" ]]; then
+            echo "Unexpected App Intents App Group entitlement: $intents_app_group" >&2
             exit 1
           fi
 
@@ -385,6 +484,16 @@ jobs:
             exit 1
           fi
 
+          payload_intents_count=$(
+            unzip -Z1 "$ipa_path" |
+              awk -F/ '$1 == "Payload" && $2 ~ /[.]app$/ && $3 == "Extensions" && $4 ~ /[.]appex$/ && $5 == "" && NF == 5 { count++ } END { print count + 0 }'
+          )
+          if [[ "$payload_intents_count" -ne 1 ]]; then
+            echo "IPA must contain exactly one Payload/*.app/Extensions/*.appex bundle." >&2
+            unzip -Z1 "$ipa_path" | grep -E 'Payload/[^/]+[.]app/Extensions/' | head -100 || true
+            exit 1
+          fi
+
           ipa_size=$(du -h "$ipa_path" | cut -f1)
           ipa_sha256=$(shasum -a 256 "$ipa_path" | awk '{print $1}')
 
@@ -397,6 +506,8 @@ jobs:
           echo "Architectures: $architectures"
           echo "Widget bundle ID: $widget_bundle_id"
           echo "Widget architectures: $widget_architectures"
+          echo "App Intents bundle ID: $intents_bundle_id"
+          echo "App Intents architectures: $intents_architectures"
           echo "App Group: $app_group"
           echo "Signing: $signing_state"
           echo "IPA: $ipa_path"
@@ -411,6 +522,8 @@ jobs:
             echo "- Architectures: \`$architectures\`"
             echo "- Widget bundle ID: \`$widget_bundle_id\`"
             echo "- Widget architectures: \`$widget_architectures\`"
+            echo "- App Intents bundle ID: \`$intents_bundle_id\`"
+            echo "- App Intents architectures: \`$intents_architectures\`"
             echo "- App Group: \`$app_group\`"
             echo "- Signing: $signing_state"
             echo "- IPA: \`$ipa_path\`"

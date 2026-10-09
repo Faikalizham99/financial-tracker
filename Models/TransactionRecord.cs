@@ -27,4 +27,6 @@ public sealed class TransactionRecord
     public DateTime TransactionDate { get; set; } = DateTime.Today;
 
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+
+    public string? ExternalImportKey { get; set; }
 }

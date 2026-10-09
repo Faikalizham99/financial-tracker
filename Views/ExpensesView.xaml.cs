@@ -12,6 +12,7 @@ public partial class ExpensesView : ContentView
     public event Action<int>? QuickEditTransactionRequested;
     public event Action<int>? DeleteTransactionRequested;
     public event Action? SearchRequested;
+    public event Action? PendingTransactionsRequested;
     public event Action<DateTime>? StatisticsRequested;
     public event EventHandler? TransactionEditingLockToggleRequested;
     public event EventHandler? InvestmentInclusionToggleRequested;
@@ -100,6 +101,23 @@ public partial class ExpensesView : ContentView
     {
         selectedCurrency = currency;
         RenderDisplayedMonth();
+    }
+
+    public void SetPendingTransactionCount(int count)
+    {
+        var normalizedCount = Math.Max(0, count);
+        PendingInboxBanner.IsVisible = normalizedCount > 0;
+        PendingInboxCount.Text = normalizedCount.ToString(CultureInfo.CurrentCulture);
+        PendingInboxTitle.Text = normalizedCount == 1
+            ? "Check pending transaction"
+            : $"Check {normalizedCount} pending transactions";
+    }
+
+    private async void OnPendingInboxTapped(object? sender, TappedEventArgs e)
+    {
+        var feedback = InteractionAnimations.PulseAsync(sender);
+        PendingTransactionsRequested?.Invoke();
+        await feedback;
     }
 
     public void SetTransactionEditingLocked(bool isLocked)

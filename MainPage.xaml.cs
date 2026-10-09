@@ -33,6 +33,7 @@ public partial class MainPage : ContentPage
     private readonly SettingsViewModel settingsViewModel;
     private readonly MonthlyBudgetService monthlyBudgetService;
     private readonly TransactionDataStore transactionDataStore;
+    private readonly PendingTransactionInboxService pendingTransactionInbox;
     private readonly WidgetSnapshotCoordinator widgetSnapshotCoordinator;
     private readonly AssetWidgetSnapshotCoordinator assetWidgetSnapshotCoordinator;
     private readonly WidgetAppearanceCoordinator widgetAppearanceCoordinator;
@@ -79,6 +80,7 @@ public partial class MainPage : ContentPage
         MonthlyBudgetService monthlyBudgetService,
         AssetPortfolioService assetPortfolioService,
         TransactionDataStore transactionDataStore,
+        PendingTransactionInboxService pendingTransactionInbox,
         WidgetSnapshotCoordinator widgetSnapshotCoordinator,
         AssetWidgetSnapshotCoordinator assetWidgetSnapshotCoordinator,
         WidgetAppearanceCoordinator widgetAppearanceCoordinator,
@@ -105,6 +107,7 @@ public partial class MainPage : ContentPage
         this.settingsViewModel = settingsViewModel;
         this.monthlyBudgetService = monthlyBudgetService;
         this.transactionDataStore = transactionDataStore;
+        this.pendingTransactionInbox = pendingTransactionInbox;
         this.widgetSnapshotCoordinator = widgetSnapshotCoordinator;
         this.assetWidgetSnapshotCoordinator = assetWidgetSnapshotCoordinator;
         this.widgetAppearanceCoordinator = widgetAppearanceCoordinator;
@@ -124,6 +127,15 @@ public partial class MainPage : ContentPage
         AddTransactionOverlay.TransactionSaved = OnTransactionSavedAsync;
         AddTransactionOverlay.DatePickerRequested = CalendarPicker.PickAsync;
         AddTransactionOverlay.RunWithTransactionLoadingAsync = RunWithDataLoadingSkeletonAsync;
+        PendingTransactionsOverlay.Configure(
+            pendingTransactionInbox,
+            localDatabase,
+            () => settingsViewModel.SelectedCurrency);
+        PendingTransactionsOverlay.EditRequested = OpenPendingTransactionForEditAsync;
+        PendingTransactionsOverlay.TransactionsChanged = OnPendingTransactionApprovedAsync;
+        PendingTransactionsOverlay.CountChanged = OnPendingTransactionCountChangedAsync;
+        PendingTransactionsOverlay.VisibilityChanged +=
+            OnPendingTransactionsVisibilityChanged;
         ExpensesView.DatePickerRequested = CalendarPicker.PickAsync;
         AssetsView.DatePickerRequested = CalendarPicker.PickAsync;
         ExpensesView.RunWithTransactionLoadingAsync = RunWithDataLoadingSkeletonAsync;
@@ -132,6 +144,7 @@ public partial class MainPage : ContentPage
         ExpensesView.QuickEditTransactionRequested += OnTransactionQuickEditRequested;
         ExpensesView.DeleteTransactionRequested += OnTransactionDeleteRequested;
         ExpensesView.SearchRequested += OnTransactionSearchRequested;
+        ExpensesView.PendingTransactionsRequested += OnPendingTransactionsRequested;
         ExpensesView.StatisticsRequested += OnTransactionStatisticsRequested;
         ExpensesView.TransactionEditingLockToggleRequested +=
             OnTransactionEditingLockToggleRequested;
@@ -187,6 +200,7 @@ public partial class MainPage : ContentPage
             await OpenPendingWidgetAddTransactionAsync();
             await OpenPendingWidgetAssetSnapshotAsync();
             await OpenPendingWidgetTransactionsAsync();
+            await RefreshPendingTransactionInboxAsync();
         }
         catch
         {
@@ -214,6 +228,12 @@ public partial class MainPage : ContentPage
         if (TransactionStatisticsOverlay.IsOpen)
         {
             _ = TransactionStatisticsOverlay.HandleBackAsync();
+            return true;
+        }
+
+        if (PendingTransactionsOverlay.IsOpen)
+        {
+            _ = PendingTransactionsOverlay.HandleBackAsync();
             return true;
         }
 
@@ -281,6 +301,7 @@ public partial class MainPage : ContentPage
             monthlyBudgetService.InvalidateCache();
             await settingsViewModel.RefreshCurrentBudgetStatusAsync();
             await RefreshTransactionViewsAfterResumeAsync();
+            await RefreshPendingTransactionInboxAsync();
             await ReloadMonthlyBudgetCardsAsync();
             assetWidgetSnapshotCoordinator.QueuePublish(
                 settingsViewModel.SelectedCurrency,

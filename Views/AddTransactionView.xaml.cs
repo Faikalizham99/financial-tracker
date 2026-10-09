@@ -29,6 +29,7 @@ public partial class AddTransactionView : ContentView
     private bool isTypeAnimating;
     private bool isSaving;
     private bool isApplyingDescriptionSuggestion;
+    private Func<TransactionRecord, Task>? afterTransactionSaved;
     private IReadOnlyList<SelectableTransactionOption> selectorOptions = [];
 
     public AddTransactionView()
@@ -41,7 +42,9 @@ public partial class AddTransactionView : ContentView
         CurrencyOption selectedCurrency,
         IReadOnlyList<TransactionRecord> transactionHistory,
         TransactionRecord? transactionToEdit = null,
-        decimal? initialAmount = null)
+        decimal? initialAmount = null,
+        TransactionRecord? transactionDraft = null,
+        Func<TransactionRecord, Task>? afterSaved = null)
     {
         if (isOpen || isAnimating)
         {
@@ -49,7 +52,11 @@ public partial class AddTransactionView : ContentView
         }
 
         database = localDatabase;
-        viewModel.Initialize(selectedCurrency, transactionToEdit);
+        afterTransactionSaved = afterSaved;
+        viewModel.Initialize(
+            selectedCurrency,
+            transactionToEdit,
+            transactionDraft);
         if (transactionToEdit is null && initialAmount is > 0)
         {
             viewModel.SetAmount(initialAmount.Value);
@@ -469,7 +476,21 @@ public partial class AddTransactionView : ContentView
                 }
 
                 SaveLabel.Text = viewModel.IsEditing ? "Updated" : "Saved";
+                var completion = afterTransactionSaved;
                 await CloseAsync();
+
+                if (completion is not null)
+                {
+                    try
+                    {
+                        await completion(transaction);
+                    }
+                    catch (Exception exception)
+                    {
+                        System.Diagnostics.Debug.WriteLine(
+                            $"Post-save transaction action failed: {exception}");
+                    }
+                }
 
                 var transactionSaved = TransactionSaved;
                 if (transactionSaved is not null)
@@ -503,12 +524,11 @@ public partial class AddTransactionView : ContentView
 
     private void ResetForm()
     {
-        var transaction = viewModel.EditingTransaction;
         isSaving = false;
         isApplyingDescriptionSuggestion = false;
         HideDescriptionSuggestions();
         isApplyingDescriptionSuggestion = true;
-        DescriptionEntry.Text = transaction?.Description ?? string.Empty;
+        DescriptionEntry.Text = viewModel.InitialDescription;
         isApplyingDescriptionSuggestion = false;
         CurrencySymbolLabel.Text = viewModel.Currency.Symbol;
         UpdateDateLabel(viewModel.TransactionDate);

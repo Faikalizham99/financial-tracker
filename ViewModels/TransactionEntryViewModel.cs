@@ -22,6 +22,9 @@ public sealed class TransactionEntryViewModel
         TransactionCatalog.ExpenseCategories[^1];
     public DateTime TransactionDate { get; private set; } = DateTime.Today;
     public TransactionRecord? EditingTransaction { get; private set; }
+    public TransactionRecord? DraftTransaction { get; private set; }
+    public string InitialDescription =>
+        (EditingTransaction ?? DraftTransaction)?.Description ?? string.Empty;
     public bool IsEditing => EditingTransaction is not null;
     public bool HasPendingCalculation => pendingOperator is not null;
     public bool CanCompleteCalculation => pendingOperator is not null && !startNewInput;
@@ -54,33 +57,36 @@ public sealed class TransactionEntryViewModel
 
     public void Initialize(
         CurrencyOption currency,
-        TransactionRecord? transaction)
+        TransactionRecord? transaction,
+        TransactionRecord? draftTransaction = null)
     {
         Currency = currency;
         EditingTransaction = transaction;
-        SelectedType = transaction is null
+        DraftTransaction = transaction is null ? draftTransaction : null;
+        var initialTransaction = transaction ?? DraftTransaction;
+        SelectedType = initialTransaction is null
             ? TransactionCatalog.TransactionTypes[0]
-            : TransactionCatalog.GetTransactionType(transaction.Type);
-        SelectedPayment = transaction is null
+            : TransactionCatalog.GetTransactionType(initialTransaction.Type);
+        SelectedPayment = initialTransaction is null
             ? TransactionCatalog.DefaultPaymentMethod
             : TransactionCatalog.PaymentMethods.FirstOrDefault(option =>
                 option.Key.Equals(
-                    transaction.PaymentMethod,
+                    initialTransaction.PaymentMethod,
                     StringComparison.OrdinalIgnoreCase))
               ?? TransactionCatalog.DefaultPaymentMethod;
         var categories = GetCategoriesForSelectedType();
-        SelectedCategory = transaction is null
+        SelectedCategory = initialTransaction is null
             ? categories[^1]
             : TransactionCatalog.GetCategory(
-                transaction.Category,
+                initialTransaction.Category,
                 TransactionCatalog.IsIncomeType(SelectedType.Key));
-        currentInput = transaction is null
+        currentInput = initialTransaction is null
             ? "0"
-            : FormatAmount(transaction.AmountMinor / 100m);
+            : FormatAmount(initialTransaction.AmountMinor / 100m);
         accumulator = 0;
         pendingOperator = null;
         startNewInput = true;
-        TransactionDate = transaction?.TransactionDate.Date ?? DateTime.Today;
+        TransactionDate = initialTransaction?.TransactionDate.Date ?? DateTime.Today;
     }
 
     public void ToggleTransactionType()
@@ -204,7 +210,9 @@ public sealed class TransactionEntryViewModel
             MidpointRounding.AwayFromZero)),
         CurrencyCode = EditingTransaction?.CurrencyCode ?? Currency.Code,
         TransactionDate = TransactionDate,
-        CreatedAtUtc = EditingTransaction?.CreatedAtUtc ?? DateTime.UtcNow
+        CreatedAtUtc = EditingTransaction?.CreatedAtUtc ?? DateTime.UtcNow,
+        ExternalImportKey = EditingTransaction?.ExternalImportKey ??
+            DraftTransaction?.ExternalImportKey
     };
 
     private void AppendInput(string key)

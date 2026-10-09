@@ -352,6 +352,10 @@
             x:Name="TransactionStatisticsOverlay"
             ZIndex="120" />
 
+        <views:PendingTransactionsView
+            x:Name="PendingTransactionsOverlay"
+            ZIndex="130" />
+
         <views:AddTransactionView
             x:Name="AddTransactionOverlay"
             IsVisible="False"

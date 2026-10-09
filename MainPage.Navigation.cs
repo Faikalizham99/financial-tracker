@@ -5,7 +5,10 @@ namespace FinancialTracker;
 public partial class MainPage
 {
     private async void OnExpensesTapped(object? sender, TappedEventArgs e)
-        => await NavigateToSectionAsync(1);
+    {
+        await NavigateToSectionAsync(1);
+        await RefreshPendingTransactionInboxAsync();
+    }
 
     private async void OnSettingsTapped(object? sender, TappedEventArgs e)
         => await NavigateToSectionAsync(3);

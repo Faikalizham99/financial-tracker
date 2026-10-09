@@ -25,3 +25,32 @@ targets:
         GENERATE_INFOPLIST_FILE: false
         SWIFT_VERSION: "5.0"
         SKIP_INSTALL: true
+
+  FinancialTrackerIntentsExtension:
+    type: extensionkit-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: FinancialTrackerIntentsExtension
+        excludes:
+          - FinancialTrackerIntentsExtension.entitlements
+          - Info.plist
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.faikalizham.financial-tracker.intents
+        PRODUCT_NAME: FinancialTrackerIntentsExtension
+        WRAPPER_EXTENSION: appex
+        APPLICATION_EXTENSION_API_ONLY: true
+        CODE_SIGN_ENTITLEMENTS: FinancialTrackerIntentsExtension/FinancialTrackerIntentsExtension.entitlements
+        SWIFT_VERSION: "5.0"
+        SKIP_INSTALL: true
+    info:
+      path: FinancialTrackerIntentsExtension/Info.plist
+      properties:
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CFBundleDisplayName: Financial Tracker
+        EXAppExtensionAttributes:
+          EXExtensionPointIdentifier: com.apple.appintents-extension
+    dependencies:
+      - sdk: libsqlite3.tbd
