@@ -78,11 +78,11 @@ public sealed class PendingTransactionInboxService
             return;
         }
 
-        await Connection.ExecuteAsync("PRAGMA busy_timeout = 5000")
+        await Connection.ExecuteScalarAsync<int>("PRAGMA busy_timeout = 5000")
             .ConfigureAwait(false);
-        await Connection.ExecuteAsync("PRAGMA journal_mode = WAL")
+        await Connection.ExecuteScalarAsync<string>("PRAGMA journal_mode = WAL")
             .ConfigureAwait(false);
-        await Connection.ExecuteAsync("PRAGMA synchronous = FULL")
+        await Connection.ExecuteScalarAsync<int>("PRAGMA synchronous = FULL")
             .ConfigureAwait(false);
         await Connection.CreateTableAsync<PendingTransactionRecord>()
             .ConfigureAwait(false);
