@@ -31,7 +31,7 @@ public partial class MainPage
         {
             System.Diagnostics.Debug.WriteLine(
                 $"Pending transaction inbox refresh failed: {exception}");
-            ExpensesView.SetPendingTransactionCount(0);
+            ExpensesView.SetPendingTransactionInboxError(exception.Message);
         }
     }
 

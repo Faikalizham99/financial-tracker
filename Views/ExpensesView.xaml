@@ -123,6 +123,30 @@
                 </Grid>
             </Border>
 
+            <Border
+                x:Name="PendingInboxErrorBanner"
+                IsVisible="False"
+                BackgroundColor="{AppThemeBinding Light={StaticResource BlushLight}, Dark={StaticResource BlushDark}}"
+                Stroke="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}"
+                StrokeThickness="1"
+                StrokeShape="RoundRectangle 17"
+                Padding="14,11"
+                helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                <Border.GestureRecognizers>
+                    <TapGestureRecognizer Tapped="OnPendingInboxTapped" />
+                </Border.GestureRecognizers>
+                <Grid ColumnDefinitions="Auto,*,16" ColumnSpacing="11">
+                    <Border WidthRequest="38" HeightRequest="38" BackgroundColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" StrokeThickness="0" StrokeShape="RoundRectangle 12">
+                        <Label Text="!" FontFamily="OpenSansSemibold" FontSize="21" TextColor="White" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                    </Border>
+                    <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                        <Label Text="Pending inbox unavailable" FontFamily="OpenSansSemibold" FontSize="13" TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" />
+                        <Label x:Name="PendingInboxErrorDetail" Text="Tap to see the signing problem" Style="{StaticResource BodyMuted}" FontSize="10" MaxLines="2" LineBreakMode="TailTruncation" />
+                    </VerticalStackLayout>
+                    <Path Grid.Column="2" Data="M 7,4 L 15,12 L 7,20" Stroke="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" StrokeThickness="2" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" WidthRequest="14" HeightRequest="14" VerticalOptions="Center" />
+                </Grid>
+            </Border>
+
             <views:MonthlySummaryCard
                 x:Name="TransactionsMonthlySummary"
                 ShowTransactionCount="True"

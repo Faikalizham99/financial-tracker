@@ -4,14 +4,6 @@ import Foundation
 import SQLite3
 
 private enum PendingInboxConfiguration {
-    static let appGroupIdentifiers = [
-        "group.com.faikalizham.financial-tracker",
-        "group.f4c6f25ba5674ecb.1",
-        "group.f4c6f25ba5674ecb.2",
-        "group.f4c6f25ba5674ecb.3",
-        "group.f4c6f25ba5674ecb.4",
-        "group.f4c6f25ba5674ecb.5",
-    ]
     static let databaseFileName = "pending-transactions.db3"
 }
 
@@ -158,19 +150,18 @@ private final class PendingInboxDatabase {
     }
 
     private static func databaseURL() throws -> URL {
-        for identifier in PendingInboxConfiguration.appGroupIdentifiers {
-            if let container = FileManager.default.containerURL(
-                forSecurityApplicationGroupIdentifier: identifier
-            ) {
-                return container
-                    .appendingPathComponent("Library/FinancialTracker", isDirectory: true)
-                    .appendingPathComponent(
-                        PendingInboxConfiguration.databaseFileName,
-                        isDirectory: false
-                    )
-            }
+        let identifier = try SignedAppGroups.group()
+        guard let container = FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: identifier
+        ) else {
+            throw SharedStorageConfigurationError.unavailableGroup(identifier)
         }
-        throw PendingInboxError.appGroupUnavailable
+        return container
+            .appendingPathComponent("Library/FinancialTracker", isDirectory: true)
+            .appendingPathComponent(
+                PendingInboxConfiguration.databaseFileName,
+                isDirectory: false
+            )
     }
 
     private func execute(_ sql: String) throws {

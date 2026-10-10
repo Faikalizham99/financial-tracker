@@ -97,22 +97,51 @@ public sealed class PendingTransactionInboxService
     private static string ResolveDatabasePath()
     {
 #if IOS
-        foreach (var identifier in WidgetConstants.AppGroupIdentifiers)
+        string groupIdentifier;
+        try
         {
-            var container = NSFileManager.DefaultManager.GetContainerUrl(identifier);
-            if (container?.Path is not string containerPath)
-            {
-                continue;
-            }
-
-            var directory = Path.Combine(containerPath, "Library", "FinancialTracker");
-            Directory.CreateDirectory(directory);
-            return Path.Combine(directory, DatabaseFileName);
+            var appBundle = NSBundle.MainBundle;
+            static string Executable(NSBundle? bundle) =>
+                bundle?.ExecutableUrl?.Path ??
+                throw new IOException("A Financial Tracker extension is missing.");
+            var widgetBundle = NSBundle.FromPath(Path.Combine(
+                appBundle.BundlePath,
+                "PlugIns",
+                "FinancialTrackerWidgetExtension.appex"));
+            var intentsBundle = NSBundle.FromPath(Path.Combine(
+                appBundle.BundlePath,
+                "Extensions",
+                "FinancialTrackerIntentsExtension.appex"));
+            groupIdentifier = SignedAppGroups.SelectCommon(
+                new[]
+                {
+                    Executable(appBundle),
+                    Executable(widgetBundle),
+                    Executable(intentsBundle)
+                }.Select(SignedAppGroups.Read));
+        }
+        catch (AppGroupConfigurationException)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            throw new AppGroupConfigurationException(
+                "Financial Tracker could not read the App Group information " +
+                "from its signed app and extensions. Re-sign the complete IPA.",
+                exception);
         }
 
-        throw new InvalidOperationException(
-            "The shared pending transaction inbox is unavailable. " +
-            "Check the Financial Tracker App Group signing entitlement.");
+        var container = NSFileManager.DefaultManager.GetContainerUrl(groupIdentifier)
+            ?? throw new AppGroupConfigurationException(
+                $"iOS cannot open the common signed App Group ({groupIdentifier}). " +
+                "Re-sign the complete IPA and unlock the iPhone once after restart.");
+        var containerPath = container.Path ??
+            throw new AppGroupConfigurationException(
+                "The common App Group container has no accessible path.");
+        var directory = Path.Combine(containerPath, "Library", "FinancialTracker");
+        Directory.CreateDirectory(directory);
+        return Path.Combine(directory, DatabaseFileName);
 #else
         var directory = Path.Combine(
             FileSystem.AppDataDirectory,

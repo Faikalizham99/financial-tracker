@@ -106,11 +106,21 @@ public partial class ExpensesView : ContentView
     public void SetPendingTransactionCount(int count)
     {
         var normalizedCount = Math.Max(0, count);
+        PendingInboxErrorBanner.IsVisible = false;
         PendingInboxBanner.IsVisible = normalizedCount > 0;
         PendingInboxCount.Text = normalizedCount.ToString(CultureInfo.CurrentCulture);
         PendingInboxTitle.Text = normalizedCount == 1
             ? "Check pending transaction"
             : $"Check {normalizedCount} pending transactions";
+    }
+
+    public void SetPendingTransactionInboxError(string message)
+    {
+        PendingInboxBanner.IsVisible = false;
+        PendingInboxErrorDetail.Text = string.IsNullOrWhiteSpace(message)
+            ? "Tap to see the signing problem"
+            : message.Trim();
+        PendingInboxErrorBanner.IsVisible = true;
     }
 
     private async void OnPendingInboxTapped(object? sender, TappedEventArgs e)
