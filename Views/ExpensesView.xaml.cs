@@ -109,6 +109,18 @@ public partial class ExpensesView : ContentView
         PendingInboxErrorBanner.IsVisible = false;
         PendingInboxBanner.IsVisible = normalizedCount > 0;
         PendingInboxCount.Text = normalizedCount.ToString(CultureInfo.CurrentCulture);
+        PendingInboxHeaderBadge.IsVisible = normalizedCount > 0;
+        PendingInboxHeaderCount.Text = normalizedCount > 99
+            ? "99+"
+            : normalizedCount.ToString(CultureInfo.CurrentCulture);
+        SemanticProperties.SetDescription(
+            PendingInboxHeaderButton,
+            normalizedCount switch
+            {
+                0 => "Open pending transactions. Nothing needs review.",
+                1 => "Open 1 pending transaction.",
+                _ => $"Open {normalizedCount} pending transactions."
+            });
         PendingInboxTitle.Text = normalizedCount == 1
             ? "Check pending transaction"
             : $"Check {normalizedCount} pending transactions";
@@ -117,6 +129,10 @@ public partial class ExpensesView : ContentView
     public void SetPendingTransactionInboxError(string message)
     {
         PendingInboxBanner.IsVisible = false;
+        PendingInboxHeaderBadge.IsVisible = false;
+        SemanticProperties.SetDescription(
+            PendingInboxHeaderButton,
+            "Open pending transactions. Inbox status unavailable.");
         PendingInboxErrorDetail.Text = string.IsNullOrWhiteSpace(message)
             ? "Tap to see the signing problem"
             : message.Trim();

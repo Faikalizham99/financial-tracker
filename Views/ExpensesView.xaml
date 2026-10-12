@@ -10,7 +10,7 @@
     <Grid>
     <ScrollView x:Name="TransactionsScrollView" Scrolled="OnTransactionsScrolled" VerticalScrollBarVisibility="Never">
         <VerticalStackLayout Padding="{StaticResource PageContentPadding}" Spacing="21">
-            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto,Auto,Auto" RowSpacing="6" ColumnSpacing="9">
+            <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto,Auto,Auto,Auto" RowSpacing="6" ColumnSpacing="9">
                 <Label
                     Grid.ColumnSpan="{OnIdiom Phone=2, Tablet=1, Desktop=1}"
                     Text="Transactions"
@@ -24,7 +24,7 @@
                 <HorizontalStackLayout
                     Grid.Row="{OnIdiom Phone=1, Tablet=0, Desktop=0}"
                     Grid.Column="{OnIdiom Phone=0, Tablet=1, Desktop=1}"
-                    Grid.ColumnSpan="{OnIdiom Phone=4, Tablet=1, Desktop=1}"
+                    Grid.ColumnSpan="{OnIdiom Phone=5, Tablet=1, Desktop=1}"
                     Spacing="2"
                     HorizontalOptions="End"
                     VerticalOptions="Center">
@@ -86,7 +86,41 @@
                     </Grid>
                 </Border>
 
-                <Border Grid.Column="3" WidthRequest="44" HeightRequest="44" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="2" StrokeShape="RoundRectangle 22" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                <Border
+                    x:Name="PendingInboxHeaderButton"
+                    Grid.Column="3"
+                    WidthRequest="44"
+                    HeightRequest="44"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}"
+                    Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}"
+                    StrokeThickness="2"
+                    StrokeShape="RoundRectangle 22"
+                    helpers:InteractionAnimations.IsPressFeedbackEnabled="True"
+                    SemanticProperties.Description="Open pending transactions">
+                    <Border.GestureRecognizers>
+                        <TapGestureRecognizer Tapped="OnPendingInboxTapped" />
+                    </Border.GestureRecognizers>
+                    <Grid>
+                        <Path Data="M 5,4 L 19,4 Q 21,4 21,6 L 21,19 Q 21,21 19,21 L 5,21 Q 3,21 3,19 L 3,6 Q 3,4 5,4 Z M 7,9 L 17,9 M 7,13 L 14,13 M 7,17 L 12,17" Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" StrokeThickness="1.8" StrokeLineCap="Round" Fill="Transparent" Aspect="Uniform" WidthRequest="21" HeightRequest="21" HorizontalOptions="Center" VerticalOptions="Center" />
+                        <Border
+                            x:Name="PendingInboxHeaderBadge"
+                            IsVisible="False"
+                            MinimumWidthRequest="18"
+                            HeightRequest="18"
+                            Padding="4,0"
+                            Margin="0,1,1,0"
+                            HorizontalOptions="End"
+                            VerticalOptions="Start"
+                            BackgroundColor="{DynamicResource Accent}"
+                            Stroke="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}"
+                            StrokeThickness="1.5"
+                            StrokeShape="RoundRectangle 9">
+                            <Label x:Name="PendingInboxHeaderCount" Text="0" Style="{StaticResource CenteredPillLabel}" FontFamily="OpenSansSemibold" FontSize="8" FontAutoScalingEnabled="False" TextColor="{DynamicResource AccentForeground}" />
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <Border Grid.Column="4" WidthRequest="44" HeightRequest="44" BackgroundColor="{AppThemeBinding Light={StaticResource CardBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="2" StrokeShape="RoundRectangle 22" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                     <Border.GestureRecognizers>
                         <TapGestureRecognizer Tapped="OnSearchTapped" />
                     </Border.GestureRecognizers>
