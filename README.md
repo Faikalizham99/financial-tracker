@@ -31,9 +31,11 @@ embedded extensions for capture and widgets to work.
 
 Notification rules can be managed from **Settings → Notification rules**. Rules
 are evaluated in their displayed order using case-insensitive text matching;
-comma-separated text values act as alternatives within one rule. The built-in
-test area previews which saved rule would win for a sample notification.
-The first enabled match can override the suggested transaction type, category,
-payment method, and description. The shared JSON rule file is read by the App
-Intents extension for every new capture, so changes apply without recreating the
-Shortcut. Captures always remain pending until they are approved in the app.
+comma-separated text values act as alternatives within one rule. Every enabled
+match can contribute an override. For each individual field, the first matching
+rule that explicitly overrides it wins, while lower rules can still fill other
+fields. For example, a Mydin rule can provide the Groceries category and a VISA
+rule can provide the payment method for the same notification. The built-in test
+area previews all matching rules and their combined result. The shared JSON rule
+file is read by the App Intents extension for every new capture, so changes apply
+without recreating the Shortcut. Captures always remain pending until approved.

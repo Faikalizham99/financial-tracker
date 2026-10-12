@@ -10,8 +10,8 @@ public sealed class NotificationRule
     public string MatchText { get; set; } = string.Empty;
     public string SourceApp { get; set; } = string.Empty;
     public bool IsEnabled { get; set; } = true;
-    public string TransactionType { get; set; } = TransactionCatalog.ExpenseTypeKey;
-    public string Category { get; set; } = "Others";
+    public string TransactionType { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
     public string PaymentMethod { get; set; } = string.Empty;
     public string DescriptionOverride { get; set; } = string.Empty;
     public int SortOrder { get; set; }
@@ -36,15 +36,35 @@ public sealed class NotificationRule
     {
         get
         {
-            var isIncome = TransactionCatalog.IsIncomeType(TransactionType);
-            var type = isIncome ? "Income" : "Expense";
-            var category = TransactionCatalog.GetCategory(Category, isIncome).Title;
-            var payment = string.IsNullOrWhiteSpace(PaymentMethod)
-                ? "keep detected payment"
-                : TransactionCatalog.GetPaymentMethod(PaymentMethod).Title;
-            return $"{type} · {category} · {payment}";
+            var actions = new List<string>();
+            if (!string.IsNullOrWhiteSpace(TransactionType))
+            {
+                actions.Add($"Type → {(TransactionCatalog.IsIncomeType(TransactionType) ? "Income" : "Expense")}");
+            }
+            if (!string.IsNullOrWhiteSpace(Category))
+            {
+                actions.Add($"Category → {TransactionCatalog.GetCategory(Category, TransactionCatalog.IsIncomeType(TransactionType)).Title}");
+            }
+            if (!string.IsNullOrWhiteSpace(PaymentMethod))
+            {
+                actions.Add($"Payment → {TransactionCatalog.GetPaymentMethod(PaymentMethod).Title}");
+            }
+            if (!string.IsNullOrWhiteSpace(DescriptionOverride))
+            {
+                actions.Add($"Description → {DescriptionOverride.Trim()}");
+            }
+            return actions.Count == 0
+                ? "No overrides configured"
+                : string.Join(" · ", actions);
         }
     }
+
+    [JsonIgnore]
+    public bool HasOverrides =>
+        !string.IsNullOrWhiteSpace(TransactionType) ||
+        !string.IsNullOrWhiteSpace(Category) ||
+        !string.IsNullOrWhiteSpace(PaymentMethod) ||
+        !string.IsNullOrWhiteSpace(DescriptionOverride);
 
     [JsonIgnore]
     public string StatusText => IsEnabled ? "Enabled" : "Paused";
@@ -75,6 +95,6 @@ public sealed class NotificationRule
 
 public sealed class NotificationRulesDocument
 {
-    public int Version { get; set; } = 1;
+    public int Version { get; set; } = 2;
     public List<NotificationRule> Rules { get; set; } = [];
 }

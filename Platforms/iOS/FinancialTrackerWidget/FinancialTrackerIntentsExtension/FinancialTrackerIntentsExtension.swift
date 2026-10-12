@@ -73,7 +73,7 @@ private enum NotificationRuleMatcher {
                 }
                 return left.sortOrder < right.sortOrder
             }
-        guard let rule = orderedRules.first(where: { rule in
+        let matchingRules = orderedRules.filter { rule in
             let keywords = rule.matchText
                 .split(separator: ",")
                 .map {
@@ -88,25 +88,59 @@ private enum NotificationRuleMatcher {
                 in: .whitespacesAndNewlines
             ).lowercased()
             return sourceFilter.isEmpty || normalizedSource.contains(sourceFilter)
-        }) else {
+        }
+        guard !matchingRules.isEmpty else {
             return suggestion
         }
 
-        let description = rule.descriptionOverride.trimmingCharacters(
-            in: .whitespacesAndNewlines
-        )
-        let paymentMethod = rule.paymentMethod.trimmingCharacters(
-            in: .whitespacesAndNewlines
-        )
+        var resolvedDescription = suggestion.description
+        var resolvedType = suggestion.type
+        var resolvedCategory = suggestion.category
+        var resolvedPaymentMethod = suggestion.paymentMethod
+        var hasDescriptionOverride = false
+        var hasTypeOverride = false
+        var hasCategoryOverride = false
+        var hasPaymentOverride = false
+
+        for rule in matchingRules {
+            let descriptionOverride = rule.descriptionOverride.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+            let typeOverride = rule.transactionType.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+            let categoryOverride = rule.category.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+            let paymentOverride = rule.paymentMethod.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            )
+
+            if !hasDescriptionOverride && !descriptionOverride.isEmpty {
+                resolvedDescription = descriptionOverride
+                hasDescriptionOverride = true
+            }
+            if !hasTypeOverride && !typeOverride.isEmpty {
+                resolvedType = typeOverride
+                hasTypeOverride = true
+            }
+            if !hasCategoryOverride && !categoryOverride.isEmpty {
+                resolvedCategory = categoryOverride
+                hasCategoryOverride = true
+            }
+            if !hasPaymentOverride && !paymentOverride.isEmpty {
+                resolvedPaymentMethod = paymentOverride
+                hasPaymentOverride = true
+            }
+        }
+
         return PendingSuggestion(
             amountMinor: suggestion.amountMinor,
             currencyCode: suggestion.currencyCode,
-            description: description.isEmpty ? suggestion.description : description,
-            type: rule.transactionType,
-            category: rule.category,
-            paymentMethod: paymentMethod.isEmpty
-                ? suggestion.paymentMethod
-                : paymentMethod,
+            description: resolvedDescription,
+            type: resolvedType,
+            category: resolvedCategory,
+            paymentMethod: resolvedPaymentMethod,
             status: suggestion.status
         )
     }

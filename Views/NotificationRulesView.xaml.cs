@@ -6,15 +6,29 @@ namespace FinancialTracker.Views;
 
 public partial class NotificationRulesView : ContentView
 {
+    private enum SelectorKind
+    {
+        Category,
+        PaymentMethod
+    }
+
+    private static readonly TransactionOption KeepDetectedCategory =
+        new(string.Empty, "Keep detected category", "category_expense_others.png");
     private static readonly TransactionOption KeepDetectedPayment =
         new(string.Empty, "Keep detected payment", "payment_others.png");
 
     private NotificationRuleStore? store;
     private List<NotificationRule> rules = [];
-    private string selectedType = TransactionCatalog.ExpenseTypeKey;
+    private string selectedType = string.Empty;
+    private TransactionOption selectedCategory = KeepDetectedCategory;
+    private TransactionOption selectedPayment = KeepDetectedPayment;
+    private SelectorKind selectorKind;
+    private IReadOnlyList<SelectableTransactionOption> selectorOptions = [];
     private string? editingRuleId;
     private bool isAnimating;
     private bool isSaving;
+    private bool isSelectorOpen;
+    private bool isSelectorAnimating;
 
     public event Action<bool>? VisibilityChanged;
     public bool IsOpen => IsVisible;
@@ -22,12 +36,8 @@ public partial class NotificationRulesView : ContentView
     public NotificationRulesView()
     {
         InitializeComponent();
-        CategoryPicker.ItemDisplayBinding = new Binding(nameof(TransactionOption.Title));
-        PaymentPicker.ItemDisplayBinding = new Binding(nameof(TransactionOption.Title));
-        PaymentPicker.ItemsSource = new[] { KeepDetectedPayment }
-            .Concat(TransactionCatalog.PaymentMethods)
-            .ToList();
         UpdateTypeControls();
+        UpdatePaymentSelector();
     }
 
     public void Configure(NotificationRuleStore notificationRuleStore) =>
@@ -60,6 +70,12 @@ public partial class NotificationRulesView : ContentView
     {
         if (!IsVisible || isAnimating)
         {
+            return;
+        }
+
+        if (isSelectorOpen)
+        {
+            await CloseSelectorAsync();
             return;
         }
 
@@ -153,13 +169,37 @@ public partial class NotificationRulesView : ContentView
             return;
         }
 
-        var match = rules
+        var matches = rules
             .OrderBy(rule => rule.SortOrder)
-            .FirstOrDefault(rule => RuleMatches(rule, notification, source));
-        TestResultLabel.Text = match is null
+            .Where(rule => RuleMatches(rule, notification, source))
+            .ToList();
+        TestResultLabel.Text = matches.Count == 0
             ? "No enabled rule matched. The built-in suggestions will be used."
-            : $"Matches {match.NameDisplay}: {match.ActionDisplay}";
+            : $"{matches.Count} rule{(matches.Count == 1 ? string.Empty : "s")} matched: " +
+              $"{string.Join(", ", matches.Select(rule => rule.NameDisplay))}. " +
+              $"Combined: {BuildCombinedActionDisplay(matches)}";
         TestResultLabel.IsVisible = true;
+    }
+
+    private static string BuildCombinedActionDisplay(
+        IReadOnlyList<NotificationRule> matches)
+    {
+        var combined = new NotificationRule
+        {
+            TransactionType = matches
+                .Select(rule => rule.TransactionType)
+                .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty,
+            Category = matches
+                .Select(rule => rule.Category)
+                .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty,
+            PaymentMethod = matches
+                .Select(rule => rule.PaymentMethod)
+                .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty,
+            DescriptionOverride = matches
+                .Select(rule => rule.DescriptionOverride)
+                .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value)) ?? string.Empty
+        };
+        return combined.ActionDisplay;
     }
 
     private static bool RuleMatches(
@@ -203,11 +243,14 @@ public partial class NotificationRulesView : ContentView
         EnabledSwitch.IsToggled = rule?.IsEnabled ?? true;
         selectedType = TransactionCatalog.IsIncomeType(rule?.TransactionType ?? string.Empty)
             ? TransactionCatalog.IncomeTypeKey
-            : TransactionCatalog.ExpenseTypeKey;
+            : TransactionCatalog.IsExpenseType(rule?.TransactionType ?? string.Empty)
+                ? TransactionCatalog.ExpenseTypeKey
+                : string.Empty;
         UpdateTypeControls(rule?.Category);
-        PaymentPicker.SelectedItem = string.IsNullOrWhiteSpace(rule?.PaymentMethod)
+        selectedPayment = string.IsNullOrWhiteSpace(rule?.PaymentMethod)
             ? KeepDetectedPayment
             : TransactionCatalog.GetPaymentMethod(rule.PaymentMethod);
+        UpdatePaymentSelector();
         EditorErrorLabel.IsVisible = false;
         EditorOverlay.IsVisible = true;
         EditorOverlay.Opacity = 0;
@@ -220,6 +263,10 @@ public partial class NotificationRulesView : ContentView
         {
             return;
         }
+        if (isSelectorOpen)
+        {
+            await CloseSelectorAsync();
+        }
         await EditorOverlay.FadeToAsync(0, 120, Easing.CubicIn);
         EditorOverlay.IsVisible = false;
         editingRuleId = null;
@@ -231,18 +278,27 @@ public partial class NotificationRulesView : ContentView
 
     private void UpdateTypeControls(string? preferredCategory = null)
     {
+        var keepDetected = string.IsNullOrWhiteSpace(selectedType);
         var isIncome = TransactionCatalog.IsIncomeType(selectedType);
-        ExpenseTypeOption.Style = GetStyle(!isIncome);
-        IncomeTypeOption.Style = GetStyle(isIncome);
-        ExpenseTypeLabel.TextColor = ResolveTextColor(!isIncome);
+        DetectedTypeOption.Style = GetStyle(keepDetected);
+        ExpenseTypeOption.Style = GetStyle(!keepDetected && !isIncome);
+        IncomeTypeOption.Style = GetStyle(!keepDetected && isIncome);
+        DetectedTypeLabel.TextColor = ResolveTextColor(keepDetected);
+        ExpenseTypeLabel.TextColor = ResolveTextColor(!keepDetected && !isIncome);
         IncomeTypeLabel.TextColor = ResolveTextColor(isIncome);
-        var categories = (isIncome
+        var categories = isIncome
             ? TransactionCatalog.IncomeCategories
-            : TransactionCatalog.ExpenseCategories).ToList();
-        CategoryPicker.ItemsSource = categories;
-        CategoryPicker.SelectedItem = categories.FirstOrDefault(category =>
-            category.Key.Equals(preferredCategory, StringComparison.OrdinalIgnoreCase))
-            ?? categories[^1];
+            : TransactionCatalog.ExpenseCategories;
+        var categoryKey = preferredCategory ?? selectedCategory.Key;
+        selectedCategory = keepDetected
+            ? KeepDetectedCategory
+            : categories.FirstOrDefault(category =>
+                category.Key.Equals(categoryKey, StringComparison.OrdinalIgnoreCase))
+                ?? KeepDetectedCategory;
+        CategorySelector.IsEnabled = !keepDetected;
+        CategorySelector.Opacity = keepDetected ? 0.68 : 1;
+        CategoryHintLabel.IsVisible = keepDetected;
+        UpdateCategorySelector();
     }
 
     private static Style GetStyle(bool selected) =>
@@ -258,12 +314,197 @@ public partial class NotificationRulesView : ContentView
 
     private void OnRuleTypeTapped(object? sender, TappedEventArgs e)
     {
-        if (e.Parameter is not string type || type == selectedType)
+        if (e.Parameter is not string type)
+        {
+            return;
+        }
+        type = type.Equals("Detected", StringComparison.OrdinalIgnoreCase)
+            ? string.Empty
+            : type;
+        if (type == selectedType)
         {
             return;
         }
         selectedType = type;
         UpdateTypeControls();
+    }
+
+    private async void OnCategorySelectorTapped(object? sender, TappedEventArgs e)
+    {
+        if (!CategorySelector.IsEnabled)
+        {
+            return;
+        }
+        var feedback = InteractionAnimations.PulseAsync(sender);
+        var categories = TransactionCatalog.IsIncomeType(selectedType)
+            ? TransactionCatalog.IncomeCategories
+            : TransactionCatalog.ExpenseCategories;
+        await OpenSelectorAsync(
+            SelectorKind.Category,
+            "Choose category override",
+            new[] { KeepDetectedCategory }.Concat(categories).ToList());
+        await feedback;
+    }
+
+    private async void OnPaymentSelectorTapped(object? sender, TappedEventArgs e)
+    {
+        var feedback = InteractionAnimations.PulseAsync(sender);
+        await OpenSelectorAsync(
+            SelectorKind.PaymentMethod,
+            "Choose payment override",
+            new[] { KeepDetectedPayment }
+                .Concat(TransactionCatalog.PaymentMethods)
+                .ToList());
+        await feedback;
+    }
+
+    private async Task OpenSelectorAsync(
+        SelectorKind kind,
+        string title,
+        IReadOnlyList<TransactionOption> options)
+    {
+        if (isSelectorOpen || isSelectorAnimating)
+        {
+            return;
+        }
+
+        selectorKind = kind;
+        SelectorTitle.Text = title;
+        var selectedKey = kind == SelectorKind.Category
+            ? selectedCategory.Key
+            : selectedPayment.Key;
+        selectorOptions = options
+            .Select(option => new SelectableTransactionOption(
+                option,
+                option.Key.Equals(selectedKey, StringComparison.OrdinalIgnoreCase)))
+            .ToList();
+        SelectorCollection.ItemsSource = selectorOptions;
+        isSelectorOpen = true;
+        isSelectorAnimating = true;
+        SelectorOverlay.IsVisible = true;
+        UpdateSelectorCardBounds();
+        SelectorOverlay.Opacity = 0;
+        SelectorCard.TranslationY = 42;
+        SelectorCard.Opacity = 0.85;
+
+        try
+        {
+            await Task.WhenAll(
+                SelectorOverlay.FadeToAsync(1, 170, Easing.CubicOut),
+                SelectorCard.TranslateToAsync(0, 0, 260, Easing.CubicOut),
+                SelectorCard.FadeToAsync(1, 210, Easing.CubicOut));
+        }
+        finally
+        {
+            isSelectorAnimating = false;
+        }
+
+        var selectedOption = selectorOptions.FirstOrDefault(option => option.IsSelected);
+        if (selectedOption is not null)
+        {
+            await Task.Delay(40);
+            SelectorCollection.ScrollTo(
+                selectedOption,
+                position: ScrollToPosition.Center,
+                animate: false);
+        }
+    }
+
+    private async void OnSelectorOptionTapped(object? sender, TappedEventArgs e)
+    {
+        if (isSelectorAnimating ||
+            e.Parameter is not SelectableTransactionOption selectedOption)
+        {
+            return;
+        }
+
+        foreach (var option in selectorOptions)
+        {
+            option.IsSelected = ReferenceEquals(option, selectedOption);
+        }
+
+        if (selectorKind == SelectorKind.Category)
+        {
+            selectedCategory = selectedOption.Option;
+            UpdateCategorySelector();
+        }
+        else
+        {
+            selectedPayment = selectedOption.Option;
+            UpdatePaymentSelector();
+        }
+
+        await Task.Delay(110);
+        await CloseSelectorAsync();
+    }
+
+    private async void OnSelectorBackdropTapped(object? sender, TappedEventArgs e) =>
+        await CloseSelectorAsync();
+
+    private async void OnSelectorCloseTapped(object? sender, TappedEventArgs e)
+    {
+        var feedback = InteractionAnimations.PulseAsync(sender);
+        await CloseSelectorAsync();
+        await feedback;
+    }
+
+    private void OnSelectorOverlaySizeChanged(object? sender, EventArgs e) =>
+        UpdateSelectorCardBounds();
+
+    private void UpdateSelectorCardBounds()
+    {
+        var availableWidth = SelectorOverlay.Width > 0
+            ? SelectorOverlay.Width
+            : Width;
+        var availableHeight = SelectorOverlay.Height > 0
+            ? SelectorOverlay.Height
+            : Height;
+
+        if (availableWidth > 0)
+        {
+            SelectorCard.WidthRequest = Math.Min(540, Math.Max(0, availableWidth - 36));
+        }
+        if (availableHeight > 0)
+        {
+            SelectorCard.HeightRequest = Math.Min(620, Math.Max(0, availableHeight - 136));
+        }
+    }
+
+    private async Task CloseSelectorAsync()
+    {
+        if (!isSelectorOpen || isSelectorAnimating)
+        {
+            return;
+        }
+
+        isSelectorAnimating = true;
+        try
+        {
+            await Task.WhenAll(
+                SelectorOverlay.FadeToAsync(0, 140, Easing.CubicIn),
+                SelectorCard.TranslateToAsync(0, 34, 175, Easing.CubicIn));
+        }
+        finally
+        {
+            SelectorOverlay.IsVisible = false;
+            SelectorOverlay.Opacity = 0;
+            SelectorCard.Opacity = 1;
+            SelectorCard.TranslationY = 0;
+            isSelectorOpen = false;
+            isSelectorAnimating = false;
+        }
+    }
+
+    private void UpdateCategorySelector()
+    {
+        CategorySelectorLabel.Text = selectedCategory.Title;
+        CategorySelectorIcon.Source = selectedCategory.IconAsset;
+    }
+
+    private void UpdatePaymentSelector()
+    {
+        PaymentSelectorLabel.Text = selectedPayment.Title;
+        PaymentSelectorIcon.Source = selectedPayment.IconAsset;
     }
 
     private async void OnSaveRuleClicked(object? sender, EventArgs e)
@@ -279,9 +520,17 @@ public partial class NotificationRulesView : ContentView
             ShowEditorError("Enter the text that should be found in the notification.");
             return;
         }
-        if (CategoryPicker.SelectedItem is not TransactionOption category)
+        var categoryKey = string.IsNullOrWhiteSpace(selectedType)
+            ? string.Empty
+            : selectedCategory.Key;
+        var paymentKey = selectedPayment.Key;
+        var descriptionOverride = DescriptionEntry.Text?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(selectedType) &&
+            string.IsNullOrWhiteSpace(categoryKey) &&
+            string.IsNullOrWhiteSpace(paymentKey) &&
+            string.IsNullOrWhiteSpace(descriptionOverride))
         {
-            ShowEditorError("Select a category.");
+            ShowEditorError("Choose at least one field for this rule to override.");
             return;
         }
 
@@ -301,11 +550,9 @@ public partial class NotificationRulesView : ContentView
             target.SourceApp = SourceAppEntry.Text?.Trim() ?? string.Empty;
             target.IsEnabled = EnabledSwitch.IsToggled;
             target.TransactionType = selectedType;
-            target.Category = category.Key;
-            target.PaymentMethod = PaymentPicker.SelectedItem is TransactionOption payment
-                ? payment.Key
-                : string.Empty;
-            target.DescriptionOverride = DescriptionEntry.Text?.Trim() ?? string.Empty;
+            target.Category = categoryKey;
+            target.PaymentMethod = paymentKey;
+            target.DescriptionOverride = descriptionOverride;
             await PersistAsync();
             await CloseEditorAsync();
         }

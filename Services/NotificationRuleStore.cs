@@ -89,11 +89,19 @@ public sealed class NotificationRuleStore
             rule.MatchText = rule.MatchText.Trim();
             rule.SourceApp = rule.SourceApp.Trim();
             rule.DescriptionOverride = rule.DescriptionOverride.Trim();
-            var isIncome = TransactionCatalog.IsIncomeType(rule.TransactionType);
-            rule.TransactionType = isIncome
-                ? TransactionCatalog.IncomeTypeKey
-                : TransactionCatalog.ExpenseTypeKey;
-            rule.Category = TransactionCatalog.GetCategory(rule.Category, isIncome).Key;
+            var hasExplicitType =
+                TransactionCatalog.IsIncomeType(rule.TransactionType) ||
+                TransactionCatalog.IsExpenseType(rule.TransactionType);
+            var isIncome = hasExplicitType &&
+                TransactionCatalog.IsIncomeType(rule.TransactionType);
+            rule.TransactionType = !hasExplicitType
+                ? string.Empty
+                : isIncome
+                    ? TransactionCatalog.IncomeTypeKey
+                    : TransactionCatalog.ExpenseTypeKey;
+            rule.Category = hasExplicitType && !string.IsNullOrWhiteSpace(rule.Category)
+                ? TransactionCatalog.GetCategory(rule.Category, isIncome).Key
+                : string.Empty;
             rule.PaymentMethod = string.IsNullOrWhiteSpace(rule.PaymentMethod)
                 ? string.Empty
                 : TransactionCatalog.GetPaymentMethod(rule.PaymentMethod).Key;
