@@ -110,15 +110,15 @@
                     <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
                         <Border x:Name="SixMonthRangeButton" Style="{StaticResource Pill}" Padding="12,9" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                             <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnSixMonthsTapped" /></Border.GestureRecognizers>
-                            <Label x:Name="SixMonthRangeLabel" Text="6M" FontFamily="OpenSansSemibold" HorizontalTextAlignment="Center" InputTransparent="True" />
+                            <Label x:Name="SixMonthRangeLabel" Text="6M" Style="{StaticResource CenteredPillLabel}" FontFamily="OpenSansSemibold" InputTransparent="True" />
                         </Border>
                         <Border x:Name="TwelveMonthRangeButton" Grid.Column="1" Style="{StaticResource Pill}" Padding="12,9" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                             <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnTwelveMonthsTapped" /></Border.GestureRecognizers>
-                            <Label x:Name="TwelveMonthRangeLabel" Text="12M" FontFamily="OpenSansSemibold" HorizontalTextAlignment="Center" InputTransparent="True" />
+                            <Label x:Name="TwelveMonthRangeLabel" Text="12M" Style="{StaticResource CenteredPillLabel}" FontFamily="OpenSansSemibold" InputTransparent="True" />
                         </Border>
                         <Border x:Name="AllRangeButton" Grid.Column="2" Style="{StaticResource Pill}" Padding="12,9" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                             <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnAllMonthsTapped" /></Border.GestureRecognizers>
-                            <Label x:Name="AllRangeLabel" Text="All" FontFamily="OpenSansSemibold" HorizontalTextAlignment="Center" InputTransparent="True" />
+                            <Label x:Name="AllRangeLabel" Text="All" Style="{StaticResource CenteredPillLabel}" FontFamily="OpenSansSemibold" InputTransparent="True" />
                         </Border>
                     </Grid>
                 </Border>

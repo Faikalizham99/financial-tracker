@@ -74,4 +74,38 @@ public static class EntryChrome
         textView.Layer.CornerRadius = 0;
 #endif
     }
+
+    public static void RemoveNativeBorder(IPickerHandler handler)
+    {
+#if WINDOWS
+        var comboBox = handler.PlatformView;
+        var transparent = new Microsoft.UI.Xaml.Media.SolidColorBrush(
+            Microsoft.UI.Colors.Transparent);
+        var noBorder = new Microsoft.UI.Xaml.Thickness(0);
+
+        comboBox.UseSystemFocusVisuals = false;
+        comboBox.BorderThickness = noBorder;
+        comboBox.BorderBrush = transparent;
+        comboBox.Background = transparent;
+        comboBox.Resources["ComboBoxBorderThemeThickness"] = noBorder;
+        comboBox.Resources["ComboBoxBorderBrush"] = transparent;
+        comboBox.Resources["ComboBoxBorderBrushPointerOver"] = transparent;
+        comboBox.Resources["ComboBoxBorderBrushPressed"] = transparent;
+        comboBox.Resources["ComboBoxBorderBrushFocused"] = transparent;
+        comboBox.Resources["ComboBoxBackground"] = transparent;
+        comboBox.Resources["ComboBoxBackgroundPointerOver"] = transparent;
+        comboBox.Resources["ComboBoxBackgroundPressed"] = transparent;
+#elif ANDROID
+        var picker = handler.PlatformView;
+        picker.BackgroundTintList = Android.Content.Res.ColorStateList.ValueOf(
+            Android.Graphics.Color.Transparent);
+        picker.SetBackgroundColor(Android.Graphics.Color.Transparent);
+#elif IOS || MACCATALYST
+        var picker = handler.PlatformView;
+        picker.BorderStyle = UIKit.UITextBorderStyle.None;
+        picker.BackgroundColor = UIKit.UIColor.Clear;
+        picker.Layer.BorderWidth = 0;
+        picker.Layer.CornerRadius = 0;
+#endif
+    }
 }

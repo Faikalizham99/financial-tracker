@@ -50,7 +50,7 @@
                         Style="{StaticResource Pill}"
                         helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                         <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnEditTapped" /></Border.GestureRecognizers>
-                        <Label x:Name="EditActionLabel" Text="Add snapshot" FontFamily="OpenSansSemibold" FontSize="13" TextColor="{DynamicResource Accent}" VerticalTextAlignment="Center" />
+                        <Label x:Name="EditActionLabel" Text="Add snapshot" Style="{StaticResource CenteredPillLabel}" FontFamily="OpenSansSemibold" FontSize="13" TextColor="{DynamicResource Accent}" />
                     </Border>
                 </Grid>
 
@@ -135,7 +135,7 @@
                                     Style="{StaticResource Pill}"
                                     HorizontalOptions="End"
                                     VerticalOptions="Start">
-                                    <Label x:Name="TotalChangeLabel" FontFamily="OpenSansSemibold" LineBreakMode="NoWrap" MaxLines="1" />
+                                    <Label x:Name="TotalChangeLabel" Style="{StaticResource CenteredPillLabel}" FontFamily="OpenSansSemibold" />
                                 </Border>
                                 <Label
                                     x:Name="SnapshotDateLabel"

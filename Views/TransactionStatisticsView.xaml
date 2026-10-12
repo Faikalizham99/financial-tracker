@@ -54,10 +54,11 @@
                     <Border Grid.Column="2" Padding="12,8" Style="{StaticResource Pill}" VerticalOptions="Center">
                         <Label
                             Text="{Binding SourceMonthLabel}"
+                            Style="{StaticResource CenteredPillLabel}"
                             FontFamily="OpenSansSemibold"
                             FontSize="12"
                             TextColor="{DynamicResource Accent}"
-                            LineBreakMode="NoWrap" />
+                            />
                     </Border>
                 </Grid>
 

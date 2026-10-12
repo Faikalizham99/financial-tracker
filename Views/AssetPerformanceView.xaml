@@ -117,9 +117,9 @@
                                 VerticalOptions="Start">
                                 <Label
                                     x:Name="ReturnLabel"
+                                    Style="{StaticResource CenteredPillLabel}"
                                     FontFamily="OpenSansSemibold"
-                                    FontSize="13"
-                                    LineBreakMode="NoWrap" />
+                                    FontSize="13" />
                             </Border>
                         </Grid>
 
@@ -394,7 +394,7 @@
                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
                         <Border x:Name="DeleteRecordButton" IsVisible="False" Padding="16,0" HeightRequest="50" Style="{StaticResource Pill}" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
                             <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnDeleteRecordTapped" /></Border.GestureRecognizers>
-                            <Label Text="Delete" FontFamily="OpenSansSemibold" TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" VerticalTextAlignment="Center" />
+                            <Label Text="Delete" Style="{StaticResource CenteredPillLabel}" FontFamily="OpenSansSemibold" TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" />
                         </Border>
                         <Button x:Name="SaveRecordButton" Grid.Column="1" Text="Save record" Clicked="OnSaveRecordClicked" HeightRequest="50" BackgroundColor="{DynamicResource Accent}" TextColor="{DynamicResource AccentForeground}" FontFamily="OpenSansSemibold" FontSize="15" BorderWidth="0" CornerRadius="17" />
                     </Grid>

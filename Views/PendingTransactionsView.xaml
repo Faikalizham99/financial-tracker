@@ -82,7 +82,7 @@
                                                 <Label Text="{Binding ReceivedAtDisplay}" Style="{StaticResource BodyMuted}" FontSize="11" />
                                             </VerticalStackLayout>
                                             <Border Grid.Column="1" Padding="10,5" BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="1" StrokeShape="RoundRectangle 999">
-                                                <Label Text="{Binding AmountStatus}" FontFamily="OpenSansSemibold" FontSize="10" TextColor="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" />
+                                                <Label Text="{Binding AmountStatus}" Style="{StaticResource CenteredPillLabel}" FontFamily="OpenSansSemibold" FontSize="10" TextColor="{AppThemeBinding Light={StaticResource SecondaryTextLight}, Dark={StaticResource SecondaryTextDark}}" />
                                             </Border>
                                         </Grid>
 

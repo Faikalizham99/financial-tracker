@@ -129,7 +129,7 @@
                         <Label Text="EXPENSE CATEGORIES" Style="{StaticResource SectionLabel}" FontSize="11" LineBreakMode="TailTruncation" MaxLines="1" VerticalTextAlignment="Center" />
                         <BoxView Grid.Column="1" HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" VerticalOptions="Center" />
                         <Border Grid.Column="2" Padding="10,5" BackgroundColor="{AppThemeBinding Light={StaticResource BlushLight}, Dark={StaticResource BlushDark}}" StrokeThickness="0" StrokeShape="RoundRectangle 999">
-                            <Label x:Name="ExpenseCategoryTotalLabel" Text="RM 0.00" FontFamily="OpenSansSemibold" FontSize="11" TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" HorizontalTextAlignment="End" VerticalTextAlignment="Center" />
+                            <Label x:Name="ExpenseCategoryTotalLabel" Text="RM 0.00" Style="{StaticResource CenteredPillLabel}" FontFamily="OpenSansSemibold" FontSize="11" TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" />
                         </Border>
                     </Grid>
                     <Border Style="{StaticResource SoftCard}" Padding="14,2">
@@ -145,7 +145,7 @@
                         <Label Text="INCOME CATEGORIES" Style="{StaticResource SectionLabel}" FontSize="11" LineBreakMode="TailTruncation" MaxLines="1" VerticalTextAlignment="Center" />
                         <BoxView Grid.Column="1" HeightRequest="1" BackgroundColor="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource DividerDark}}" VerticalOptions="Center" />
                         <Border Grid.Column="2" Padding="10,5" BackgroundColor="{AppThemeBinding Light={StaticResource MintLight}, Dark={StaticResource MintDark}}" StrokeThickness="0" StrokeShape="RoundRectangle 999">
-                            <Label x:Name="IncomeCategoryTotalLabel" Text="RM 0.00" FontFamily="OpenSansSemibold" FontSize="11" TextColor="{AppThemeBinding Light={StaticResource PositiveLight}, Dark={StaticResource PositiveDark}}" HorizontalTextAlignment="End" VerticalTextAlignment="Center" />
+                            <Label x:Name="IncomeCategoryTotalLabel" Text="RM 0.00" Style="{StaticResource CenteredPillLabel}" FontFamily="OpenSansSemibold" FontSize="11" TextColor="{AppThemeBinding Light={StaticResource PositiveLight}, Dark={StaticResource PositiveDark}}" />
                         </Border>
                     </Grid>
                     <Border Style="{StaticResource SoftCard}" Padding="14,2">
@@ -163,7 +163,7 @@
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="OnDashboardViewAllTapped" />
                             </Border.GestureRecognizers>
-                            <Label Text="View all" FontFamily="OpenSansSemibold" FontSize="11" TextColor="{DynamicResource Accent}" />
+                            <Label Text="View all" Style="{StaticResource CenteredPillLabel}" FontFamily="OpenSansSemibold" FontSize="11" TextColor="{DynamicResource Accent}" />
                         </Border>
                     </Grid>
                     <Border x:Name="DashboardEmptyActivityState" Style="{StaticResource SoftCard}" Padding="22">
