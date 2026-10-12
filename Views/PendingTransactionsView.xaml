@@ -11,9 +11,7 @@
     <Grid x:Name="Root" Opacity="0">
         <ScrollView VerticalScrollBarVisibility="Never">
             <VerticalStackLayout
-                MaximumWidthRequest="760"
-                HorizontalOptions="Center"
-                Padding="{OnIdiom Phone='20,22,20,54', Tablet='34,34,34,62', Desktop='40,38,40,66'}"
+                Padding="{StaticResource OverlayContentPadding}"
                 Spacing="22">
 
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">

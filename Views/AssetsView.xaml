@@ -10,7 +10,7 @@
 
     <Grid>
         <ScrollView VerticalScrollBarVisibility="Never">
-            <VerticalStackLayout Padding="22,28,22,126" Spacing="21" HorizontalOptions="Fill">
+            <VerticalStackLayout Padding="{StaticResource PageContentPadding}" Spacing="21" HorizontalOptions="Fill">
                 <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto,Auto" RowSpacing="6" ColumnSpacing="9">
                     <Label
                         Grid.ColumnSpan="{OnIdiom Phone=3, Tablet=1, Desktop=1}"

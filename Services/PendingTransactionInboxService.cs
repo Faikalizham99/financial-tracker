@@ -66,7 +66,7 @@ public sealed class PendingTransactionInboxService
 
     private SQLiteAsyncConnection Connection => connection ??=
         new SQLiteAsyncConnection(
-            ResolveDatabasePath(),
+            Path.Combine(ResolveSharedDirectory(), DatabaseFileName),
             SQLiteOpenFlags.ReadWrite |
             SQLiteOpenFlags.Create |
             SQLiteOpenFlags.FullMutex);
@@ -94,7 +94,7 @@ public sealed class PendingTransactionInboxService
         initialized = true;
     }
 
-    private static string ResolveDatabasePath()
+    internal static string ResolveSharedDirectory()
     {
 #if IOS
         string groupIdentifier;
@@ -141,13 +141,13 @@ public sealed class PendingTransactionInboxService
                 "The common App Group container has no accessible path.");
         var directory = Path.Combine(containerPath, "Library", "FinancialTracker");
         Directory.CreateDirectory(directory);
-        return Path.Combine(directory, DatabaseFileName);
+        return directory;
 #else
         var directory = Path.Combine(
             FileSystem.AppDataDirectory,
             "FinancialTrackerShared");
         Directory.CreateDirectory(directory);
-        return Path.Combine(directory, DatabaseFileName);
+        return directory;
 #endif
     }
 }

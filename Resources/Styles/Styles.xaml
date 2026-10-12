@@ -4,6 +4,10 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:helpers="clr-namespace:FinancialTracker.Helpers">
 
+    <!-- Shared outer-layout tokens. Use these for primary pages and full-page overlays. -->
+    <Thickness x:Key="PageContentPadding">22,28,22,126</Thickness>
+    <Thickness x:Key="OverlayContentPadding">22,28,22,54</Thickness>
+
     <Style TargetType="Page" ApplyToDerivedTypes="True">
         <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}" />
     </Style>

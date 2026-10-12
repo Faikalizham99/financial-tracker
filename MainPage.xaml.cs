@@ -81,6 +81,7 @@ public partial class MainPage : ContentPage
         AssetPortfolioService assetPortfolioService,
         TransactionDataStore transactionDataStore,
         PendingTransactionInboxService pendingTransactionInbox,
+        NotificationRuleStore notificationRuleStore,
         WidgetSnapshotCoordinator widgetSnapshotCoordinator,
         AssetWidgetSnapshotCoordinator assetWidgetSnapshotCoordinator,
         WidgetAppearanceCoordinator widgetAppearanceCoordinator,
@@ -131,6 +132,7 @@ public partial class MainPage : ContentPage
             pendingTransactionInbox,
             localDatabase,
             () => settingsViewModel.SelectedCurrency);
+        NotificationRulesOverlay.Configure(notificationRuleStore);
         PendingTransactionsOverlay.EditRequested = OpenPendingTransactionForEditAsync;
         PendingTransactionsOverlay.TransactionsChanged = OnPendingTransactionApprovedAsync;
         PendingTransactionsOverlay.CountChanged = OnPendingTransactionCountChangedAsync;
@@ -157,6 +159,9 @@ public partial class MainPage : ContentPage
         TransactionSearchView.SearchPageRequested = transactionDataStore.SearchAsync;
         TransactionSearchView.TransactionSelected += OnTransactionSearchResultSelected;
         SettingsView.DataDrawerVisibilityChanged += OnSettingsDataDrawerVisibilityChanged;
+        SettingsView.NotificationRulesRequested += OnNotificationRulesRequested;
+        NotificationRulesOverlay.VisibilityChanged +=
+            OnNotificationRulesVisibilityChanged;
         AssetsView.EditorVisibilityChanged += OnAssetsEditorVisibilityChanged;
         AssetsView.SnapshotChanged += OnAssetSnapshotChanged;
         SettingsView.BudgetSettingsRequested += OnBudgetSettingsRequested;
@@ -234,6 +239,12 @@ public partial class MainPage : ContentPage
         if (PendingTransactionsOverlay.IsOpen)
         {
             _ = PendingTransactionsOverlay.HandleBackAsync();
+            return true;
+        }
+
+        if (NotificationRulesOverlay.IsOpen)
+        {
+            _ = NotificationRulesOverlay.HandleBackAsync();
             return true;
         }
 

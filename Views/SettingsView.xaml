@@ -10,7 +10,7 @@
         x:Name="SettingsScrollView"
         Scrolled="OnSettingsScrollViewScrolled"
         VerticalScrollBarVisibility="Never">
-        <VerticalStackLayout Padding="24,30,24,126" Spacing="27">
+        <VerticalStackLayout Padding="{StaticResource PageContentPadding}" Spacing="27">
             <VerticalStackLayout Spacing="5">
                 <Label Text="Settings" Style="{StaticResource PageTitle}" />
                 <Label Text="Make Financial Tracker feel like yours." Style="{StaticResource BodyMuted}" />
@@ -293,6 +293,26 @@
                             <Path Grid.Column="2" WidthRequest="18" HeightRequest="18" Data="M 7,4 L 15,12 L 7,20" Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" StrokeThickness="2.2" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" HorizontalOptions="Center" VerticalOptions="Center" />
                         </Grid>
                     </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+
+            <VerticalStackLayout Spacing="13">
+                <Label Text="AUTOMATION" Style="{StaticResource SectionLabel}" />
+                <Label Text="Control how notification captures are prepared." Style="{StaticResource BodyMuted}" FontSize="12" />
+                <Border Style="{StaticResource Card}" Padding="0">
+                    <Grid Padding="18,16" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+                        <Grid.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnNotificationRulesTapped" />
+                        </Grid.GestureRecognizers>
+                        <Border WidthRequest="44" HeightRequest="44" BackgroundColor="{DynamicResource AccentTint}" StrokeThickness="0" StrokeShape="RoundRectangle 14">
+                            <Label Text="Aa" FontFamily="OpenSansSemibold" FontSize="14" TextColor="{DynamicResource Accent}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                        </Border>
+                        <VerticalStackLayout Grid.Column="1" Spacing="2" VerticalOptions="Center">
+                            <Label Text="Notification rules" Style="{StaticResource CardTitle}" FontSize="15" />
+                            <Label Text="Match merchants and set categories automatically" Style="{StaticResource BodyMuted}" FontSize="12" />
+                        </VerticalStackLayout>
+                        <Path Grid.Column="2" WidthRequest="18" HeightRequest="18" Data="M 7,4 L 15,12 L 7,20" Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" StrokeThickness="2.2" StrokeLineCap="Round" StrokeLineJoin="Round" Fill="Transparent" Aspect="Uniform" HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Grid>
                 </Border>
             </VerticalStackLayout>
 

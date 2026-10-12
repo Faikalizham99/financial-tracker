@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView
+    x:Class="FinancialTracker.Views.NotificationRulesView"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:helpers="clr-namespace:FinancialTracker.Helpers"
+    xmlns:models="clr-namespace:FinancialTracker.Models"
+    IsVisible="False"
+    BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}">
+
+    <Grid x:Name="Root" Opacity="0">
+        <ScrollView VerticalScrollBarVisibility="Never">
+            <VerticalStackLayout
+                Padding="{StaticResource OverlayContentPadding}"
+                Spacing="20">
+
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="Notification rules" Style="{StaticResource PageTitle}" FontSize="{OnIdiom Phone=28, Tablet=36, Desktop=36}" />
+                        <Label Text="Teach notification captures how to categorize familiar merchants." Style="{StaticResource BodyMuted}" FontSize="13" />
+                    </VerticalStackLayout>
+                    <Border Grid.Column="1" WidthRequest="46" HeightRequest="46" BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}" StrokeThickness="0" StrokeShape="RoundRectangle 23" helpers:InteractionAnimations.IsPressFeedbackEnabled="True">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnCloseTapped" />
+                        </Border.GestureRecognizers>
+                        <Path Data="M 6,6 L 18,18 M 18,6 L 6,18" Stroke="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" StrokeThickness="2" StrokeLineCap="Round" Aspect="Uniform" WidthRequest="20" HeightRequest="20" HorizontalOptions="Center" VerticalOptions="Center" />
+                    </Border>
+                </Grid>
+
+                <Border BackgroundColor="{DynamicResource AccentTint}" Stroke="{DynamicResource Accent}" StrokeThickness="1" StrokeShape="RoundRectangle 18" Padding="16,14">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12">
+                        <Border WidthRequest="42" HeightRequest="42" BackgroundColor="{DynamicResource Accent}" StrokeThickness="0" StrokeShape="RoundRectangle 13">
+                            <Label Text="Aa" FontFamily="OpenSansSemibold" FontSize="14" TextColor="{DynamicResource AccentForeground}" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                        </Border>
+                        <VerticalStackLayout Grid.Column="1" Spacing="3" VerticalOptions="Center">
+                            <Label Text="First matching rule wins" FontFamily="OpenSansSemibold" FontSize="14" TextColor="{DynamicResource Accent}" />
+                            <Label Text="Matching ignores uppercase and lowercase. Captures still wait for your approval." Style="{StaticResource BodyMuted}" FontSize="11" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource SoftCard}" Padding="16,14">
+                    <VerticalStackLayout Spacing="10">
+                        <VerticalStackLayout Spacing="2">
+                            <Label Text="TEST SAVED RULES" Style="{StaticResource SectionLabel}" FontSize="9" />
+                            <Label Text="Paste a sample notification to preview the first match." Style="{StaticResource BodyMuted}" FontSize="11" />
+                        </VerticalStackLayout>
+                        <Border Style="{StaticResource OptionCard}" Padding="11,5">
+                            <Editor x:Name="TestNotificationEditor" Placeholder="Purchase of RM23.50 at MYDIN was successful" AutoSize="TextChanges" MinimumHeightRequest="62" MaxLength="500" BackgroundColor="Transparent" />
+                        </Border>
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="9">
+                            <Border Style="{StaticResource OptionCard}" Padding="11,2"><Entry x:Name="TestSourceEntry" Placeholder="Source app (optional)" BackgroundColor="Transparent" /></Border>
+                            <Button Grid.Column="1" Text="Test" Clicked="OnTestRulesClicked" HeightRequest="44" Padding="20,0" BackgroundColor="{DynamicResource AccentTint}" TextColor="{DynamicResource Accent}" BorderWidth="0" CornerRadius="14" FontFamily="OpenSansSemibold" />
+                        </Grid>
+                        <Label x:Name="TestResultLabel" IsVisible="False" FontFamily="OpenSansSemibold" FontSize="12" TextColor="{DynamicResource Accent}" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Button Text="+ Add notification rule" Clicked="OnAddRuleClicked" HeightRequest="50" BackgroundColor="{DynamicResource Accent}" TextColor="{DynamicResource AccentForeground}" BorderWidth="0" CornerRadius="17" FontFamily="OpenSansSemibold" FontSize="14" />
+
+                <Border x:Name="ErrorCard" IsVisible="False" BackgroundColor="{AppThemeBinding Light={StaticResource BlushLight}, Dark={StaticResource BlushDark}}" Stroke="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" StrokeThickness="1" StrokeShape="RoundRectangle 16" Padding="15,12">
+                    <Label x:Name="ErrorLabel" TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" FontSize="12" />
+                </Border>
+
+                <Border x:Name="EmptyState" Style="{StaticResource SoftCard}" Padding="28,34" IsVisible="False">
+                    <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
+                        <Label Text="Aa" FontFamily="OpenSansSemibold" FontSize="30" TextColor="{DynamicResource Accent}" HorizontalTextAlignment="Center" />
+                        <Label Text="No notification rules yet" Style="{StaticResource CardTitle}" HorizontalTextAlignment="Center" />
+                        <Label Text="Add a rule such as Mydin → Groceries. The Shortcut will apply it to future captures." Style="{StaticResource BodyMuted}" FontSize="12" HorizontalTextAlignment="Center" MaximumWidthRequest="380" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <VerticalStackLayout x:Name="RulesList" Spacing="14">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="models:NotificationRule">
+                            <Grid>
+                                <Border Style="{StaticResource CardShadowLayer}" />
+                                <Border Style="{StaticResource CardSurface}" Padding="17,15">
+                                    <VerticalStackLayout Spacing="12">
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                            <VerticalStackLayout Spacing="3">
+                                                <Label Text="{Binding NameDisplay}" FontFamily="OpenSansSemibold" FontSize="16" />
+                                                <Label Text="{Binding MatchTextDisplay}" TextColor="{DynamicResource Accent}" FontFamily="OpenSansSemibold" FontSize="12" />
+                                            </VerticalStackLayout>
+                                            <Border Grid.Column="1" Padding="9,4" BackgroundColor="{DynamicResource AccentTint}" StrokeThickness="0" StrokeShape="RoundRectangle 999">
+                                                <Label Text="{Binding StatusText}" TextColor="{DynamicResource Accent}" FontFamily="OpenSansSemibold" FontSize="10" />
+                                            </Border>
+                                        </Grid>
+                                        <Label Text="{Binding SourceDisplay}" Style="{StaticResource BodyMuted}" FontSize="11" />
+                                        <Border BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}" StrokeThickness="0" StrokeShape="RoundRectangle 12" Padding="11,8">
+                                            <Label Text="{Binding ActionDisplay}" Style="{StaticResource BodyMuted}" FontSize="11" LineBreakMode="TailTruncation" MaxLines="1" />
+                                        </Border>
+                                        <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" ColumnSpacing="7">
+                                            <Button Text="↑" CommandParameter="{Binding .}" Clicked="OnMoveUpClicked" IsEnabled="{Binding CanMoveUp}" WidthRequest="42" HeightRequest="40" Padding="0" BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}" TextColor="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" BorderWidth="0" CornerRadius="12" />
+                                            <Button Grid.Column="1" Text="↓" CommandParameter="{Binding .}" Clicked="OnMoveDownClicked" IsEnabled="{Binding CanMoveDown}" WidthRequest="42" HeightRequest="40" Padding="0" BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}" TextColor="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" BorderWidth="0" CornerRadius="12" />
+                                            <Button Grid.Column="2" Text="{Binding ToggleText}" CommandParameter="{Binding .}" Clicked="OnToggleClicked" HeightRequest="40" BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}" TextColor="{DynamicResource Accent}" BorderWidth="0" CornerRadius="12" FontFamily="OpenSansSemibold" FontSize="11" />
+                                            <Button Grid.Column="3" Text="Edit" CommandParameter="{Binding .}" Clicked="OnEditClicked" HeightRequest="40" Padding="13,0" BackgroundColor="{DynamicResource AccentTint}" TextColor="{DynamicResource Accent}" BorderWidth="0" CornerRadius="12" FontFamily="OpenSansSemibold" FontSize="11" />
+                                            <Button Grid.Column="4" Text="Delete" CommandParameter="{Binding .}" Clicked="OnDeleteClicked" HeightRequest="40" Padding="13,0" BackgroundColor="{AppThemeBinding Light={StaticResource BlushLight}, Dark={StaticResource BlushDark}}" TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" BorderWidth="0" CornerRadius="12" FontFamily="OpenSansSemibold" FontSize="11" />
+                                        </Grid>
+                                    </VerticalStackLayout>
+                                </Border>
+                            </Grid>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <Grid x:Name="LoadingOverlay" IsVisible="False" BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource PageBackgroundDark}}" Opacity="0.84">
+            <ActivityIndicator IsRunning="True" Color="{DynamicResource Accent}" WidthRequest="36" HeightRequest="36" HorizontalOptions="Center" VerticalOptions="Center" />
+        </Grid>
+
+        <Grid x:Name="EditorOverlay" IsVisible="False" Opacity="0" BackgroundColor="{StaticResource OverlayScrim}" ZIndex="10">
+            <ScrollView VerticalScrollBarVisibility="Never">
+                <Border Margin="{OnIdiom Phone='14,28,14,34', Tablet='44,48,44,48', Desktop='80,50,80,50'}" MaximumWidthRequest="650" HorizontalOptions="Center" BackgroundColor="{AppThemeBinding Light={StaticResource PageBackgroundLight}, Dark={StaticResource CardBackgroundDark}}" Stroke="{AppThemeBinding Light={StaticResource BorderLight}, Dark={StaticResource BorderDark}}" StrokeThickness="1" StrokeShape="RoundRectangle 24" Padding="20">
+                    <VerticalStackLayout Spacing="17">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <VerticalStackLayout Spacing="3">
+                                <Label x:Name="EditorTitle" Text="Add notification rule" Style="{StaticResource PageTitle}" FontSize="24" />
+                                <Label Text="Future captures only" Style="{StaticResource BodyMuted}" FontSize="11" />
+                            </VerticalStackLayout>
+                            <Border Grid.Column="1" WidthRequest="40" HeightRequest="40" BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}" StrokeThickness="0" StrokeShape="RoundRectangle 20">
+                                <Border.GestureRecognizers><TapGestureRecognizer Tapped="OnEditorCloseTapped" /></Border.GestureRecognizers>
+                                <Label Text="×" FontSize="25" HorizontalTextAlignment="Center" VerticalTextAlignment="Center" />
+                            </Border>
+                        </Grid>
+
+                        <VerticalStackLayout Spacing="7">
+                            <Label Text="RULE NAME (OPTIONAL)" Style="{StaticResource SectionLabel}" FontSize="9" />
+                            <Border Style="{StaticResource OptionCard}" Padding="12,2"><Entry x:Name="RuleNameEntry" Placeholder="Mydin purchases" BackgroundColor="Transparent" /></Border>
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Spacing="7">
+                            <Label Text="NOTIFICATION CONTAINS" Style="{StaticResource SectionLabel}" FontSize="9" />
+                            <Border Style="{StaticResource OptionCard}" Padding="12,2"><Entry x:Name="MatchTextEntry" Placeholder="Mydin" BackgroundColor="Transparent" /></Border>
+                            <Label Text="Matches title, subtitle, or message without case sensitivity. Separate alternatives with commas." Style="{StaticResource BodyMuted}" FontSize="10" />
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Spacing="7">
+                            <Label Text="SOURCE APP (OPTIONAL)" Style="{StaticResource SectionLabel}" FontSize="9" />
+                            <Border Style="{StaticResource OptionCard}" Padding="12,2"><Entry x:Name="SourceAppEntry" Placeholder="Wallet" BackgroundColor="Transparent" /></Border>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="7">
+                            <Label Text="TRANSACTION TYPE" Style="{StaticResource SectionLabel}" FontSize="9" />
+                            <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+                                <Border x:Name="ExpenseTypeOption" Style="{StaticResource SelectedOptionCard}" Padding="12,10"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnRuleTypeTapped" CommandParameter="Expense" /></Border.GestureRecognizers><Label x:Name="ExpenseTypeLabel" Text="Expense" FontFamily="OpenSansSemibold" HorizontalTextAlignment="Center" /></Border>
+                                <Border x:Name="IncomeTypeOption" Grid.Column="1" Style="{StaticResource OptionCard}" Padding="12,10"><Border.GestureRecognizers><TapGestureRecognizer Tapped="OnRuleTypeTapped" CommandParameter="Income" /></Border.GestureRecognizers><Label x:Name="IncomeTypeLabel" Text="Income" FontFamily="OpenSansSemibold" HorizontalTextAlignment="Center" /></Border>
+                            </Grid>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="7">
+                            <Label Text="CATEGORY" Style="{StaticResource SectionLabel}" FontSize="9" />
+                            <Border Style="{StaticResource OptionCard}" Padding="8,0"><Picker x:Name="CategoryPicker" Title="Select category" BackgroundColor="Transparent" /></Border>
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Spacing="7">
+                            <Label Text="PAYMENT METHOD OVERRIDE" Style="{StaticResource SectionLabel}" FontSize="9" />
+                            <Border Style="{StaticResource OptionCard}" Padding="8,0"><Picker x:Name="PaymentPicker" Title="Keep detected payment" BackgroundColor="Transparent" /></Border>
+                        </VerticalStackLayout>
+                        <VerticalStackLayout Spacing="7">
+                            <Label Text="DESCRIPTION OVERRIDE (OPTIONAL)" Style="{StaticResource SectionLabel}" FontSize="9" />
+                            <Border Style="{StaticResource OptionCard}" Padding="12,2"><Entry x:Name="DescriptionEntry" Placeholder="Mydin groceries" BackgroundColor="Transparent" /></Border>
+                        </VerticalStackLayout>
+
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                            <VerticalStackLayout Spacing="2" VerticalOptions="Center"><Label Text="Rule enabled" Style="{StaticResource CardTitle}" FontSize="14" /><Label Text="Paused rules remain saved" Style="{StaticResource BodyMuted}" FontSize="10" /></VerticalStackLayout>
+                            <Switch x:Name="EnabledSwitch" Grid.Column="1" IsToggled="True" OnColor="{DynamicResource Accent}" />
+                        </Grid>
+
+                        <Label x:Name="EditorErrorLabel" IsVisible="False" TextColor="{AppThemeBinding Light={StaticResource NegativeLight}, Dark={StaticResource NegativeDark}}" FontSize="12" />
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                            <Button Text="Cancel" Clicked="OnEditorCancelClicked" HeightRequest="48" Padding="18,0" BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource SurfaceMutedDark}}" TextColor="{AppThemeBinding Light={StaticResource PrimaryTextLight}, Dark={StaticResource PrimaryTextDark}}" BorderWidth="0" CornerRadius="16" FontFamily="OpenSansSemibold" />
+                            <Button x:Name="SaveRuleButton" Grid.Column="1" Text="Save rule" Clicked="OnSaveRuleClicked" HeightRequest="48" BackgroundColor="{DynamicResource Accent}" TextColor="{DynamicResource AccentForeground}" BorderWidth="0" CornerRadius="16" FontFamily="OpenSansSemibold" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+            </ScrollView>
+        </Grid>
+    </Grid>
+</ContentView>

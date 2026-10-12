@@ -28,3 +28,12 @@ transaction.
 The app, WidgetKit extension, and App Intents extension must all be signed with
 the same authorized App Group. A signing service must preserve and re-sign both
 embedded extensions for capture and widgets to work.
+
+Notification rules can be managed from **Settings → Notification rules**. Rules
+are evaluated in their displayed order using case-insensitive text matching;
+comma-separated text values act as alternatives within one rule. The built-in
+test area previews which saved rule would win for a sample notification.
+The first enabled match can override the suggested transaction type, category,
+payment method, and description. The shared JSON rule file is read by the App
+Intents extension for every new capture, so changes apply without recreating the
+Shortcut. Captures always remain pending until they are approved in the app.

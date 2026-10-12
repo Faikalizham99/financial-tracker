@@ -51,6 +51,7 @@ public static class MauiProgram
         builder.Services.AddSingleton<AssetPortfolioService>();
         builder.Services.AddSingleton<TransactionDataStore>();
         builder.Services.AddSingleton<PendingTransactionInboxService>();
+        builder.Services.AddSingleton<NotificationRuleStore>();
         builder.Services.AddSingleton<TransactionStatisticsService>();
         builder.Services.AddSingleton<WidgetSnapshotCoordinator>();
         builder.Services.AddSingleton<AssetWidgetSnapshotCoordinator>();

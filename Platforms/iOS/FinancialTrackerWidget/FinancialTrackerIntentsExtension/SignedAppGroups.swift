@@ -160,7 +160,7 @@ enum SignedAppGroups {
         return common.contains(preferred) ? preferred : common.sorted().first!
     }
 
-    static func group() throws -> String {
+    private static let selected: Result<String, Error> = Result {
         var appURL = Bundle.main.bundleURL
         while appURL.pathExtension != "app" {
             let parent = appURL.deletingLastPathComponent()
@@ -185,6 +185,10 @@ enum SignedAppGroups {
             return try read(executable)
         }
         return try selectCommon(signatures)
+    }
+
+    static func group() throws -> String {
+        try selected.get()
     }
 
     private static func isValidGroupIdentifier(_ value: String) -> Bool {

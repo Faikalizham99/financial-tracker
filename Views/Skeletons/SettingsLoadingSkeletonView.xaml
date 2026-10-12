@@ -6,7 +6,7 @@
     xmlns:controls="clr-namespace:FinancialTracker.Controls">
 
     <ScrollView VerticalScrollBarVisibility="Never">
-        <VerticalStackLayout Padding="24,30,24,126" Spacing="27">
+        <VerticalStackLayout Padding="{StaticResource PageContentPadding}" Spacing="27">
             <VerticalStackLayout Spacing="7">
                 <controls:SkeletonBlock WidthRequest="145" HeightRequest="31" HorizontalOptions="Start" />
                 <controls:SkeletonBlock WidthRequest="245" HeightRequest="11" HorizontalOptions="Start" />

@@ -43,7 +43,7 @@
             x:Name="DashboardView"
             IsVisible="False"
             VerticalScrollBarVisibility="Never">
-            <VerticalStackLayout Padding="24,30,24,126" Spacing="27">
+            <VerticalStackLayout Padding="{StaticResource PageContentPadding}" Spacing="27">
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
                     <VerticalStackLayout Spacing="5">
                         <Label x:Name="DashboardGreetingLabel" Text="Good morning," Style="{StaticResource DisplayTitle}" />
@@ -355,6 +355,10 @@
         <views:PendingTransactionsView
             x:Name="PendingTransactionsOverlay"
             ZIndex="130" />
+
+        <views:NotificationRulesView
+            x:Name="NotificationRulesOverlay"
+            ZIndex="135" />
 
         <views:AddTransactionView
             x:Name="AddTransactionOverlay"

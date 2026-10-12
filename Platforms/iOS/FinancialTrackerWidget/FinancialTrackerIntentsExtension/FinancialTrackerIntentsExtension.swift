@@ -31,6 +31,107 @@ private struct PendingSuggestion: Sendable {
     let status: String
 }
 
+private struct NotificationRulesDocument: Decodable {
+    let version: Int
+    let rules: [NotificationRule]
+}
+
+private struct NotificationRule: Decodable {
+    let id: String
+    let name: String
+    let matchText: String
+    let sourceApp: String
+    let isEnabled: Bool
+    let transactionType: String
+    let category: String
+    let paymentMethod: String
+    let descriptionOverride: String
+    let sortOrder: Int
+}
+
+private enum NotificationRuleMatcher {
+    private static let rulesFileName = "notification-rules.json"
+
+    static func apply(
+        to suggestion: PendingSuggestion,
+        source: String,
+        title: String,
+        subtitle: String,
+        message: String
+    ) -> PendingSuggestion {
+        guard let rules = loadRules() else { return suggestion }
+        let notificationText = [title, subtitle, message]
+            .joined(separator: " ")
+            .lowercased()
+        let normalizedSource = source.lowercased()
+
+        let orderedRules = rules
+            .filter { $0.isEnabled }
+            .sorted { left, right in
+                if left.sortOrder == right.sortOrder {
+                    return left.name.localizedCaseInsensitiveCompare(right.name) == .orderedAscending
+                }
+                return left.sortOrder < right.sortOrder
+            }
+        guard let rule = orderedRules.first(where: { rule in
+            let keywords = rule.matchText
+                .split(separator: ",")
+                .map {
+                    $0.trimmingCharacters(in: .whitespacesAndNewlines)
+                        .lowercased()
+                }
+                .filter { !$0.isEmpty }
+            guard keywords.contains(where: { notificationText.contains($0) }) else {
+                return false
+            }
+            let sourceFilter = rule.sourceApp.trimmingCharacters(
+                in: .whitespacesAndNewlines
+            ).lowercased()
+            return sourceFilter.isEmpty || normalizedSource.contains(sourceFilter)
+        }) else {
+            return suggestion
+        }
+
+        let description = rule.descriptionOverride.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+        let paymentMethod = rule.paymentMethod.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+        return PendingSuggestion(
+            amountMinor: suggestion.amountMinor,
+            currencyCode: suggestion.currencyCode,
+            description: description.isEmpty ? suggestion.description : description,
+            type: rule.transactionType,
+            category: rule.category,
+            paymentMethod: paymentMethod.isEmpty
+                ? suggestion.paymentMethod
+                : paymentMethod,
+            status: suggestion.status
+        )
+    }
+
+    private static func loadRules() -> [NotificationRule]? {
+        guard let group = try? SignedAppGroups.group(),
+              let container = FileManager.default.containerURL(
+                forSecurityApplicationGroupIdentifier: group
+              ) else {
+            return nil
+        }
+        let fileURL = container
+            .appendingPathComponent("Library/FinancialTracker", isDirectory: true)
+            .appendingPathComponent(rulesFileName, isDirectory: false)
+        guard let data = try? Data(contentsOf: fileURL),
+              let document = try? JSONDecoder().decode(
+                NotificationRulesDocument.self,
+                from: data
+              ) else {
+            return nil
+        }
+        return document.rules
+    }
+}
+
 private final class PendingInboxDatabase {
     private var handle: OpaquePointer?
     private let transient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
@@ -375,13 +476,20 @@ struct CapturePendingTransactionIntent: AppIntent {
         let subtitle = notificationSubtitle?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let message = notificationMessage?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         let date = receivedAt ?? Date()
-        let suggestion = NotificationTransactionParser.parse(
+        let parsedSuggestion = NotificationTransactionParser.parse(
             source: source,
             title: title,
             subtitle: subtitle,
             message: message,
             explicitAmount: amount,
             explicitDescription: transactionDescription
+        )
+        let suggestion = NotificationRuleMatcher.apply(
+            to: parsedSuggestion,
+            source: source,
+            title: title,
+            subtitle: subtitle,
+            message: message
         )
         let key = NotificationTransactionParser.captureKey(
             supplied: captureID,

@@ -9,7 +9,7 @@
 
     <Grid>
     <ScrollView x:Name="TransactionsScrollView" Scrolled="OnTransactionsScrolled" VerticalScrollBarVisibility="Never">
-        <VerticalStackLayout Padding="22,28,22,126" Spacing="21">
+        <VerticalStackLayout Padding="{StaticResource PageContentPadding}" Spacing="21">
             <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto,Auto,Auto" RowSpacing="6" ColumnSpacing="9">
                 <Label
                     Grid.ColumnSpan="{OnIdiom Phone=2, Tablet=1, Desktop=1}"

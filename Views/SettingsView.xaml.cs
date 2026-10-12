@@ -30,6 +30,7 @@ public partial class SettingsView : ContentView
 
     public event Action<bool>? DataDrawerVisibilityChanged;
     public event Action<DateTime>? BudgetSettingsRequested;
+    public event Action? NotificationRulesRequested;
     public event Func<Task>? DatabaseBackupRequested;
     public event Func<Task>? DatabaseRestoreRequested;
 
@@ -222,6 +223,14 @@ public partial class SettingsView : ContentView
         var feedback = InteractionAnimations.PulseAsync(sender);
         ConfigureDataDrawer(showCategories: false);
         await OpenDataDrawerAsync();
+        await feedback;
+    }
+
+    private async void OnNotificationRulesTapped(object? sender, TappedEventArgs e)
+    {
+        var feedback = InteractionAnimations.PulseAsync(sender);
+        UnfocusEditableFields();
+        NotificationRulesRequested?.Invoke();
         await feedback;
     }
 
