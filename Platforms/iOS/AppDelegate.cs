@@ -1,13 +1,26 @@
 ﻿using Foundation;
 
 using System.Globalization;
+using UserNotifications;
 
 namespace FinancialTracker;
 
 [Register("AppDelegate")]
 public class AppDelegate : MauiUIApplicationDelegate
 {
+    private readonly UNUserNotificationCenterDelegate foregroundNotificationDelegate =
+        new ForegroundNotificationDelegate();
+
     protected override MauiApp CreateMauiApp() => MauiProgram.CreateMauiApp();
+
+    public override bool FinishedLaunching(
+        UIKit.UIApplication application,
+        NSDictionary? launchOptions)
+    {
+        var launched = base.FinishedLaunching(application, launchOptions);
+        UNUserNotificationCenter.Current.Delegate = foregroundNotificationDelegate;
+        return launched;
+    }
 
     public override bool OpenUrl(
         UIKit.UIApplication application,
@@ -132,5 +145,18 @@ public class AppDelegate : MauiUIApplicationDelegate
         }
 
         return null;
+    }
+
+    private sealed class ForegroundNotificationDelegate :
+        UNUserNotificationCenterDelegate
+    {
+        public override void WillPresentNotification(
+            UNUserNotificationCenter center,
+            UNNotification notification,
+            Action<UNNotificationPresentationOptions> completionHandler) =>
+            completionHandler(
+                UNNotificationPresentationOptions.Banner |
+                UNNotificationPresentationOptions.List |
+                UNNotificationPresentationOptions.Sound);
     }
 }

@@ -48,10 +48,14 @@
                         <Border Style="{StaticResource OptionCard}" Padding="11,5">
                             <Editor x:Name="TestNotificationEditor" Placeholder="Purchase of RM23.50 at MYDIN was successful" AutoSize="TextChanges" MinimumHeightRequest="62" MaxLength="500" BackgroundColor="Transparent" />
                         </Border>
+                        <Border Style="{StaticResource OptionCard}" Padding="11,2">
+                            <Entry x:Name="TestSourceEntry" Placeholder="Source app (optional)" BackgroundColor="Transparent" />
+                        </Border>
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="9">
-                            <Border Style="{StaticResource OptionCard}" Padding="11,2"><Entry x:Name="TestSourceEntry" Placeholder="Source app (optional)" BackgroundColor="Transparent" /></Border>
-                            <Button Grid.Column="1" Text="Test" Clicked="OnTestRulesClicked" HeightRequest="44" Padding="20,0" BackgroundColor="{DynamicResource AccentTint}" TextColor="{DynamicResource Accent}" BorderWidth="0" CornerRadius="14" FontFamily="OpenSansSemibold" />
+                            <Button Text="Test rules" Clicked="OnTestRulesClicked" HeightRequest="44" BackgroundColor="{DynamicResource AccentTint}" TextColor="{DynamicResource Accent}" BorderWidth="0" CornerRadius="14" FontFamily="OpenSansSemibold" />
+                            <Button x:Name="SendTestNotificationButton" Grid.Column="1" Text="Send notification" Clicked="OnSendTestNotificationClicked" IsVisible="{OnPlatform iOS=True, Default=False}" HeightRequest="44" Padding="16,0" BackgroundColor="{DynamicResource Accent}" TextColor="{DynamicResource AccentForeground}" BorderWidth="0" CornerRadius="14" FontFamily="OpenSansSemibold" />
                         </Grid>
+                        <Label Text="The notification is sent by Financial Tracker; iOS cannot imitate another app's identity." IsVisible="{OnPlatform iOS=True, Default=False}" Style="{StaticResource BodyMuted}" FontSize="10" />
                         <Label x:Name="TestResultLabel" IsVisible="False" FontFamily="OpenSansSemibold" FontSize="12" TextColor="{DynamicResource Accent}" />
                     </VerticalStackLayout>
                 </Border>

@@ -164,8 +164,7 @@ public partial class NotificationRulesView : ContentView
         var source = TestSourceEntry.Text?.Trim() ?? string.Empty;
         if (string.IsNullOrWhiteSpace(notification))
         {
-            TestResultLabel.Text = "Enter a sample notification first.";
-            TestResultLabel.IsVisible = true;
+            ShowTestResult("Enter a sample notification first.", false);
             return;
         }
 
@@ -173,11 +172,54 @@ public partial class NotificationRulesView : ContentView
             .OrderBy(rule => rule.SortOrder)
             .Where(rule => RuleMatches(rule, notification, source))
             .ToList();
-        TestResultLabel.Text = matches.Count == 0
+        var result = matches.Count == 0
             ? "No enabled rule matched. The built-in suggestions will be used."
             : $"{matches.Count} rule{(matches.Count == 1 ? string.Empty : "s")} matched: " +
               $"{string.Join(", ", matches.Select(rule => rule.NameDisplay))}. " +
               $"Combined: {BuildCombinedActionDisplay(matches)}";
+        ShowTestResult(result, true);
+    }
+
+    private async void OnSendTestNotificationClicked(object? sender, EventArgs e)
+    {
+        var notification = TestNotificationEditor.Text?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(notification))
+        {
+            ShowTestResult("Enter a sample notification first.", false);
+            return;
+        }
+
+        SendTestNotificationButton.IsEnabled = false;
+        try
+        {
+            var result = await LocalNotificationTestService.SendAsync(notification);
+            ShowTestResult(result.Message, result.IsSuccess);
+        }
+        catch (Exception exception)
+        {
+            ShowTestResult(
+                $"The test notification could not be sent. {exception.Message}",
+                false);
+        }
+        finally
+        {
+            SendTestNotificationButton.IsEnabled = true;
+        }
+    }
+
+    private void ShowTestResult(string message, bool isSuccess)
+    {
+        TestResultLabel.Text = message;
+        var resourceKey = isSuccess
+            ? "Accent"
+            : Application.Current?.RequestedTheme == AppTheme.Dark
+                ? "NegativeDark"
+                : "NegativeLight";
+        if (Application.Current?.Resources.TryGetValue(resourceKey, out var value) == true &&
+            value is Color color)
+        {
+            TestResultLabel.TextColor = color;
+        }
         TestResultLabel.IsVisible = true;
     }
 
