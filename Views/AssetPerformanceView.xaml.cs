@@ -4,6 +4,7 @@ using FinancialTracker.Models;
 using FinancialTracker.Services;
 using FinancialTracker.Views.Drawables;
 using Microsoft.Maui.Controls.Shapes;
+using Microsoft.Maui.Storage;
 
 namespace FinancialTracker.Views;
 
@@ -11,6 +12,14 @@ public partial class AssetPerformanceView : ContentView
 {
     private const string ChartAnimationName = "AssetPerformanceChartAnimation";
     private const uint ChartAnimationLength = 450;
+    private const string InputModePreferencePrefix =
+        "asset_performance_input_mode_";
+
+    private enum PerformanceInputMode
+    {
+        ProfitLoss,
+        CurrentValue
+    }
 
     private readonly AssetPerformanceChartDrawable chartDrawable = new();
     private AssetPortfolioService? portfolioService;
@@ -23,6 +32,7 @@ public partial class AssetPerformanceView : ContentView
         1);
     private DateTime selectedRecordDate = DateTime.Today;
     private int? editingRecordId;
+    private PerformanceInputMode inputMode;
     private bool isLoss;
     private bool isNormalizingMoney;
     private bool isSaving;
@@ -514,11 +524,17 @@ public partial class AssetPerformanceView : ContentView
             record?.InvestedMinor ?? previous?.InvestedMinor ?? 0)
             .Replace(",", string.Empty, StringComparison.Ordinal);
         var profitLoss = record?.ProfitLossMinor ?? previous?.ProfitLossMinor ?? 0;
+        var invested = record?.InvestedMinor ?? previous?.InvestedMinor ?? 0;
+        inputMode = LoadInputMode();
         isLoss = profitLoss < 0;
-        ProfitEntry.Text = MoneyFormatter.FormatMinorValue(profitLoss)
+        ProfitEntry.Text = MoneyFormatter.FormatMinorValue(
+                inputMode == PerformanceInputMode.CurrentValue
+                    ? checked(invested + profitLoss)
+                    : profitLoss)
             .Replace(",", string.Empty, StringComparison.Ordinal);
         NoteEditor.Text = record?.Note ?? string.Empty;
         EditorErrorLabel.IsVisible = false;
+        UpdateInputModePresentation();
         UpdateProfitModeButtons();
         UpdateCalculatedTotal();
     }
@@ -551,14 +567,38 @@ public partial class AssetPerformanceView : ContentView
             !MoneyInputParser.TryParseMinor(
                 ProfitEntry.Text,
                 allowZero: true,
-                out var profitMagnitudeMinor))
+                out var secondaryValueMinor))
         {
-            ShowEditorError("Enter valid invested and profit or loss amounts.");
+            ShowEditorError(inputMode == PerformanceInputMode.CurrentValue
+                ? "Enter valid invested and current value amounts."
+                : "Enter valid invested and profit or loss amounts.");
             return;
         }
 
-        var profitLossMinor = isLoss ? -profitMagnitudeMinor : profitMagnitudeMinor;
-        if (investedMinor + profitLossMinor < 0)
+        long profitLossMinor;
+        long totalMinor;
+        try
+        {
+            if (inputMode == PerformanceInputMode.CurrentValue)
+            {
+                totalMinor = secondaryValueMinor;
+                profitLossMinor = totalMinor - investedMinor;
+            }
+            else
+            {
+                profitLossMinor = isLoss
+                    ? -secondaryValueMinor
+                    : secondaryValueMinor;
+                totalMinor = checked(investedMinor + profitLossMinor);
+            }
+        }
+        catch (OverflowException)
+        {
+            ShowEditorError("These amounts are too large.");
+            return;
+        }
+
+        if (totalMinor < 0)
         {
             ShowEditorError("The loss cannot be greater than the amount invested.");
             return;
@@ -708,12 +748,151 @@ public partial class AssetPerformanceView : ContentView
         MoneyInputParser.TryParseMinor(
             ProfitEntry.Text,
             allowZero: true,
-            out var profitMagnitudeMinor);
-        var total = investedMinor + (isLoss ? -profitMagnitudeMinor : profitMagnitudeMinor);
-        CalculatedTotalLabel.Text = MoneyFormatter.FormatMinor(
-            Math.Max(0, total),
-            performance.CurrencySymbol);
+            out var secondaryValueMinor);
+
+        if (inputMode == PerformanceInputMode.CurrentValue)
+        {
+            var profitLoss = secondaryValueMinor - investedMinor;
+            CalculatedValueTitleLabel.Text = profitLoss switch
+            {
+                > 0 => "CALCULATED PROFIT",
+                < 0 => "CALCULATED LOSS",
+                _ => "NO PROFIT / LOSS"
+            };
+            CalculatedValueCaptionLabel.Text =
+                "Current value minus invested amount";
+            CalculatedTotalLabel.Text = MoneyFormatter.FormatMinor(
+                profitLoss,
+                performance.CurrencySymbol,
+                showPositiveSign: true,
+                separateSign: true);
+            CalculatedTotalLabel.TextColor = ChangeColor(profitLoss);
+            CalculatedReturnLabel.Text = investedMinor > 0
+                ? $"{profitLoss * 100m / investedMinor:+0.00;-0.00;0.00}% return"
+                : "Return unavailable";
+            CalculatedReturnLabel.TextColor = investedMinor > 0
+                ? ChangeColor(profitLoss)
+                : SecondaryTextColor;
+            CalculatedReturnLabel.IsVisible = true;
+            return;
+        }
+
+        var profitLossMinor = isLoss
+            ? -secondaryValueMinor
+            : secondaryValueMinor;
+        long total;
+        try
+        {
+            total = checked(investedMinor + profitLossMinor);
+        }
+        catch (OverflowException)
+        {
+            total = -1;
+        }
+        CalculatedValueTitleLabel.Text = "CALCULATED TOTAL";
+        CalculatedValueCaptionLabel.Text = "Invested amount plus profit or loss";
+        CalculatedTotalLabel.Text = total < 0
+            ? "Invalid amount"
+            : MoneyFormatter.FormatMinor(total, performance.CurrencySymbol);
         CalculatedTotalLabel.TextColor = total < 0 ? NegativeColor : AccentColor;
+        CalculatedReturnLabel.IsVisible = false;
+    }
+
+    private void UpdateInputModePresentation()
+    {
+        var usesCurrentValue = inputMode == PerformanceInputMode.CurrentValue;
+        UpdateModeButton(
+            ProfitLossInputModeButton,
+            ProfitLossInputModeLabel,
+            !usesCurrentValue,
+            AccentColor);
+        UpdateModeButton(
+            CurrentValueInputModeButton,
+            CurrentValueInputModeLabel,
+            usesCurrentValue,
+            AccentColor);
+        SecondaryValueTitleLabel.Text = usesCurrentValue
+            ? "CURRENT VALUE"
+            : "CURRENT PROFIT / LOSS";
+        ProfitLossDirectionSelector.IsVisible = !usesCurrentValue;
+    }
+
+    private void SetInputMode(PerformanceInputMode nextMode)
+    {
+        if (inputMode == nextMode)
+        {
+            return;
+        }
+
+        var investedIsValid = MoneyInputParser.TryParseMinor(
+            InvestedEntry.Text,
+            allowZero: true,
+            out var investedMinor);
+        var secondaryValueIsValid = MoneyInputParser.TryParseMinor(
+            ProfitEntry.Text,
+            allowZero: true,
+            out var secondaryValueMinor);
+        var canConvert = investedIsValid && secondaryValueIsValid;
+        var convertedValue = 0L;
+        if (canConvert)
+        {
+            if (inputMode == PerformanceInputMode.CurrentValue)
+            {
+                var profitLoss = secondaryValueMinor - investedMinor;
+                isLoss = profitLoss < 0;
+                convertedValue = Math.Abs(profitLoss);
+            }
+            else
+            {
+                var profitLoss = isLoss
+                    ? -secondaryValueMinor
+                    : secondaryValueMinor;
+                try
+                {
+                    convertedValue = checked(investedMinor + profitLoss);
+                    canConvert = convertedValue >= 0;
+                }
+                catch (OverflowException)
+                {
+                    canConvert = false;
+                }
+            }
+        }
+
+        inputMode = nextMode;
+        ProfitEntry.Text = canConvert
+            ? MoneyFormatter.FormatMinorValue(convertedValue)
+                .Replace(",", string.Empty, StringComparison.Ordinal)
+            : string.Empty;
+        SaveInputMode();
+        UpdateInputModePresentation();
+        UpdateProfitModeButtons();
+        UpdateCalculatedTotal();
+    }
+
+    private PerformanceInputMode LoadInputMode()
+    {
+        if (string.IsNullOrWhiteSpace(selectedAssetKey))
+        {
+            return PerformanceInputMode.ProfitLoss;
+        }
+
+        var saved = Preferences.Default.Get(
+            InputModePreferencePrefix + selectedAssetKey,
+            (int)PerformanceInputMode.ProfitLoss);
+        return Enum.IsDefined(typeof(PerformanceInputMode), saved)
+            ? (PerformanceInputMode)saved
+            : PerformanceInputMode.ProfitLoss;
+    }
+
+    private void SaveInputMode()
+    {
+        if (!string.IsNullOrWhiteSpace(selectedAssetKey))
+        {
+            Preferences.Default.Set(
+                InputModePreferencePrefix + selectedAssetKey,
+                (int)inputMode);
+        }
     }
 
     private void UpdateProfitModeButtons()
@@ -775,6 +954,12 @@ public partial class AssetPerformanceView : ContentView
     private void OnCloseTapped(object? sender, TappedEventArgs e) => Close();
 
     private void OnCloseEditorTapped(object? sender, TappedEventArgs e) => CloseEditor();
+
+    private void OnProfitLossInputModeTapped(object? sender, TappedEventArgs e) =>
+        SetInputMode(PerformanceInputMode.ProfitLoss);
+
+    private void OnCurrentValueInputModeTapped(object? sender, TappedEventArgs e) =>
+        SetInputMode(PerformanceInputMode.CurrentValue);
 
     private void OnProfitModeTapped(object? sender, TappedEventArgs e)
     {
