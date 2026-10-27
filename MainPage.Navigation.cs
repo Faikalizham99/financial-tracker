@@ -11,7 +11,10 @@ public partial class MainPage
     }
 
     private async void OnSettingsTapped(object? sender, TappedEventArgs e)
-        => await NavigateToSectionAsync(3);
+    {
+        SettingsView.RefreshCaptureNotificationSetting();
+        await NavigateToSectionAsync(3);
+    }
 
     private async void OnAssetsTapped(object? sender, TappedEventArgs e)
         => await NavigateToSectionAsync(2);

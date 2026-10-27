@@ -16,13 +16,10 @@ public static class LocalNotificationTestService
     {
 #if IOS
         var center = UNUserNotificationCenter.Current;
-        var permission = await RequestPermissionAsync(center);
-        if (!permission.IsApproved)
+        var permission = await EnsureAuthorizationAsync();
+        if (!permission.IsSuccess)
         {
-            return new LocalNotificationTestResult(
-                false,
-                permission.ErrorMessage ??
-                "Notifications are disabled. Enable them for Financial Tracker in iOS Settings.");
+            return permission;
         }
 
         var content = new UNMutableNotificationContent
@@ -49,6 +46,27 @@ public static class LocalNotificationTestService
         return new LocalNotificationTestResult(
             false,
             "Real test notifications are currently available on iOS only.");
+#endif
+    }
+
+    public static async Task<LocalNotificationTestResult> EnsureAuthorizationAsync()
+    {
+#if IOS
+        var permission = await RequestPermissionAsync(
+            UNUserNotificationCenter.Current);
+        return permission.IsApproved
+            ? new LocalNotificationTestResult(
+                true,
+                "Financial Tracker notifications are enabled.")
+            : new LocalNotificationTestResult(
+                false,
+                permission.ErrorMessage ??
+                "Notifications are disabled. Enable them for Financial Tracker in iOS Settings.");
+#else
+        await Task.CompletedTask;
+        return new LocalNotificationTestResult(
+            false,
+            "Capture confirmation notifications are available on iOS only.");
 #endif
     }
 

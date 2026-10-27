@@ -206,6 +206,7 @@ public partial class MainPage : ContentPage
             await OpenPendingWidgetAssetSnapshotAsync();
             await OpenPendingWidgetTransactionsAsync();
             await RefreshPendingTransactionInboxAsync();
+            await OpenPendingTransactionsFromNotificationAsync();
         }
         catch
         {

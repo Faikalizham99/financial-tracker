@@ -4,6 +4,48 @@ namespace FinancialTracker;
 
 public partial class MainPage
 {
+    private readonly SemaphoreSlim pendingNotificationNavigationLock = new(1, 1);
+    private bool pendingOpenPendingTransactionsFromNotification;
+
+    internal void RequestOpenPendingTransactionsFromNotification()
+    {
+        pendingOpenPendingTransactionsFromNotification = true;
+        if (IsLoaded)
+        {
+            _ = OpenPendingTransactionsFromNotificationAsync();
+        }
+    }
+
+    private async Task OpenPendingTransactionsFromNotificationAsync()
+    {
+        await pendingNotificationNavigationLock.WaitAsync();
+        try
+        {
+            if (!pendingOpenPendingTransactionsFromNotification || !IsLoaded)
+            {
+                return;
+            }
+
+            await EnsureInitialDataLoadedAsync();
+            if (selectedSectionIndex != 1)
+            {
+                await NavigateToSectionAsync(1);
+            }
+            await RefreshPendingTransactionInboxAsync();
+            await PendingTransactionsOverlay.OpenAsync();
+            pendingOpenPendingTransactionsFromNotification = false;
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"Pending capture notification link failed: {exception}");
+        }
+        finally
+        {
+            pendingNotificationNavigationLock.Release();
+        }
+    }
+
     private async void OnPendingTransactionsRequested()
     {
         await PendingTransactionsOverlay.OpenAsync();

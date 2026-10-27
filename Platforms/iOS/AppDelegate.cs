@@ -8,6 +8,9 @@ namespace FinancialTracker;
 [Register("AppDelegate")]
 public class AppDelegate : MauiUIApplicationDelegate
 {
+    private const string PendingCaptureNotificationCategory =
+        "financial-tracker-pending-capture";
+
     private readonly UNUserNotificationCenterDelegate foregroundNotificationDelegate =
         new ForegroundNotificationDelegate();
 
@@ -158,5 +161,26 @@ public class AppDelegate : MauiUIApplicationDelegate
                 UNNotificationPresentationOptions.Banner |
                 UNNotificationPresentationOptions.List |
                 UNNotificationPresentationOptions.Sound);
+
+        public override void DidReceiveNotificationResponse(
+            UNUserNotificationCenter center,
+            UNNotificationResponse response,
+            Action completionHandler)
+        {
+            try
+            {
+                if (response.Notification.Request.Content.CategoryIdentifier ==
+                        PendingCaptureNotificationCategory &&
+                    Microsoft.Maui.Controls.Application.Current is App app)
+                {
+                    Microsoft.Maui.ApplicationModel.MainThread.BeginInvokeOnMainThread(
+                        app.RequestOpenPendingTransactionsFromNotification);
+                }
+            }
+            finally
+            {
+                completionHandler();
+            }
+        }
     }
 }

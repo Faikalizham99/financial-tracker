@@ -26,6 +26,9 @@ public partial class App : Application
     internal void RequestOpenTransactionsFromWidget(DateTime date) =>
         mainPage.RequestOpenTransactionsFromWidget(date);
 
+    internal void RequestOpenPendingTransactionsFromNotification() =>
+        mainPage.RequestOpenPendingTransactionsFromNotification();
+
     protected override Window CreateWindow(IActivationState? activationState)
     {
         var window = new Window(mainPage);

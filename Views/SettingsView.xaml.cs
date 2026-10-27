@@ -24,6 +24,7 @@ public partial class SettingsView : ContentView
     private bool isPreservingSettingsScrollPosition;
     private bool isSettingsScrollCorrectionQueued;
     private bool isDatabaseTransferInProgress;
+    private bool isUpdatingCaptureNotifications;
     private double preservedSettingsScrollY;
     private int settingsScrollPreservationVersion;
     private string selectedCategoryType = TransactionCatalog.ExpenseTypeKey;
@@ -61,6 +62,13 @@ public partial class SettingsView : ContentView
         ];
         AccentColorWheel.Drawable = accentColorWheelDrawable;
         SynchronizeColorWheel(AppearanceValueNormalizer.DefaultAccentColor);
+    }
+
+    public void RefreshCaptureNotificationSetting()
+    {
+#if IOS
+        LoadCaptureNotificationSetting();
+#endif
     }
 
     private async void OnBudgetSettingsTapped(object? sender, TappedEventArgs e)
@@ -232,6 +240,99 @@ public partial class SettingsView : ContentView
         UnfocusEditableFields();
         NotificationRulesRequested?.Invoke();
         await feedback;
+    }
+
+    private void LoadCaptureNotificationSetting()
+    {
+        if (!CaptureNotificationSettings.TryRead(out var enabled, out var error))
+        {
+            SetCaptureNotificationsSwitch(false);
+            SetCaptureNotificationStatus(
+                $"Capture alerts are unavailable. {error}",
+                isError: true);
+            return;
+        }
+
+        SetCaptureNotificationsSwitch(enabled);
+        SetCaptureNotificationStatus(
+            enabled
+                ? "Alerts are on. Exclude Financial Tracker from the Shortcut trigger."
+                : "Notify after a pending transaction is captured.",
+            isError: false);
+    }
+
+    private async void OnCaptureNotificationsToggled(
+        object? sender,
+        ToggledEventArgs e)
+    {
+        if (isUpdatingCaptureNotifications)
+        {
+            return;
+        }
+
+        CaptureNotificationsSwitch.IsEnabled = false;
+        try
+        {
+            if (e.Value)
+            {
+                SetCaptureNotificationStatus(
+                    "Checking notification permission...",
+                    isError: false);
+                var permission = await LocalNotificationTestService
+                    .EnsureAuthorizationAsync();
+                if (!permission.IsSuccess)
+                {
+                    SetCaptureNotificationsSwitch(false);
+                    SetCaptureNotificationStatus(
+                        permission.Message,
+                        isError: true);
+                    return;
+                }
+            }
+
+            if (!CaptureNotificationSettings.TryWrite(e.Value, out var error))
+            {
+                SetCaptureNotificationsSwitch(!e.Value);
+                SetCaptureNotificationStatus(
+                    $"The capture alert setting could not be saved. {error}",
+                    isError: true);
+                return;
+            }
+
+            SetCaptureNotificationStatus(
+                e.Value
+                    ? "Alerts are on. Exclude Financial Tracker from the Shortcut trigger."
+                    : "Notify after a pending transaction is captured.",
+                isError: false);
+        }
+        catch (Exception exception)
+        {
+            SetCaptureNotificationsSwitch(!e.Value);
+            SetCaptureNotificationStatus(
+                $"The capture alert setting could not be updated. {exception.Message}",
+                isError: true);
+        }
+        finally
+        {
+            CaptureNotificationsSwitch.IsEnabled = true;
+        }
+    }
+
+    private void SetCaptureNotificationsSwitch(bool enabled)
+    {
+        isUpdatingCaptureNotifications = true;
+        CaptureNotificationsSwitch.IsToggled = enabled;
+        isUpdatingCaptureNotifications = false;
+    }
+
+    private void SetCaptureNotificationStatus(string message, bool isError)
+    {
+        CaptureNotificationStatusLabel.Text = message;
+        ThemeResourceBindings.SetColor(
+            CaptureNotificationStatusLabel,
+            Label.TextColorProperty,
+            isError ? "NegativeLight" : "SecondaryTextLight",
+            isError ? "NegativeDark" : "SecondaryTextDark");
     }
 
     private async void OnCreateBackupClicked(object? sender, EventArgs e)

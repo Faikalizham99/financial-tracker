@@ -2,9 +2,14 @@ import AppIntents
 import CryptoKit
 import Foundation
 import SQLite3
+import UserNotifications
 
 private enum PendingInboxConfiguration {
     static let databaseFileName = "pending-transactions.db3"
+    static let confirmationPreferenceFileName =
+        "financial_tracker_notify_after_capture.txt"
+    static let confirmationCategoryIdentifier =
+        "financial-tracker-pending-capture"
 }
 
 private enum PendingInboxError: LocalizedError {
@@ -29,6 +34,102 @@ private struct PendingSuggestion: Sendable {
     let category: String
     let paymentMethod: String
     let status: String
+}
+
+private enum CaptureConfirmationNotifications {
+    static func schedule(
+        captureKey: String,
+        source: String,
+        suggestion: PendingSuggestion
+    ) async {
+        guard isEnabled() else { return }
+
+        let center = UNUserNotificationCenter.current()
+        let settings = await center.notificationSettings()
+        switch settings.authorizationStatus {
+        case .authorized, .provisional, .ephemeral:
+            break
+        default:
+            return
+        }
+
+        let content = UNMutableNotificationContent()
+        content.title = "Pending transaction captured"
+        content.body = notificationBody(
+            source: source,
+            suggestion: suggestion
+        )
+        content.sound = .default
+        content.threadIdentifier = "financial-tracker-pending-transactions"
+        content.categoryIdentifier =
+            PendingInboxConfiguration.confirmationCategoryIdentifier
+        content.userInfo = ["destination": "pending-transactions"]
+
+        let request = UNNotificationRequest(
+            identifier: "financial-tracker-pending-\(captureKey)",
+            content: content,
+            trigger: UNTimeIntervalNotificationTrigger(
+                timeInterval: 1,
+                repeats: false
+            )
+        )
+        try? await center.add(request)
+    }
+
+    private static func isEnabled() -> Bool {
+        guard let group = try? SignedAppGroups.group(),
+              let container = FileManager.default.containerURL(
+                forSecurityApplicationGroupIdentifier: group
+              ) else {
+            return false
+        }
+        let preferenceURL = container
+            .appendingPathComponent("Library/FinancialTracker", isDirectory: true)
+            .appendingPathComponent(
+                PendingInboxConfiguration.confirmationPreferenceFileName,
+                isDirectory: false
+            )
+        guard let value = try? String(
+            contentsOf: preferenceURL,
+            encoding: .utf8
+        ) else {
+            return false
+        }
+        return value
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased() == "true"
+    }
+
+    private static func notificationBody(
+        source: String,
+        suggestion: PendingSuggestion
+    ) -> String {
+        let trimmedDescription = suggestion.description
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedSource = source
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let detail = !trimmedDescription.isEmpty
+            ? trimmedDescription
+            : (!trimmedSource.isEmpty ? trimmedSource : "Transaction")
+        if let amountMinor = suggestion.amountMinor {
+            return "\(formatAmount(amountMinor, suggestion.currencyCode)) - \(detail) is waiting for review."
+        }
+        return "\(detail) is waiting for review."
+    }
+
+    private static func formatAmount(
+        _ amountMinor: Int64,
+        _ currencyCode: String
+    ) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.currencyCode = currencyCode
+        formatter.minimumFractionDigits = 2
+        formatter.maximumFractionDigits = 2
+        return formatter.string(
+            from: NSDecimalNumber(value: Double(amountMinor) / 100)
+        ) ?? "\(currencyCode) \(String(format: "%.2f", Double(amountMinor) / 100))"
+    }
 }
 
 private struct NotificationRulesDocument: Decodable {
@@ -548,6 +649,11 @@ struct CapturePendingTransactionIntent: AppIntent {
         }.value
 
         if inserted {
+            await CaptureConfirmationNotifications.schedule(
+                captureKey: key,
+                source: source,
+                suggestion: suggestion
+            )
             return .result(
                 value: key,
                 dialog: "Added to Financial Tracker’s pending transactions."
