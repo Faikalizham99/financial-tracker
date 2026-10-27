@@ -16,6 +16,8 @@ private enum SpendingCalendarSettings {
         "financial_tracker_widget_include_investment.txt"
     static let selectedMonthFileName =
         "financial_tracker_calendar_selected_month.txt"
+    static let adaptiveBudgetPreferenceFileName =
+        "financial_tracker_calendar_adaptive_budget.txt"
     static let amountsHiddenKey = "financial_tracker_widget_amounts_hidden"
     static let widgetKind = "FinancialTrackerSpendingCalendarWidget"
     static let mainWidgetKind = "FinancialTrackerWidget"
@@ -28,6 +30,7 @@ private struct CalendarSummary: Codable {
     let hasBudget: Bool
     let budgetLimitText: String
     let budgetLimitMinor: Int64?
+    let budgetSpentMinor: Int64?
 }
 
 private struct CalendarDaySnapshot: Codable {
@@ -35,11 +38,27 @@ private struct CalendarDaySnapshot: Codable {
     let transactionCount: Int
     let withInvestmentExpenseMinor: Int64
     let withoutInvestmentExpenseMinor: Int64
+    let withInvestmentBudgetIncomeMinor: Int64?
+    let withoutInvestmentBudgetIncomeMinor: Int64?
 
     func expenseMinor(includeInvestment: Bool) -> Int64 {
         includeInvestment
             ? withInvestmentExpenseMinor
             : withoutInvestmentExpenseMinor
+    }
+
+    func budgetIncomeMinor(includeInvestment: Bool) -> Int64 {
+        includeInvestment
+            ? (withInvestmentBudgetIncomeMinor ?? 0)
+            : (withoutInvestmentBudgetIncomeMinor ?? 0)
+    }
+
+    func netSpendingMinor(includeInvestment: Bool) -> Int64 {
+        max(
+            expenseMinor(includeInvestment: includeInvestment) -
+                budgetIncomeMinor(includeInvestment: includeInvestment),
+            0
+        )
     }
 }
 
@@ -97,14 +116,17 @@ private struct CalendarFinancialSnapshot: Codable {
                     : 0,
                 withoutInvestmentExpenseMinor: day.isMultiple(of: 4)
                     ? Int64(day * 735)
-                    : 0
+                    : 0,
+                withInvestmentBudgetIncomeMinor: 0,
+                withoutInvestmentBudgetIncomeMinor: 0
             )
         }
         let summary = CalendarSummary(
             expenseText: "RM 1,240.00",
             hasBudget: true,
             budgetLimitText: "RM 2,750.00",
-            budgetLimitMinor: 275_000
+            budgetLimitMinor: 275_000,
+            budgetSpentMinor: 124_000
         )
         let monthSnapshot = CalendarMonthSnapshot(
             monthKey: monthKey,
@@ -115,7 +137,7 @@ private struct CalendarFinancialSnapshot: Codable {
             days: days
         )
         return CalendarFinancialSnapshot(
-            version: 5,
+            version: 6,
             includeInvestment: true,
             currentMonthKey: monthKey,
             months: [monthSnapshot],
@@ -174,7 +196,7 @@ private enum CalendarWidgetStorage {
         ) else {
             return failure(.invalidSnapshot)
         }
-        guard (4...5).contains(snapshot.version) else {
+        guard (4...6).contains(snapshot.version) else {
             return failure(.unsupportedVersion)
         }
         return CalendarLoadResult(snapshot: snapshot, state: .loaded)
@@ -238,6 +260,46 @@ private enum CalendarWidgetStorage {
         )
         do {
             try (includeInvestment ? "true" : "false").write(
+                to: preferenceUrl,
+                atomically: true,
+                encoding: .utf8
+            )
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    static func loadAdaptiveBudget() -> Bool {
+        guard let containerUrl = availableContainer()?.url else {
+            return false
+        }
+        let preferenceUrl = containerUrl.appendingPathComponent(
+            SpendingCalendarSettings.adaptiveBudgetPreferenceFileName,
+            isDirectory: false
+        )
+        guard let storedValue = try? String(
+            contentsOf: preferenceUrl,
+            encoding: .utf8
+        ) else {
+            return false
+        }
+        return storedValue
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased() == "true"
+    }
+
+    @discardableResult
+    static func writeAdaptiveBudget(_ adaptiveBudget: Bool) -> Bool {
+        guard let containerUrl = availableContainer()?.url else {
+            return false
+        }
+        let preferenceUrl = containerUrl.appendingPathComponent(
+            SpendingCalendarSettings.adaptiveBudgetPreferenceFileName,
+            isDirectory: false
+        )
+        do {
+            try (adaptiveBudget ? "true" : "false").write(
                 to: preferenceUrl,
                 atomically: true,
                 encoding: .utf8
@@ -376,6 +438,34 @@ struct ToggleSpendingCalendarInvestmentIntent: AppIntent {
 }
 
 @available(iOS 17.0, *)
+struct ToggleSpendingCalendarBudgetModeIntent: AppIntent {
+    static var title: LocalizedStringResource = "Toggle Adaptive Daily Budget"
+    static var description = IntentDescription(
+        "Switch between a fixed daily allowance and the remaining net budget spread across the remaining days."
+    )
+    static var openAppWhenRun = false
+
+    @Parameter(title: "Currently Uses Adaptive Budget")
+    var currentValue: Bool
+
+    init() {
+        currentValue = false
+    }
+
+    init(currentValue: Bool) {
+        self.currentValue = currentValue
+    }
+
+    func perform() async throws -> some IntentResult {
+        CalendarWidgetStorage.writeAdaptiveBudget(!currentValue)
+        WidgetCenter.shared.reloadTimelines(
+            ofKind: SpendingCalendarSettings.widgetKind
+        )
+        return .result()
+    }
+}
+
+@available(iOS 17.0, *)
 struct SelectSpendingCalendarMonthIntent: AppIntent {
     static var title: LocalizedStringResource = "Select Calendar Month"
     static var description = IntentDescription(
@@ -410,6 +500,7 @@ private struct SpendingCalendarEntry: TimelineEntry {
     let selectedMonthKey: Int
     let amountsHidden: Bool
     let includeInvestment: Bool
+    let adaptiveBudget: Bool
 
     var selectedMonth: CalendarMonthSnapshot? {
         snapshot.month(for: selectedMonthKey) ??
@@ -484,7 +575,8 @@ private struct SpendingCalendarProvider: TimelineProvider {
             amountsHidden: CalendarWidgetStorage.loadAmountsHidden(),
             includeInvestment: CalendarWidgetStorage.loadIncludeInvestment(
                 fallback: result.snapshot.includeInvestment ?? true
-            )
+            ),
+            adaptiveBudget: CalendarWidgetStorage.loadAdaptiveBudget()
         )
     }
 }
@@ -547,7 +639,7 @@ private struct SpendingCalendarWidgetView: View {
         }
     }
 
-    private var monthSpentMinor: Int64 {
+    private var grossSpentMinor: Int64 {
         month?.days?.reduce(0) { partialResult, day in
             partialResult + day.expenseMinor(
                 includeInvestment: entry.includeInvestment
@@ -555,21 +647,102 @@ private struct SpendingCalendarWidgetView: View {
         } ?? 0
     }
 
-    private var budgetUsage: Double {
-        guard let budgetMinor = summary?.budgetLimitMinor,
-              budgetMinor > 0 else {
-            return 0
+    private var netSpentMinor: Int64 {
+        if let storedValue = summary?.budgetSpentMinor {
+            return storedValue
         }
-        return Double(monthSpentMinor) / Double(budgetMinor)
+        return netSpendingMinor(throughDay: nil)
     }
 
-    private var dailyAllowanceMinor: Double {
+    private var displayedSpentMinor: Int64 {
+        entry.adaptiveBudget ? netSpentMinor : grossSpentMinor
+    }
+
+    private var currentMonthKey: Int {
+        let components = Calendar.current.dateComponents(
+            [.year, .month],
+            from: entry.date
+        )
+        return ((components.year ?? 0) * 100) + (components.month ?? 0)
+    }
+
+    private var isCurrentMonth: Bool {
+        month?.monthKey == currentMonthKey
+    }
+
+    private var currentDay: Int {
+        Calendar.current.component(.day, from: entry.date)
+    }
+
+    private var fixedDailyAllowanceMinor: Double {
         guard summary?.hasBudget == true,
               let budgetMinor = summary?.budgetLimitMinor,
               budgetMinor > 0 else {
             return 0
         }
         return Double(budgetMinor) / Double(dayCount)
+    }
+
+    private var adaptiveDailyAllowanceMinor: Double {
+        guard entry.adaptiveBudget,
+              isCurrentMonth,
+              summary?.hasBudget == true,
+              let budgetMinor = summary?.budgetLimitMinor,
+              budgetMinor > 0 else {
+            return fixedDailyAllowanceMinor
+        }
+        let spentToDate = netSpendingMinor(throughDay: currentDay)
+        let remainingBudget = max(budgetMinor - spentToDate, 0)
+        let remainingDays = (currentDay...dayCount)
+            .filter(isPlannedDay)
+            .count
+        guard remainingDays > 0 else { return 0 }
+        return Double(remainingBudget) / Double(remainingDays)
+    }
+
+    private func netSpendingMinor(throughDay: Int?) -> Int64 {
+        let includedDays = month?.days?.filter { day in
+            throughDay.map { day.day <= $0 } ?? true
+        } ?? []
+        let expense = includedDays.reduce(Int64(0)) { partialResult, day in
+            partialResult + day.expenseMinor(
+                includeInvestment: entry.includeInvestment
+            )
+        }
+        let budgetIncome = includedDays.reduce(Int64(0)) {
+            partialResult,
+            day in
+            partialResult + day.budgetIncomeMinor(
+                includeInvestment: entry.includeInvestment
+            )
+        }
+        return max(expense - budgetIncome, 0)
+    }
+
+    private var budgetUsage: Double {
+        guard let budgetMinor = summary?.budgetLimitMinor,
+              budgetMinor > 0 else {
+            return 0
+        }
+        return Double(displayedSpentMinor) / Double(budgetMinor)
+    }
+
+    private var dailyAllowanceMinor: Double {
+        entry.adaptiveBudget
+            ? adaptiveDailyAllowanceMinor
+            : fixedDailyAllowanceMinor
+    }
+
+    private func allowanceMinor(for day: Int) -> Double {
+        entry.adaptiveBudget && isCurrentMonth && isPlannedDay(day)
+            ? adaptiveDailyAllowanceMinor
+            : fixedDailyAllowanceMinor
+    }
+
+    private func isPlannedDay(_ day: Int) -> Bool {
+        guard isCurrentMonth, day >= currentDay else { return false }
+        let snapshot = month?.days?.first(where: { $0.day == day })
+        return (snapshot?.transactionCount ?? 0) == 0
     }
 
     var body: some View {
@@ -596,11 +769,11 @@ private struct SpendingCalendarWidgetView: View {
     }
 
     private var header: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 5) {
             Image(systemName: "calendar.badge.clock")
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(CalendarAppearance.accent)
-                .frame(width: 30, height: 30)
+                .frame(width: 28, height: 28)
                 .background(
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .fill(CalendarAppearance.accent.opacity(0.16))
@@ -611,15 +784,20 @@ private struct SpendingCalendarWidgetView: View {
                     .font(.system(.headline, design: .rounded).weight(.semibold))
                     .foregroundStyle(CalendarAppearance.ink)
                     .lineLimit(1)
-                Text(entry.includeInvestment
-                    ? "With investment"
-                    : "Without investment")
+                Text(
+                    (entry.includeInvestment
+                        ? "With investment"
+                        : "Without investment") +
+                    (entry.adaptiveBudget ? " / Adaptive" : " / Fixed")
+                )
                     .font(.caption2)
                     .foregroundStyle(CalendarAppearance.secondaryInk)
+                    .lineLimit(1)
             }
 
-            Spacer(minLength: 4)
+            Spacer(minLength: 2)
             investmentButton
+            budgetModeButton
             privacyButton
             refreshButton
         }
@@ -638,7 +816,7 @@ private struct SpendingCalendarWidgetView: View {
                             ? CalendarAppearance.accentForeground
                             : CalendarAppearance.secondaryInk
                     )
-                    .frame(width: 34, height: 28)
+                    .frame(width: 30, height: 28)
                     .background(
                         Capsule().fill(
                             entry.includeInvestment
@@ -655,13 +833,42 @@ private struct SpendingCalendarWidgetView: View {
     }
 
     @ViewBuilder
+    private var budgetModeButton: some View {
+        if #available(iOS 17.0, *) {
+            Button(intent: ToggleSpendingCalendarBudgetModeIntent(
+                currentValue: entry.adaptiveBudget
+            )) {
+                Image(systemName: "arrow.triangle.2.circlepath")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(
+                        entry.adaptiveBudget
+                            ? CalendarAppearance.accentForeground
+                            : CalendarAppearance.secondaryInk
+                    )
+                    .frame(width: 28, height: 28)
+                    .background(
+                        Capsule().fill(
+                            entry.adaptiveBudget
+                                ? CalendarAppearance.accent
+                                : CalendarAppearance.secondaryInk.opacity(0.10)
+                        )
+                    )
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(entry.adaptiveBudget
+                ? "Use fixed daily budget"
+                : "Use adaptive remaining budget")
+        }
+    }
+
+    @ViewBuilder
     private var privacyButton: some View {
         if #available(iOS 17.0, *) {
             Button(intent: ToggleSpendingCalendarPrivacyIntent()) {
                 Image(systemName: entry.amountsHidden ? "eye.slash" : "eye")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(CalendarAppearance.secondaryInk)
-                    .frame(width: 28, height: 28)
+                    .frame(width: 26, height: 28)
                     .background(
                         Circle().fill(
                             CalendarAppearance.secondaryInk.opacity(0.10)
@@ -679,7 +886,7 @@ private struct SpendingCalendarWidgetView: View {
                 Image(systemName: "arrow.clockwise")
                     .font(.system(size: 12, weight: .semibold))
                     .foregroundStyle(CalendarAppearance.accent)
-                    .frame(width: 28, height: 28)
+                    .frame(width: 26, height: 28)
                     .background(
                         Circle().fill(CalendarAppearance.accent.opacity(0.16))
                     )
@@ -746,8 +953,8 @@ private struct SpendingCalendarWidgetView: View {
     private var summaryRow: some View {
         HStack(spacing: 10) {
             summaryMetric(
-                title: "SPENT",
-                value: hiddenValue(summary?.expenseText ?? "RM 0.00"),
+                title: entry.adaptiveBudget ? "NET SPENT" : "SPENT",
+                value: hiddenValue(formatMinor(displayedSpentMinor)),
                 color: CalendarAppearance.negative
             )
             Divider().overlay(CalendarAppearance.divider)
@@ -821,10 +1028,26 @@ private struct SpendingCalendarWidgetView: View {
 
     private func dayCell(day: Int) -> some View {
         let snapshot = month?.days?.first(where: { $0.day == day })
-        let amountMinor = snapshot?.expenseMinor(
-            includeInvestment: entry.includeInvestment
-        ) ?? 0
-        let level = spendingLevel(amountMinor: amountMinor)
+        let amountMinor = entry.adaptiveBudget
+            ? (snapshot?.netSpendingMinor(
+                includeInvestment: entry.includeInvestment
+            ) ?? 0)
+            : (snapshot?.expenseMinor(
+                includeInvestment: entry.includeInvestment
+            ) ?? 0)
+        let allowance = allowanceMinor(for: day)
+        let showsPlan = entry.adaptiveBudget &&
+            isPlannedDay(day) &&
+            amountMinor == 0 &&
+            summary?.hasBudget == true
+        let plannedMinor = Int64(max(allowance, 0).rounded())
+        let level = spendingLevel(
+            amountMinor: amountMinor,
+            allowanceMinor: allowance
+        )
+        let valueColor = showsPlan
+            ? CalendarAppearance.accent
+            : levelColor(level)
         let isToday = Calendar.current.isDateInToday(dayDate(day: day))
 
         return VStack(spacing: 1) {
@@ -832,18 +1055,22 @@ private struct SpendingCalendarWidgetView: View {
                 .font(.system(size: 9, weight: .semibold, design: .rounded))
                 .foregroundStyle(CalendarAppearance.ink)
             Text(entry.amountsHidden
-                ? (amountMinor > 0 ? "••" : "")
-                : compactAmount(amountMinor))
+                ? (amountMinor > 0 || showsPlan ? "••" : "")
+                : showsPlan
+                    ? "~\(compactAmount(plannedMinor))"
+                    : compactAmount(amountMinor))
                 .font(.system(size: 7, weight: .semibold, design: .rounded))
                 .monospacedDigit()
-                .foregroundStyle(levelColor(level))
+                .foregroundStyle(valueColor)
                 .lineLimit(1)
                 .minimumScaleFactor(0.55)
         }
         .frame(maxWidth: .infinity, minHeight: dayCellHeight)
         .background(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(levelColor(level).opacity(level == .none ? 0.06 : 0.14))
+                .fill(valueColor.opacity(
+                    showsPlan || level == .none ? 0.06 : 0.14
+                ))
         )
         .overlay(
             RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -891,6 +1118,9 @@ private struct SpendingCalendarWidgetView: View {
                 legendDot(color: CalendarAppearance.positive, text: "Below")
                 legendDot(color: warningColor, text: "Near")
                 legendDot(color: CalendarAppearance.negative, text: "Over")
+                if entry.adaptiveBudget && isCurrentMonth {
+                    legendDot(color: CalendarAppearance.accent, text: "Plan")
+                }
                 Spacer(minLength: 2)
                 Text(budgetUsageText)
                     .font(.system(size: 8, weight: .semibold))
@@ -932,14 +1162,17 @@ private struct SpendingCalendarWidgetView: View {
     }
 
     private var dailyAllowanceText: String {
-        guard dailyAllowanceMinor > 0 else { return "No budget" }
-        return formatMinor(Int64(dailyAllowanceMinor.rounded()))
+        guard summary?.hasBudget == true else { return "No budget" }
+        return formatMinor(Int64(max(dailyAllowanceMinor, 0).rounded()))
     }
 
-    private func spendingLevel(amountMinor: Int64) -> CalendarSpendingLevel {
+    private func spendingLevel(
+        amountMinor: Int64,
+        allowanceMinor: Double
+    ) -> CalendarSpendingLevel {
         guard amountMinor > 0 else { return .none }
-        guard dailyAllowanceMinor > 0 else { return .none }
-        let ratio = Double(amountMinor) / dailyAllowanceMinor
+        guard allowanceMinor > 0 else { return .over }
+        let ratio = Double(amountMinor) / allowanceMinor
         if ratio > 1 { return .over }
         if ratio >= 0.75 { return .near }
         return .below
@@ -1006,7 +1239,7 @@ struct FinancialTrackerSpendingCalendarWidget: Widget {
             SpendingCalendarWidgetView(entry: entry)
         }
         .configurationDisplayName("Spending Calendar")
-        .description("See daily spending against your monthly budget.")
+        .description("See fixed or adaptive daily spending against your monthly budget.")
         .supportedFamilies([.systemLarge])
     }
 }

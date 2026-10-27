@@ -12,4 +12,5 @@ public sealed record WidgetSummary(
     [property: JsonPropertyName("budgetUsageText")] string BudgetUsageText,
     [property: JsonPropertyName("budgetRemainingText")] string BudgetRemainingText,
     [property: JsonPropertyName("budgetProgress")] double BudgetProgress,
-    [property: JsonPropertyName("budgetLimitMinor")] long BudgetLimitMinor = 0);
+    [property: JsonPropertyName("budgetLimitMinor")] long BudgetLimitMinor = 0,
+    [property: JsonPropertyName("budgetSpentMinor")] long BudgetSpentMinor = 0);

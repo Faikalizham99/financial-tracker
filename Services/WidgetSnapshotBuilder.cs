@@ -6,7 +6,7 @@ namespace FinancialTracker.Services;
 
 public static class WidgetSnapshotBuilder
 {
-    private const int SchemaVersion = 5;
+    private const int SchemaVersion = 6;
     public const int HistoryMonthCount = 12;
 
     public static WidgetSnapshot Build(
@@ -83,19 +83,36 @@ public static class WidgetSnapshotBuilder
             recordsByDay.TryGetValue(day, out var dayRecords);
             long withInvestmentExpenseMinor = 0;
             long withoutInvestmentExpenseMinor = 0;
+            long withInvestmentBudgetIncomeMinor = 0;
+            long withoutInvestmentBudgetIncomeMinor = 0;
             foreach (var record in dayRecords ?? [])
             {
-                if (!TransactionCatalog.IsExpenseType(record.Type))
+                var isInvestment = record.Category.Equals(
+                    TransactionCatalog.InvestmentCategoryKey,
+                    StringComparison.OrdinalIgnoreCase);
+                if (TransactionCatalog.IsIncomeType(record.Type))
                 {
+                    if (TransactionCatalog.IsIncomeExcludedFromBudgetUsage(
+                            record.Category))
+                    {
+                        continue;
+                    }
+
+                    withInvestmentBudgetIncomeMinor += record.AmountMinor;
+                    if (!isInvestment)
+                    {
+                        withoutInvestmentBudgetIncomeMinor += record.AmountMinor;
+                    }
                     continue;
                 }
 
-                withInvestmentExpenseMinor += record.AmountMinor;
-                if (!record.Category.Equals(
-                        TransactionCatalog.InvestmentCategoryKey,
-                        StringComparison.OrdinalIgnoreCase))
+                if (TransactionCatalog.IsExpenseType(record.Type))
                 {
-                    withoutInvestmentExpenseMinor += record.AmountMinor;
+                    withInvestmentExpenseMinor += record.AmountMinor;
+                    if (!isInvestment)
+                    {
+                        withoutInvestmentExpenseMinor += record.AmountMinor;
+                    }
                 }
             }
 
@@ -103,7 +120,9 @@ public static class WidgetSnapshotBuilder
                 day,
                 dayRecords?.Count ?? 0,
                 withInvestmentExpenseMinor,
-                withoutInvestmentExpenseMinor));
+                withoutInvestmentExpenseMinor,
+                withInvestmentBudgetIncomeMinor,
+                withoutInvestmentBudgetIncomeMinor));
         }
 
         return new WidgetMonthSnapshot(
@@ -184,6 +203,7 @@ public static class WidgetSnapshotBuilder
                 ? $"{MoneyFormatter.FormatMinor(budgetRemainingMinor, currencySymbol)} left"
                 : $"{MoneyFormatter.FormatMinor(-budgetRemainingMinor, currencySymbol)} over budget",
             Math.Clamp(budgetUsageRatio, 0, 1),
-            budgetMinor);
+            budgetMinor,
+            netSpendingMinor);
     }
 }
