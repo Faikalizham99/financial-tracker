@@ -29,4 +29,6 @@ public sealed class TransactionRecord
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
     public string? ExternalImportKey { get; set; }
+
+    public bool ExcludeFromBudget { get; set; }
 }

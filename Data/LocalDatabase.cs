@@ -5,7 +5,7 @@ namespace FinancialTracker.Data;
 
 public sealed class LocalDatabase
 {
-    private const int CurrentSchemaVersion = 9;
+    private const int CurrentSchemaVersion = 10;
     private const string KnownTransactionDataPreferenceKey =
         "database_has_known_transaction_data";
     private static readonly TimeSpan[] StartupEmptyReadRetryDelays =
@@ -486,6 +486,22 @@ public sealed class LocalDatabase
                 .ConfigureAwait(false);
         }
 
+        if (version < 10)
+        {
+            var transactionColumns = await Connection
+                .GetTableInfoAsync("Transactions")
+                .ConfigureAwait(false);
+            if (!transactionColumns.Any(column => column.Name.Equals(
+                    nameof(TransactionRecord.ExcludeFromBudget),
+                    StringComparison.OrdinalIgnoreCase)))
+            {
+                await Connection.ExecuteAsync(
+                        "ALTER TABLE Transactions " +
+                        "ADD COLUMN ExcludeFromBudget INTEGER NOT NULL DEFAULT 0")
+                    .ConfigureAwait(false);
+            }
+        }
+
         if (version < CurrentSchemaVersion)
         {
             await Connection.ExecuteAsync($"PRAGMA user_version = {CurrentSchemaVersion}")
@@ -813,6 +829,16 @@ public sealed class LocalDatabase
             {
                 throw new InvalidDataException(
                     "The selected backup is missing notification import metadata.");
+            }
+
+            if (version >= 10 &&
+                !candidate.GetTableInfo("Transactions").Any(column =>
+                    column.Name.Equals(
+                        nameof(TransactionRecord.ExcludeFromBudget),
+                        StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new InvalidDataException(
+                    "The selected backup is missing transaction budget metadata.");
             }
         }
         catch (SQLiteException exception)

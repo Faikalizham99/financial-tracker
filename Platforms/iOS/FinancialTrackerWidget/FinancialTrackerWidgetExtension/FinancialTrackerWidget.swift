@@ -238,7 +238,7 @@ private enum SharedWidgetStorage {
             return failure(.invalidSnapshot)
         }
 
-        guard (1...6).contains(snapshot.version) else {
+        guard (1...7).contains(snapshot.version) else {
             return failure(.unsupportedVersion)
         }
 

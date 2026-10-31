@@ -137,7 +137,7 @@
                         </Grid>
                     </Border>
 
-                    <Grid Grid.Row="2" RowDefinitions="Auto,Auto" ColumnDefinitions="*,*" RowSpacing="8" ColumnSpacing="8">
+                    <Grid Grid.Row="2" RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="*,*" RowSpacing="8" ColumnSpacing="8">
                         <Border x:Name="DateChip" Grid.ColumnSpan="2" Style="{StaticResource TransactionChip}">
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Tapped="OnDateChipTapped" />
@@ -216,6 +216,43 @@
                                     <Image x:Name="PaymentIcon" Source="payment_cash.png" WidthRequest="28" HeightRequest="28" Aspect="AspectFill" />
                                 </Border>
                                 <Label x:Name="PaymentLabel" Grid.Column="1" Text="Cash" FontFamily="OpenSansSemibold" FontSize="12" LineBreakMode="TailTruncation" VerticalOptions="Center" />
+                            </Grid>
+                        </Border>
+
+                        <Border
+                            x:Name="NetSpendingOption"
+                            Grid.Row="2"
+                            Grid.ColumnSpan="2"
+                            HeightRequest="54"
+                            Padding="12,0"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource SurfaceMutedLight}, Dark={StaticResource ControlSurfaceDark}}"
+                            Stroke="{AppThemeBinding Light={StaticResource DividerLight}, Dark={StaticResource ControlDividerDark}}"
+                            StrokeThickness="1"
+                            StrokeShape="RoundRectangle 18">
+                            <Grid ColumnDefinitions="28,*,Auto" ColumnSpacing="9">
+                                <Path
+                                    WidthRequest="24"
+                                    HeightRequest="24"
+                                    Data="M 4,8 L 20,8 M 6,5 L 6,11 M 18,5 L 18,11 M 5,13 L 19,13 L 19,20 L 5,20 Z M 8,16 L 11,16"
+                                    Stroke="{DynamicResource Accent}"
+                                    StrokeThickness="1.8"
+                                    StrokeLineCap="Round"
+                                    StrokeLineJoin="Round"
+                                    Fill="Transparent"
+                                    Aspect="Uniform"
+                                    VerticalOptions="Center" />
+                                <VerticalStackLayout Grid.Column="1" Spacing="0" VerticalOptions="Center">
+                                    <Label Text="Include in net spending" FontFamily="OpenSansSemibold" FontSize="12" />
+                                    <Label Text="Turn off to keep it outside your budget" Style="{StaticResource BodyMuted}" FontSize="9" LineBreakMode="TailTruncation" MaxLines="1" />
+                                </VerticalStackLayout>
+                                <Switch
+                                    x:Name="IncludeInNetSpendingSwitch"
+                                    Grid.Column="2"
+                                    IsToggled="True"
+                                    OnColor="{DynamicResource Accent}"
+                                    Toggled="OnIncludeInNetSpendingToggled"
+                                    VerticalOptions="Center"
+                                    SemanticProperties.Description="Include this transaction in net spending and budget calculations" />
                             </Grid>
                         </Border>
                     </Grid>

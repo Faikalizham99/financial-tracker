@@ -279,7 +279,7 @@
                         <VerticalStackLayout Spacing="4">
                             <Label Text="HOW IT IS CALCULATED" Style="{StaticResource SectionLabel}" FontSize="9" />
                             <Label
-                                Text="Net spending = expenses − Refund, Cashback and Other income. Salary and Bonus are excluded. Investment follows the switch above. A surplus does not use your budget."
+                                Text="Net spending = included expenses − Refund, Cashback and Other income. Salary, Bonus and transactions switched off from net spending are excluded. Investment follows the switch above. A surplus does not use your budget."
                                 Style="{StaticResource BodyMuted}"
                                 FontSize="12"
                                 LineBreakMode="WordWrap" />

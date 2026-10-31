@@ -207,6 +207,7 @@ public partial class MonthlySummaryCard : ContentView
         long incomeMinor = 0;
         long budgetIncomeMinor = 0;
         long expenseMinor = 0;
+        long budgetExpenseMinor = 0;
         var transactionCount = 0;
 
         foreach (var record in cachedRecords)
@@ -229,7 +230,8 @@ public partial class MonthlySummaryCard : ContentView
             if (TransactionCatalog.IsIncomeType(record.Type))
             {
                 incomeMinor += record.AmountMinor;
-                if (!TransactionCatalog.IsIncomeExcludedFromBudgetUsage(record.Category))
+                if (!record.ExcludeFromBudget &&
+                    !TransactionCatalog.IsIncomeExcludedFromBudgetUsage(record.Category))
                 {
                     budgetIncomeMinor += record.AmountMinor;
                 }
@@ -237,6 +239,10 @@ public partial class MonthlySummaryCard : ContentView
             else
             {
                 expenseMinor += record.AmountMinor;
+                if (!record.ExcludeFromBudget)
+                {
+                    budgetExpenseMinor += record.AmountMinor;
+                }
             }
         }
 
@@ -248,7 +254,10 @@ public partial class MonthlySummaryCard : ContentView
         expenseAmountText = MoneyFormatter.FormatMinor(
             expenseMinor,
             cachedCurrency.Symbol);
-        UpdateBudgetProgress(expenseMinor, budgetIncomeMinor, cachedCurrency.Symbol);
+        UpdateBudgetProgress(
+            budgetExpenseMinor,
+            budgetIncomeMinor,
+            cachedCurrency.Symbol);
 
         SummaryTransactionCountLabel.Text = transactionCount.ToString(
             CultureInfo.InvariantCulture);

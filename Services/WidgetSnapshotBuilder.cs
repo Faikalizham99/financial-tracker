@@ -6,7 +6,7 @@ namespace FinancialTracker.Services;
 
 public static class WidgetSnapshotBuilder
 {
-    private const int SchemaVersion = 6;
+    private const int SchemaVersion = 7;
     public const int HistoryMonthCount = 12;
 
     public static WidgetSnapshot Build(
@@ -83,6 +83,8 @@ public static class WidgetSnapshotBuilder
             recordsByDay.TryGetValue(day, out var dayRecords);
             long withInvestmentExpenseMinor = 0;
             long withoutInvestmentExpenseMinor = 0;
+            long withInvestmentBudgetExpenseMinor = 0;
+            long withoutInvestmentBudgetExpenseMinor = 0;
             long withInvestmentBudgetIncomeMinor = 0;
             long withoutInvestmentBudgetIncomeMinor = 0;
             foreach (var record in dayRecords ?? [])
@@ -92,7 +94,8 @@ public static class WidgetSnapshotBuilder
                     StringComparison.OrdinalIgnoreCase);
                 if (TransactionCatalog.IsIncomeType(record.Type))
                 {
-                    if (TransactionCatalog.IsIncomeExcludedFromBudgetUsage(
+                    if (record.ExcludeFromBudget ||
+                        TransactionCatalog.IsIncomeExcludedFromBudgetUsage(
                             record.Category))
                     {
                         continue;
@@ -113,6 +116,15 @@ public static class WidgetSnapshotBuilder
                     {
                         withoutInvestmentExpenseMinor += record.AmountMinor;
                     }
+
+                    if (!record.ExcludeFromBudget)
+                    {
+                        withInvestmentBudgetExpenseMinor += record.AmountMinor;
+                        if (!isInvestment)
+                        {
+                            withoutInvestmentBudgetExpenseMinor += record.AmountMinor;
+                        }
+                    }
                 }
             }
 
@@ -121,6 +133,8 @@ public static class WidgetSnapshotBuilder
                 dayRecords?.Count ?? 0,
                 withInvestmentExpenseMinor,
                 withoutInvestmentExpenseMinor,
+                withInvestmentBudgetExpenseMinor,
+                withoutInvestmentBudgetExpenseMinor,
                 withInvestmentBudgetIncomeMinor,
                 withoutInvestmentBudgetIncomeMinor));
         }
@@ -151,6 +165,7 @@ public static class WidgetSnapshotBuilder
         long incomeMinor = 0;
         long budgetIncomeMinor = 0;
         long expenseMinor = 0;
+        long budgetExpenseMinor = 0;
 
         foreach (var record in records)
         {
@@ -165,7 +180,8 @@ public static class WidgetSnapshotBuilder
             if (TransactionCatalog.IsIncomeType(record.Type))
             {
                 incomeMinor += record.AmountMinor;
-                if (!TransactionCatalog.IsIncomeExcludedFromBudgetUsage(record.Category))
+                if (!record.ExcludeFromBudget &&
+                    !TransactionCatalog.IsIncomeExcludedFromBudgetUsage(record.Category))
                 {
                     budgetIncomeMinor += record.AmountMinor;
                 }
@@ -173,6 +189,10 @@ public static class WidgetSnapshotBuilder
             else if (TransactionCatalog.IsExpenseType(record.Type))
             {
                 expenseMinor += record.AmountMinor;
+                if (!record.ExcludeFromBudget)
+                {
+                    budgetExpenseMinor += record.AmountMinor;
+                }
             }
         }
 
@@ -182,7 +202,9 @@ public static class WidgetSnapshotBuilder
                 ? budget.BudgetIncludingInvestmentMinor
                 : budget.BudgetExcludingInvestmentMinor;
         var hasBudget = budgetMinor > 0;
-        var netSpendingMinor = Math.Max(expenseMinor - budgetIncomeMinor, 0);
+        var netSpendingMinor = Math.Max(
+            budgetExpenseMinor - budgetIncomeMinor,
+            0);
         var budgetUsageRatio = hasBudget
             ? (double)netSpendingMinor / budgetMinor
             : 0;

@@ -21,6 +21,7 @@ public sealed class TransactionEntryViewModel
     public TransactionOption SelectedCategory { get; private set; } =
         TransactionCatalog.ExpenseCategories[^1];
     public DateTime TransactionDate { get; private set; } = DateTime.Today;
+    public bool IncludeInNetSpending { get; private set; } = true;
     public TransactionRecord? EditingTransaction { get; private set; }
     public TransactionRecord? DraftTransaction { get; private set; }
     public string InitialDescription =>
@@ -87,6 +88,7 @@ public sealed class TransactionEntryViewModel
         pendingOperator = null;
         startNewInput = true;
         TransactionDate = initialTransaction?.TransactionDate.Date ?? DateTime.Today;
+        IncludeInNetSpending = initialTransaction?.ExcludeFromBudget != true;
     }
 
     public void ToggleTransactionType()
@@ -110,6 +112,9 @@ public sealed class TransactionEntryViewModel
 
     public void SetTransactionDate(DateTime date) =>
         TransactionDate = date.Date;
+
+    public void SetIncludeInNetSpending(bool include) =>
+        IncludeInNetSpending = include;
 
     public void SetAmount(decimal amount)
     {
@@ -212,7 +217,8 @@ public sealed class TransactionEntryViewModel
         TransactionDate = TransactionDate,
         CreatedAtUtc = EditingTransaction?.CreatedAtUtc ?? DateTime.UtcNow,
         ExternalImportKey = EditingTransaction?.ExternalImportKey ??
-            DraftTransaction?.ExternalImportKey
+            DraftTransaction?.ExternalImportKey,
+        ExcludeFromBudget = !IncludeInNetSpending
     };
 
     private void AppendInput(string key)

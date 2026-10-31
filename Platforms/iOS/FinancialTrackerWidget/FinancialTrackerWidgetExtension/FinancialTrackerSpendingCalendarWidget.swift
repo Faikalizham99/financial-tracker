@@ -38,6 +38,8 @@ private struct CalendarDaySnapshot: Codable {
     let transactionCount: Int
     let withInvestmentExpenseMinor: Int64
     let withoutInvestmentExpenseMinor: Int64
+    let withInvestmentBudgetExpenseMinor: Int64?
+    let withoutInvestmentBudgetExpenseMinor: Int64?
     let withInvestmentBudgetIncomeMinor: Int64?
     let withoutInvestmentBudgetIncomeMinor: Int64?
 
@@ -53,9 +55,15 @@ private struct CalendarDaySnapshot: Codable {
             : (withoutInvestmentBudgetIncomeMinor ?? 0)
     }
 
+    func budgetExpenseMinor(includeInvestment: Bool) -> Int64 {
+        includeInvestment
+            ? (withInvestmentBudgetExpenseMinor ?? withInvestmentExpenseMinor)
+            : (withoutInvestmentBudgetExpenseMinor ?? withoutInvestmentExpenseMinor)
+    }
+
     func netSpendingMinor(includeInvestment: Bool) -> Int64 {
         max(
-            expenseMinor(includeInvestment: includeInvestment) -
+            budgetExpenseMinor(includeInvestment: includeInvestment) -
                 budgetIncomeMinor(includeInvestment: includeInvestment),
             0
         )
@@ -117,6 +125,12 @@ private struct CalendarFinancialSnapshot: Codable {
                 withoutInvestmentExpenseMinor: day.isMultiple(of: 4)
                     ? Int64(day * 735)
                     : 0,
+                withInvestmentBudgetExpenseMinor: day.isMultiple(of: 4)
+                    ? Int64(day * 735)
+                    : 0,
+                withoutInvestmentBudgetExpenseMinor: day.isMultiple(of: 4)
+                    ? Int64(day * 735)
+                    : 0,
                 withInvestmentBudgetIncomeMinor: 0,
                 withoutInvestmentBudgetIncomeMinor: 0
             )
@@ -137,7 +151,7 @@ private struct CalendarFinancialSnapshot: Codable {
             days: days
         )
         return CalendarFinancialSnapshot(
-            version: 6,
+            version: 7,
             includeInvestment: true,
             currentMonthKey: monthKey,
             months: [monthSnapshot],
@@ -196,7 +210,7 @@ private enum CalendarWidgetStorage {
         ) else {
             return failure(.invalidSnapshot)
         }
-        guard (4...6).contains(snapshot.version) else {
+        guard (4...7).contains(snapshot.version) else {
             return failure(.unsupportedVersion)
         }
         return CalendarLoadResult(snapshot: snapshot, state: .loaded)
@@ -705,7 +719,7 @@ private struct SpendingCalendarWidgetView: View {
             throughDay.map { day.day <= $0 } ?? true
         } ?? []
         let expense = includedDays.reduce(Int64(0)) { partialResult, day in
-            partialResult + day.expenseMinor(
+            partialResult + day.budgetExpenseMinor(
                 includeInvestment: entry.includeInvestment
             )
         }

@@ -29,6 +29,7 @@ public partial class AddTransactionView : ContentView
     private bool isTypeAnimating;
     private bool isSaving;
     private bool isApplyingDescriptionSuggestion;
+    private bool isUpdatingNetSpendingSwitch;
     private Func<TransactionRecord, Task>? afterTransactionSaved;
     private IReadOnlyList<SelectableTransactionOption> selectorOptions = [];
 
@@ -387,6 +388,16 @@ public partial class AddTransactionView : ContentView
         }
     }
 
+    private void OnIncludeInNetSpendingToggled(
+        object? sender,
+        ToggledEventArgs e)
+    {
+        if (!isUpdatingNetSpendingSwitch)
+        {
+            viewModel.SetIncludeInNetSpending(e.Value);
+        }
+    }
+
     private void OnDescriptionSuggestionTapped(object? sender, TappedEventArgs e)
     {
         if (e.Parameter is not TransactionHistorySuggestion suggestion)
@@ -531,6 +542,9 @@ public partial class AddTransactionView : ContentView
         DescriptionEntry.Text = viewModel.InitialDescription;
         isApplyingDescriptionSuggestion = false;
         CurrencySymbolLabel.Text = viewModel.Currency.Symbol;
+        isUpdatingNetSpendingSwitch = true;
+        IncludeInNetSpendingSwitch.IsToggled = viewModel.IncludeInNetSpending;
+        isUpdatingNetSpendingSwitch = false;
         UpdateDateLabel(viewModel.TransactionDate);
         UpdateTypeAndCategory();
         UpdatePaymentMethod();
