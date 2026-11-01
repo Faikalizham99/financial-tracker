@@ -1,10 +1,13 @@
 using FinancialTracker.Helpers;
 using FinancialTracker.Views.Skeletons;
+using System.Diagnostics;
 
 namespace FinancialTracker;
 
 public partial class MainPage
 {
+    private const int ImmediateLoadingFrameDelayMilliseconds = 16;
+    private const int ImmediateLoadingMinimumVisibleMilliseconds = 140;
     private readonly Dictionary<int, View> dataLoadingSkeletons = [];
 
     private void UpdateLoadingSkeletonForSelectedSection()
@@ -79,6 +82,38 @@ public partial class MainPage
         }
         finally
         {
+            DataLoadingOverlay.ZIndex = 20;
+            dataLoadingOperationLock.Release();
+        }
+    }
+
+    private async Task RunWithImmediateTransactionLoadingSkeletonAsync(
+        Func<Task> operation)
+    {
+        await dataLoadingOperationLock.WaitAsync();
+        var shownAt = Stopwatch.GetTimestamp();
+        try
+        {
+            DataLoadingOverlay.ZIndex = 140;
+            ShowTransactionLoadingSkeleton();
+
+            // Give every platform one render frame before database or view-model
+            // work starts. This prevents a large month from delaying the skeleton.
+            await Task.Delay(ImmediateLoadingFrameDelayMilliseconds);
+            await operation();
+        }
+        finally
+        {
+            var elapsed = Stopwatch.GetElapsedTime(shownAt);
+            var remaining = TimeSpan.FromMilliseconds(
+                    ImmediateLoadingMinimumVisibleMilliseconds) -
+                elapsed;
+            if (remaining > TimeSpan.Zero)
+            {
+                await Task.Delay(remaining);
+            }
+
+            await HideLoadingSkeletonAsync();
             DataLoadingOverlay.ZIndex = 20;
             dataLoadingOperationLock.Release();
         }

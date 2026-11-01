@@ -18,9 +18,11 @@ public partial class ExpensesView : ContentView
     public event EventHandler? InvestmentInclusionToggleRequested;
     public Func<DateTime, DateTime, DateTime, Task<DateTime?>>? DatePickerRequested { get; set; }
     public Func<Func<Task>, Task>? RunWithTransactionLoadingAsync { get; set; }
+    public Func<Func<Task>, Task>? RunWithImmediateTransactionLoadingAsync { get; set; }
     public Func<DateTime, DateTime, Task<IReadOnlyList<TransactionRecord>>>?
         TransactionsRequested
     { get; set; }
+    public Func<DateTime, CancellationToken, Task>? PrefetchMonthRequested { get; set; }
 
     private enum FilterSelectorKind
     {
@@ -68,6 +70,9 @@ public partial class ExpensesView : ContentView
     private bool isDateRangeFilterOpen;
     private bool isDateRangeFilterAnimating;
     private int periodLoadVersion;
+    private int queuedMonthOffset;
+    private Task? monthChangeTask;
+    private CancellationTokenSource? adjacentMonthPrefetchCancellation;
     private CancellationTokenSource? transactionFocusCancellation;
     private TransactionActivityGroup? stickyActivityGroup;
     private bool isTransactionEditingLocked = true;
@@ -95,6 +100,7 @@ public partial class ExpensesView : ContentView
             id => !validTransactionIds.Contains(id));
         this.selectedCurrency = selectedCurrency;
         RenderDisplayedMonth();
+        QueueAdjacentMonthPrefetch();
     }
 
     public void SetCurrency(CurrencyOption currency)
@@ -554,11 +560,104 @@ public partial class ExpensesView : ContentView
     private async Task ChangeDisplayedMonthAsync(int monthOffset, object? sender)
     {
         var feedback = InteractionAnimations.PulseAsync(sender);
-        displayedMonth = displayedMonth.AddMonths(monthOffset);
-        selectedStartDate = null;
-        selectedEndDate = null;
-        await ReloadDisplayedPeriodWithLoadingAsync();
+        queuedMonthOffset += monthOffset;
+
+        // Invalidate a month query that is still in flight. Its database result
+        // may still be cached, but it must never replace the latest requested UI.
+        periodLoadVersion++;
+        monthChangeTask ??= ProcessQueuedMonthChangesAsync();
+        await monthChangeTask;
         await feedback;
+    }
+
+    private async Task ProcessQueuedMonthChangesAsync()
+    {
+        async Task LoadLatestRequestedMonthAsync()
+        {
+            while (queuedMonthOffset != 0)
+            {
+                var monthOffset = queuedMonthOffset;
+                queuedMonthOffset = 0;
+                displayedMonth = displayedMonth.AddMonths(monthOffset);
+                selectedStartDate = null;
+                selectedEndDate = null;
+                await LoadDisplayedPeriodAsync();
+            }
+        }
+
+        try
+        {
+            do
+            {
+                var loadingHandler = RunWithImmediateTransactionLoadingAsync ??
+                    RunWithTransactionLoadingAsync;
+                if (loadingHandler is null)
+                {
+                    await LoadLatestRequestedMonthAsync();
+                }
+                else
+                {
+                    await loadingHandler(LoadLatestRequestedMonthAsync);
+                }
+            }
+            while (queuedMonthOffset != 0);
+        }
+        finally
+        {
+            monthChangeTask = null;
+        }
+
+        QueueAdjacentMonthPrefetch();
+    }
+
+    private void QueueAdjacentMonthPrefetch()
+    {
+        var provider = PrefetchMonthRequested;
+        if (provider is null)
+        {
+            return;
+        }
+
+        var previousCancellation = adjacentMonthPrefetchCancellation;
+        adjacentMonthPrefetchCancellation = null;
+        if (previousCancellation is not null)
+        {
+            previousCancellation.Cancel();
+        }
+
+        var cancellation = new CancellationTokenSource();
+        adjacentMonthPrefetchCancellation = cancellation;
+        _ = PrefetchAdjacentMonthsAsync(displayedMonth, provider, cancellation);
+    }
+
+    private async Task PrefetchAdjacentMonthsAsync(
+        DateTime month,
+        Func<DateTime, CancellationToken, Task> provider,
+        CancellationTokenSource cancellation)
+    {
+        try
+        {
+            await Task.WhenAll(
+                provider(month.AddMonths(-1), cancellation.Token),
+                provider(month.AddMonths(1), cancellation.Token));
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception exception)
+        {
+            System.Diagnostics.Debug.WriteLine(
+                $"Adjacent transaction month prefetch failed: {exception}");
+        }
+        finally
+        {
+            if (ReferenceEquals(adjacentMonthPrefetchCancellation, cancellation))
+            {
+                adjacentMonthPrefetchCancellation = null;
+            }
+
+            cancellation.Dispose();
+        }
     }
 
     private async void OnAllFilterTapped(object? sender, TappedEventArgs e)

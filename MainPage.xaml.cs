@@ -141,7 +141,10 @@ public partial class MainPage : ContentPage
         ExpensesView.DatePickerRequested = CalendarPicker.PickAsync;
         AssetsView.DatePickerRequested = CalendarPicker.PickAsync;
         ExpensesView.RunWithTransactionLoadingAsync = RunWithDataLoadingSkeletonAsync;
+        ExpensesView.RunWithImmediateTransactionLoadingAsync =
+            RunWithImmediateTransactionLoadingSkeletonAsync;
         ExpensesView.TransactionsRequested = transactionDataStore.GetPeriodAsync;
+        ExpensesView.PrefetchMonthRequested = transactionDataStore.PrefetchMonthAsync;
         ExpensesView.EditTransactionRequested += OnTransactionEditRequested;
         ExpensesView.QuickEditTransactionRequested += OnTransactionQuickEditRequested;
         ExpensesView.DeleteTransactionRequested += OnTransactionDeleteRequested;

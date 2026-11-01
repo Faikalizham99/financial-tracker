@@ -7,10 +7,16 @@ namespace FinancialTracker.Services;
 public sealed class TransactionDataStore(LocalDatabase database)
 {
     private const int SearchScanBatchSize = 160;
+    private const int MaximumCachedMonths = 5;
     private readonly SemaphoreSlim refreshLock = new(1, 1);
+    private readonly object monthCacheLock = new();
+    private readonly Dictionary<int, IReadOnlyList<TransactionRecord>> monthCache = [];
+    private readonly Dictionary<int, MonthLoad> monthLoads = [];
+    private readonly LinkedList<int> monthCacheOrder = [];
     private IReadOnlyDictionary<int, TransactionRecord> recordsById =
         new Dictionary<int, TransactionRecord>();
     private IReadOnlyList<TransactionRecord> periodRecords = [];
+    private int monthCacheGeneration;
 
     public IReadOnlyList<TransactionRecord> DashboardRecords { get; private set; } = [];
     public IReadOnlyList<TransactionRecord> DescriptionHistoryRecords { get; private set; } = [];
@@ -31,12 +37,28 @@ public sealed class TransactionDataStore(LocalDatabase database)
         DateTime startDateInclusive,
         DateTime endDateExclusive)
     {
-        var records = await database.GetTransactionsAsync(
-            startDateInclusive,
-            endDateExclusive).ConfigureAwait(false);
+        var records = TryGetWholeMonth(
+                startDateInclusive,
+                endDateExclusive,
+                out var month)
+            ? await GetMonthAsync(month).ConfigureAwait(false)
+            : await database.GetTransactionsAsync(
+                    startDateInclusive,
+                    endDateExclusive)
+                .ConfigureAwait(false);
         periodRecords = records;
         RebuildRecordLookup();
         return records;
+    }
+
+    public async Task PrefetchMonthAsync(
+        DateTime month,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var normalizedMonth = new DateTime(month.Year, month.Month, 1);
+        await GetMonthAsync(normalizedMonth).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
     }
 
     public async Task<TransactionSearchPage> SearchAsync(
@@ -108,6 +130,7 @@ public sealed class TransactionDataStore(LocalDatabase database)
         await refreshLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
+            var cacheGeneration = InvalidateMonthCache();
             var snapshot = useStartupRecovery
                 ? await database.GetTransactionSnapshotForStartupAsync(
                     month,
@@ -118,6 +141,10 @@ public sealed class TransactionDataStore(LocalDatabase database)
             periodRecords = snapshot.PeriodRecords;
             DescriptionHistoryRecords = snapshot.DescriptionHistoryRecords;
             RebuildRecordLookup();
+            CacheMonth(
+                new DateTime(month.Year, month.Month, 1),
+                snapshot.PeriodRecords,
+                cacheGeneration);
             IsLoaded = true;
             return snapshot;
         }
@@ -126,6 +153,127 @@ public sealed class TransactionDataStore(LocalDatabase database)
             refreshLock.Release();
         }
     }
+
+    private Task<IReadOnlyList<TransactionRecord>> GetMonthAsync(DateTime month)
+    {
+        var monthKey = ToMonthKey(month);
+        TaskCompletionSource<IReadOnlyList<TransactionRecord>> completion;
+        int generation;
+        lock (monthCacheLock)
+        {
+            if (monthCache.TryGetValue(monthKey, out var cachedRecords))
+            {
+                TouchCachedMonth(monthKey);
+                return Task.FromResult(cachedRecords);
+            }
+
+            generation = monthCacheGeneration;
+            if (monthLoads.TryGetValue(monthKey, out var existingLoad) &&
+                existingLoad.Generation == generation)
+            {
+                return existingLoad.Task;
+            }
+
+            completion = new TaskCompletionSource<IReadOnlyList<TransactionRecord>>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            monthLoads[monthKey] = new MonthLoad(generation, completion.Task);
+        }
+
+        _ = LoadAndCacheMonthAsync(
+            month,
+            monthKey,
+            generation,
+            completion);
+        return completion.Task;
+    }
+
+    private async Task LoadAndCacheMonthAsync(
+        DateTime month,
+        int monthKey,
+        int generation,
+        TaskCompletionSource<IReadOnlyList<TransactionRecord>> completion)
+    {
+        try
+        {
+            var records = await database.GetTransactionsAsync(
+                    month,
+                    month.AddMonths(1))
+                .ConfigureAwait(false);
+            CacheMonth(month, records, generation);
+            completion.TrySetResult(records);
+        }
+        catch (Exception exception)
+        {
+            completion.TrySetException(exception);
+        }
+        finally
+        {
+            lock (monthCacheLock)
+            {
+                if (monthLoads.TryGetValue(monthKey, out var activeLoad) &&
+                    activeLoad.Generation == generation)
+                {
+                    monthLoads.Remove(monthKey);
+                }
+            }
+        }
+    }
+
+    private int InvalidateMonthCache()
+    {
+        lock (monthCacheLock)
+        {
+            monthCache.Clear();
+            monthCacheOrder.Clear();
+            return ++monthCacheGeneration;
+        }
+    }
+
+    private void CacheMonth(
+        DateTime month,
+        IReadOnlyList<TransactionRecord> records,
+        int generation)
+    {
+        var monthKey = ToMonthKey(month);
+        lock (monthCacheLock)
+        {
+            if (generation != monthCacheGeneration)
+            {
+                return;
+            }
+
+            monthCache[monthKey] = records;
+            TouchCachedMonth(monthKey);
+            while (monthCacheOrder.Count > MaximumCachedMonths)
+            {
+                var oldestMonthKey = monthCacheOrder.First!.Value;
+                monthCacheOrder.RemoveFirst();
+                monthCache.Remove(oldestMonthKey);
+            }
+        }
+    }
+
+    private void TouchCachedMonth(int monthKey)
+    {
+        monthCacheOrder.Remove(monthKey);
+        monthCacheOrder.AddLast(monthKey);
+    }
+
+    private static bool TryGetWholeMonth(
+        DateTime startDateInclusive,
+        DateTime endDateExclusive,
+        out DateTime month)
+    {
+        month = new DateTime(
+            startDateInclusive.Year,
+            startDateInclusive.Month,
+            1);
+        return startDateInclusive == month &&
+            endDateExclusive == month.AddMonths(1);
+    }
+
+    private static int ToMonthKey(DateTime month) =>
+        (month.Year * 100) + month.Month;
 
     private void RebuildRecordLookup()
     {
@@ -163,4 +311,8 @@ public sealed class TransactionDataStore(LocalDatabase database)
         return $"{transaction.Description} {transaction.Category} " +
             $"{transaction.PaymentMethod} {transaction.Type} {longDate} {shortDate} {amount}";
     }
+
+    private sealed record MonthLoad(
+        int Generation,
+        Task<IReadOnlyList<TransactionRecord>> Task);
 }
